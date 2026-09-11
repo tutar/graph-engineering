@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PROTOTYPE — codex-action Tracer Bullet</title>
+  <style>
+    :root { color-scheme: light; --ink:#17212b; --muted:#64717d; --line:#d9e0e5; --paper:#f6f8f9; --accent:#176b5b; --warn:#a84b20; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.55 system-ui,sans-serif; color:var(--ink); background:#eef2f3; }
+    main { max-width:1080px; margin:0 auto; padding:40px 20px 80px; }
+    h1,h2,h3 { line-height:1.2; }
+    h1 { margin-bottom:8px; }
+    .lede { color:var(--muted); max-width:860px; }
+    .banner { border-left:5px solid var(--warn); background:#fff4ed; padding:12px 16px; margin:20px 0; }
+    .panel { background:white; border:1px solid var(--line); border-radius:12px; padding:20px; margin-top:18px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+    .field { background:var(--paper); border-radius:8px; padding:12px; min-height:88px; }
+    .field strong { display:block; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .field span { display:block; margin-top:5px; white-space:pre-wrap; }
+    button { border:1px solid var(--accent); border-radius:7px; background:white; color:var(--accent); padding:9px 12px; margin:4px; cursor:pointer; font:inherit; }
+    button:hover,button.primary { background:var(--accent); color:white; }
+    button:disabled { opacity:.4; cursor:not-allowed; }
+    .tabs { display:flex; flex-wrap:wrap; gap:6px; border-bottom:1px solid var(--line); padding-bottom:10px; }
+    .steps { margin-top:16px; }
+    .step { display:flex; gap:12px; align-items:flex-start; padding:11px 0; border-bottom:1px solid var(--line); }
+    .step.done { color:var(--muted); text-decoration:line-through; }
+    .step button { min-width:110px; }
+    .verdict { border-left:5px solid var(--accent); background:#edf8f5; }
+    code { background:#edf1f3; padding:2px 5px; border-radius:4px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>首个 codex-action Tracer Bullet 应证明什么？</h1>
+  <p class="lede">这个可丢弃 Prototype（原型）让我们亲手比较两条最小真实 Workflow：只读 PR Review 与写入型 ticket-to-PR。问题不是哪条最终价值更大，而是哪条能用最少机制验证 Workflow-first → Compatible Executor → Agent Action → Agent Runtime 的边界，同时产生可信、可观察的证据。</p>
+  <div class="banner"><strong>PROTOTYPE，勿作为正式 Workflow 发布。</strong> 所有状态只存在于本页内存；刷新页面即可清空。</div>
+
+  <section class="panel">
+    <h2>当前实验状态</h2>
+    <div id="state" class="grid"></div>
+  </section>
+
+  <section class="panel">
+    <h2>自由试验</h2>
+    <p>任选候选形态，然后模拟 Event、Goal、Agent 结果与可信验证。非法顺序会显示为被拒绝的动作。</p>
+    <div id="actions"></div>
+  </section>
+
+  <section class="panel">
+    <h2>引导 walkthrough</h2>
+    <div id="tabs" class="tabs"></div>
+    <div id="scenario"></div>
+  </section>
+
+  <section class="panel verdict">
+    <h2>请带着这三个判断结束试用</h2>
+    <ol>
+      <li>首个 Tracer Bullet 是否只需证明 Prompt 输入、Agent Action 调用、终态输出和独立验证，而无需同时证明写权限治理？</li>
+      <li>只读 PR Review 的结果是否足以暴露 Compatible Executor 的真实输入输出边界？</li>
+      <li>如果 ticket-to-PR 的额外学习主要来自写授权、分支幂等和 PR 生命周期，它是否应成为下一条验证，而不是首条？</li>
+    </ol>
+  </section>
+</main>
+<script>
+const candidates = {
+  review: {
+    name: "只读 PR Review",
+    event: "pull_request + workflow_dispatch",
+    profile: "read-only：Agent 无 GitHub 写凭据；Workflow 可发布结果",
+    prompt: "读取 PR diff、仓库规范与 Acceptance Criteria；返回结构化 review verdict 和发现",
+    output: "codex-action final-message",
+    verification: "可信步骤核对 Action 成功、final-message 非空、PR head SHA 未变；再发布 Check/summary",
+    learning: "验证事件路由、Event Prompt、薄适配、Runtime 终态和可信结果映射",
+    extras: "不引入写授权、分支创建、push、PR 幂等或脏工作区恢复"
+  },
+  delivery: {
+    name: "写入型 ticket-to-PR",
+    event: "issues:labeled + workflow_dispatch",
+    profile: "branch-and-pr：一次性 Write Authorization 后开放 contents/PR 写能力",
+    prompt: "读取 Issue 与 Acceptance Criteria；修改、自测、commit、push 并创建或更新 Draft PR",
+    output: "Git branch + commit + Draft PR + codex-action final-message",
+    verification: "可信步骤核对授权、branch/commit/PR 归属、tests evidence 与终态标签消费",
+    learning: "同时验证核心适配与副作用治理、fresh-run 幂等、交付对象生命周期",
+    extras: "必须处理恶意输入、授权消费、并发、已有分支/PR、部分写入与失败恢复"
+  }
+};
+
+const initial = () => ({
+  candidate: null, phase: "尚未选择", event: "—", profile: "—", prompt: "—",
+  actionOutput: "—", trustedEvidence: "—", publishedResult: "—", lastChange: "等待选择候选形态"
+});
+let state = initial();
+
+function transition(s, action) {
+  const next = {...s};
+  const reject = reason => ({...s, lastChange:`拒绝：${reason}`});
+  if (action.type === "reset") return initial();
+  if (action.type === "choose") {
+    const c = candidates[action.value];
+    return {...initial(), candidate:action.value, phase:"已选择", event:c.event, profile:c.profile, prompt:c.prompt, lastChange:`选择 ${c.name}`};
+  }
+  if (!s.candidate) return reject("先选择候选形态");
+  if (action.type === "dispatch") {
+    if (s.phase !== "已选择") return reject("只有已选择状态可以接收事件");
+    next.phase="Goal Run 运行中"; next.lastChange="Workflow 读取当前 GitHub 事实并通过 Compatible Executor 启动 Fresh Goal Run"; return next;
+  }
+  if (action.type === "complete") {
+    if (s.phase !== "Goal Run 运行中") return reject("Agent Action 尚未运行");
+    next.phase="等待可信验证"; next.actionOutput=candidates[s.candidate].output; next.lastChange="Agent Runtime 结束；Action 只提供其实际公开输出"; return next;
+  }
+  if (action.type === "verify") {
+    if (s.phase !== "等待可信验证") return reject("没有可验证的 Agent 结果");
+    next.phase="已验证"; next.trustedEvidence=candidates[s.candidate].verification; next.lastChange="Workflow 自有步骤独立检查外部效果，而非相信 final-message"; return next;
+  }
+  if (action.type === "publish") {
+    if (s.phase !== "已验证") return reject("未经可信验证不能发布结论");
+    next.phase="已发布"; next.publishedResult=s.candidate === "review" ? "Check/summary：review verdict + findings + head SHA" : "Draft PR/summary：交付对象 + 验证证据 + final status"; next.lastChange="以稳定对象发布结果；Workflow Run/log 仅作执行证据"; return next;
+  }
+  return reject("未知动作");
+}
+
+const actionDefs = [
+  ["选择只读 PR Review",{type:"choose",value:"review"}], ["选择 ticket-to-PR",{type:"choose",value:"delivery"}],
+  ["接收 GitHub Event",{type:"dispatch"}], ["Agent Runtime 结束",{type:"complete"}],
+  ["可信步骤验证",{type:"verify"}], ["发布结果",{type:"publish"}], ["重置",{type:"reset"}]
+];
+
+const scenarios = [
+  {id:"review", name:"最小只读闭环", description:"观察核心架构是否能在没有 Agent 写权限的情况下被完整验证。", steps:[0,2,3,4,5]},
+  {id:"delivery", name:"写入型闭环", description:"观察首条实验若选择 ticket-to-PR，会一次引入多少独立风险面。", steps:[1,2,3,4,5]},
+  {id:"trust", name:"不能相信 final-message", description:"故意在 Action 结束后直接发布；确认 Workflow 必须先独立验证效果。", steps:[0,2,3,5,4,5]}
+];
+let activeScenario=0, stepIndex=0;
+
+function dispatch(action) { state=transition(state,action); render(); }
+function field(label,value) { return `<div class="field"><strong>${label}</strong><span>${value}</span></div>`; }
+function render() {
+  const c=state.candidate ? candidates[state.candidate] : null;
+  document.querySelector("#state").innerHTML = [
+    field("候选形态",c?.name||"—"), field("阶段",state.phase), field("触发",state.event), field("Effect Profile",state.profile),
+    field("Goal Prompt",state.prompt), field("Agent Action 输出",state.actionOutput), field("可信验证",state.trustedEvidence),
+    field("发布结果",state.publishedResult), field("此形态主要学习",c?.learning||"—"), field("额外机制",c?.extras||"—"), field("刚刚发生",state.lastChange)
+  ].join("");
+  document.querySelector("#actions").innerHTML=actionDefs.map(([label,action])=>`<button data-action='${JSON.stringify(action)}'>${label}</button>`).join("");
+  document.querySelectorAll("#actions button").forEach(b=>b.onclick=()=>dispatch(JSON.parse(b.dataset.action)));
+  document.querySelector("#tabs").innerHTML=scenarios.map((s,i)=>`<button class="${i===activeScenario?'primary':''}" data-tab="${i}">${s.name}</button>`).join("");
+  document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>startScenario(Number(b.dataset.tab)));
+  const sc=scenarios[activeScenario];
+  document.querySelector("#scenario").innerHTML=`<p>${sc.description}</p><div class="steps">${sc.steps.map((idx,i)=>`<div class="step ${i<stepIndex?'done':''}"><button ${i!==stepIndex?'disabled':''} data-step="${i}">${i+1}. ${actionDefs[idx][0]}</button><span>${i===stepIndex?'下一步':i<stepIndex?'已执行':'等待前一步'}</span></div>`).join("")}</div>`;
+  document.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{ const idx=sc.steps[stepIndex]; state=transition(state,actionDefs[idx][1]); stepIndex++; render(); });
+}
+function startScenario(index) { activeScenario=index; stepIndex=0; state=initial(); render(); }
+render();
+</script>
+</body>
+</html>
