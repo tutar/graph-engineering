@@ -13,15 +13,24 @@ const scripts = new URL("../files/.github/loop-engineering/", import.meta.url);
 test("the manual Workflow Instance runs a controlled Action and publishes its trusted Check", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pr-review-case-"));
   const requests = [];
+  let pullRequestReads = 0;
+  let checkReads = 0;
   const server = createServer(async (request, response) => {
     if (request.method === "GET" && request.url === "/repos/acme/widgets/pulls/42") {
+      pullRequestReads += 1;
       response.setHeader("content-type", "application/json");
       response.end(JSON.stringify({
         title: "Add the widget contract",
         body: "Closes #41 and preserves the public API.",
-        base: { sha: "base-123" },
-        head: { sha: "head-456" },
+        base: { sha: "base-123", ref: "main" },
+        head: { sha: "head-456", ref: "feature/widget" },
       }));
+      return;
+    }
+    if (request.method === "GET" && request.url === "/repos/acme/widgets/commits/head-456/check-runs") {
+      checkReads += 1;
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ check_runs: [{ name: "tests", conclusion: "success" }] }));
       return;
     }
     if (request.method === "POST" && request.url === "/repos/acme/widgets/check-runs") {
@@ -58,6 +67,10 @@ test("the manual Workflow Instance runs a controlled Action and publishes its tr
     assert.match(goal, /Standards/);
     assert.match(goal, /Spec/);
     assert.match(goal, /code-review/);
+    const context = await readFile(join(directory, "pr-review-context.md"), "utf8");
+    assert.match(context, /Base branch: main/);
+    assert.match(context, /Head branch: feature\/widget/);
+    assert.match(context, /tests=success/);
 
     const target = JSON.parse(await readFile(join(directory, "pr-review-target.json"), "utf8"));
     const controlledFinalMessage = JSON.stringify({
@@ -91,6 +104,18 @@ test("the manual Workflow Instance runs a controlled Action and publishes its tr
     const captured = JSON.parse(await readFile(join(directory, "review-result.json"), "utf8"));
     assert.equal(captured.runtime.terminal, "completed");
     assert.match(captured.runtime.summary, /openai\/codex-action/);
+
+    await execute(process.execPath, [new URL("prepare-review.mjs", scripts).pathname], {
+      cwd: directory,
+      env: {
+        ...commonEnv,
+        GITHUB_REPOSITORY: "acme/widgets",
+        PULL_REQUEST_NUMBER: "42",
+        EVENT_PROMPT: "Review this change against repository rules.",
+      },
+    });
+    assert.equal(pullRequestReads, 3, "initial preparation, trusted publication, and rerun reread PR facts");
+    assert.equal(checkReads, 2, "initial preparation and rerun both reread Check facts");
   } finally {
     server.closeAllConnections();
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

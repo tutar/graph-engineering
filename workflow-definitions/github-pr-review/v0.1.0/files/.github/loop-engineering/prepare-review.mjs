@@ -1,25 +1,21 @@
 import { writeFile } from "node:fs/promises";
 
+import { githubRequest } from "./github-api.mjs";
 import { formGoalPrompt } from "./pr-review-case.mjs";
 
 const repository = required("GITHUB_REPOSITORY");
 const pullRequestNumber = Number.parseInt(required("PULL_REQUEST_NUMBER"), 10);
 if (!Number.isInteger(pullRequestNumber) || pullRequestNumber < 1) throw new Error("PULL_REQUEST_NUMBER must be positive");
 
-const response = await fetch(`${process.env.GITHUB_API_URL ?? "https://api.github.com"}/repos/${repository}/pulls/${pullRequestNumber}`, {
-  headers: {
-    Accept: "application/vnd.github+json",
-    Authorization: `Bearer ${required("GH_TOKEN")}`,
-    "X-GitHub-Api-Version": "2022-11-28",
-  },
-});
-if (!response.ok) throw new Error(`Could not read PR facts: GitHub returned ${response.status}`);
-const pull = await response.json();
+const pull = await githubRequest(`/repos/${repository}/pulls/${pullRequestNumber}`);
+const checks = await githubRequest(`/repos/${repository}/commits/${pull.head.sha}/check-runs`);
 const target = {
   repository,
   number: pullRequestNumber,
   baseSha: pull.base.sha,
   headSha: pull.head.sha,
+  baseRef: pull.base.ref,
+  headRef: pull.head.ref,
 };
 
 await writeFile("pr-review-target.json", `${JSON.stringify(target, null, 2)}\n`);
@@ -27,6 +23,10 @@ await writeFile("pr-review-context.md", [
   `# PR #${pullRequestNumber}: ${pull.title}`,
   "",
   pull.body || "No pull request description was provided.",
+  "",
+  `Base branch: ${target.baseRef}`,
+  `Head branch: ${target.headRef}`,
+  `Existing Checks on head: ${(checks.check_runs ?? []).map((check) => `${check.name}=${check.conclusion ?? check.status}`).join(", ") || "none"}`,
   "",
 ].join("\n"));
 await writeFile("pr-review-goal.md", `${formGoalPrompt({
