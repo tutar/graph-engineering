@@ -2,7 +2,7 @@
 
 这是 Workflow-first 路线的 Candidate Definition（候选工作流定义）。把 `files/.github/` 整体复制到 Consumer Project（消费项目）后，项目自行拥有其 Workflow Instance（工作流实例）；运行时不依赖 `loop-engineering` 仓库。
 
-当前版本只提供人工 PR Review 最小闭环，尚未通过 Candidate Publication Gate，也没有 Supported Profile（受支持配置）。自动 PR 生命周期、同 SHA 幂等更新、完整失败路径与真实 Consumer 验证由后续 tickets 补齐。
+当前版本支持非 Draft PR 的 `opened`、`reopened`、`synchronize`、`ready_for_review` 与人工 dispatch；Draft 创建和更新保持静默，转为 ready 后启动。它尚未通过 Candidate Publication Gate，也没有 Supported Profile（受支持配置）。同 SHA Check 更新、完整失败路径与真实 Consumer 验证由后续 tickets 补齐。
 
 ## 安装与运行
 
@@ -14,6 +14,8 @@
 Workflow 先用只读 GitHub token 读取 PR 的 repository、number、base SHA、head SHA、title 与 body，再 checkout 已固定的 base/head。Event Prompt 与这些可信事实形成 Goal Prompt，并要求 Agent 调用 Consumer Project 的 `code-review` Skill。Codex review job 只有 `contents: read` 与 `pull-requests: read`；它只产出符合 JSON Schema 的候选 review output。
 
 独立 `publish` job 才拥有 `checks: write`。Workflow 只允许从默认分支启动，并让该 job 明确 checkout 默认分支上的可信 publisher；publisher 重新读取当前 PR head、核对候选结果中的目标身份与两轴结构，然后创建绑定 reviewed head SHA 的 Check Run。Agent 文本本身不是可信发布结果的证据。
+
+每次 GitHub Workflow Run 都重新路由 Event，并从 GitHub API 读取当前 PR、base/head branch、commit 与 Check facts，形成独立 Fresh Goal Run（全新目标运行）。Definition 不保存 Resume Record、Session ID、Goal ID 或旧 transcript。根级 concurrency group 由 repository + PR number 构成，`cancel-in-progress: false` 让同一 PR 的完整 GitHub Workflow Runs 串行排队，不同 PR 使用不同 group。
 
 ## Compatibility Profile
 
