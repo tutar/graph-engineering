@@ -1,0 +1,14 @@
+{
+  "profile": "github-pr-review/codex/v0.1.0",
+  "action": {
+    "source": "openai/codex-action",
+    "sourceTag": "v1",
+    "commit": "86365089eb2b84e0a8fb0717b304f8bdcb13b20e"
+  },
+  "inputs": ["prompt-file", "output-file", "output-schema-file", "permission-profile", "safety-strategy"],
+  "outputs": ["final-message"],
+  "reviewJobPermissions": {
+    "contents": "read",
+    "pull-requests": "read"
+  }
+}
