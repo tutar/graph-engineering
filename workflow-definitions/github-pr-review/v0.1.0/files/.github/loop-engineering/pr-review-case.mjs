@@ -1,4 +1,4 @@
-const CHECK_NAME = "Loop Engineering / PR Review";
+import { CHECK_NAME } from "./check-publication.mjs";
 
 export function formGoalPrompt({ eventPrompt, pullRequest }) {
   return `${eventPrompt.trim()}
