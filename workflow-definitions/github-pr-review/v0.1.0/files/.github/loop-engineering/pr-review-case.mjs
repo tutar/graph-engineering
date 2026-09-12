@@ -115,10 +115,11 @@ function assertExactKeys(value, expected) {
   }
 }
 
-export function buildCheck(review, target) {
+export function buildCheck(review, target, settings = { name: CHECK_NAME, title: "PR Review" }) {
   assertReviewResult(review, target);
   return {
-    name: CHECK_NAME,
+    name: settings.name,
+    title: settings.title,
     repository: target.repository,
     pullRequestNumber: target.number,
     headSha: target.headSha,

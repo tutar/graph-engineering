@@ -73,7 +73,7 @@ test("the production router adapter covers lifecycle, draft-to-ready, and manual
         },
       });
       const output = await readFile(outputPath, "utf8");
-      assert.match(output, new RegExp(`should_start=${expected}`));
+      assert.match(output, new RegExp(`should_start<<[^\\n]+\\n${expected}\\n`));
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

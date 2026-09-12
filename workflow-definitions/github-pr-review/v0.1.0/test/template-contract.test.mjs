@@ -7,6 +7,7 @@ import { SUPPORTED_ACTIONS } from "../files/.github/loop-engineering/route-revie
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const workflow = read("../files/.github/workflows/github-pr-review.yml");
 const profile = JSON.parse(read("../files/.github/loop-engineering/codex-compatibility-profile.json"));
+const config = JSON.parse(read("../files/.github/loop-engineering/pr-review-config.json"));
 const schema = JSON.parse(read("../files/.github/loop-engineering/review-result.schema.json"));
 
 test("the copyable template has a manual entry and separate review and publish jobs", () => {
@@ -37,8 +38,8 @@ test("the review job is read-only and only the trusted publisher can write Check
   assert.match(review, /pull-requests: read/);
   assert.doesNotMatch(review, /checks: write/);
   assert.doesNotMatch(review, /issues: write|pull-requests: write|contents: write/);
-  assert.match(review, /permission-profile: :read-only/);
-  assert.match(review, /safety-strategy: read-only/);
+  assert.match(review, /permission-profile: \$\{\{ needs\.route\.outputs\.permission_profile \}\}/);
+  assert.match(review, /safety-strategy: \$\{\{ needs\.route\.outputs\.safety_strategy \}\}/);
   assert.match(review, /github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/);
   assert.match(publish, /checks: write/);
   assert.match(publish, /pull-requests: read/);
@@ -68,6 +69,35 @@ test("the Executor pins the documented codex-action v1 commit and maps only real
   assert.match(workflow, /steps\.codex\.outputs\.final-message/);
   assert.deepEqual(profile.outputs, ["final-message"]);
   assert.doesNotMatch(workflow, /session[-_]id|goal[-_]id|resume record/i);
+});
+
+test("Consumer configuration cannot select the Action, mapping, Profile implementation, Provider, or capabilities", () => {
+  assert.deepEqual(Object.keys(config).sort(), ["check", "codex", "definition", "eventPrompt", "events", "profile", "runner"].sort());
+  assert.equal("action" in config, false);
+  assert.equal("provider" in config, false);
+  assert.equal("capabilities" in config, false);
+  assert.match(workflow, /model: \$\{\{ needs\.route\.outputs\.codex_model \}\}/);
+  assert.match(workflow, /effort: \$\{\{ needs\.route\.outputs\.codex_effort \}\}/);
+  assert.match(workflow, /permission-profile: \$\{\{ needs\.route\.outputs\.permission_profile \}\}/);
+  assert.match(workflow, /safety-strategy: \$\{\{ needs\.route\.outputs\.safety_strategy \}\}/);
+  assert.doesNotMatch(workflow, /vars\..*(ACTION|PROFILE|PROVIDER|CAPABIL)/i);
+});
+
+test("the Profile declares the immutable mapping and every validation boundary", () => {
+  assert.equal(profile.definition, "github-pr-review/v0.1.0");
+  assert.equal(profile.executor.id, "codex-compatible-executor");
+  assert.equal(profile.executor.version, "v0.1.0");
+  assert.deepEqual(profile.action.requiredInputs, ["openai-api-key", "prompt-file", "output-schema-file", "working-directory", "permission-profile", "safety-strategy"]);
+  assert.deepEqual(profile.action.acceptedInputs, ["openai-api-key", "prompt-file", "output-schema-file", "working-directory", "model", "effort", "permission-profile", "safety-strategy"]);
+  assert.equal(profile.mapping.goalPrompt, "prompt-file");
+  assert.equal(profile.mapping.reviewSchema, "output-schema-file");
+  assert.deepEqual(profile.permissions.publishJob, { contents: "read", "pull-requests": "read", checks: "write" });
+  assert.equal(profile.validation.failClosed, true);
+  assert.equal(profile.validation.resultSchema, "review-result.schema.json");
+  assert.deepEqual(profile.consumerConfiguration.pullRequestActions, [...SUPPORTED_ACTIONS]);
+  assert.deepEqual(profile.consumerConfiguration.permissionProfiles, [":read-only"]);
+  assert.deepEqual(profile.consumerConfiguration.safetyStrategies, ["read-only"]);
+  assert.equal(profile.consumerConfiguration.checkTextMaxLength, 100);
 });
 
 test("the candidate output schema requires exact identity and both review axes", () => {

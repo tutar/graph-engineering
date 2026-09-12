@@ -1,0 +1,21 @@
+{
+  "definition": "github-pr-review/v0.1.0",
+  "profile": "github-pr-review/codex/v0.1.0",
+  "events": {
+    "pullRequestActions": ["opened", "reopened", "synchronize", "ready_for_review"],
+    "manualDispatch": true,
+    "includeDrafts": false
+  },
+  "eventPrompt": "Review this change against the repository rules and its requested behavior.",
+  "runner": "ubuntu-24.04",
+  "codex": {
+    "model": "",
+    "effort": "",
+    "permissionProfile": ":read-only",
+    "safetyStrategy": "read-only"
+  },
+  "check": {
+    "name": "Loop Engineering / PR Review",
+    "title": "PR Review"
+  }
+}
