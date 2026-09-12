@@ -2,6 +2,26 @@
 
 本仓库维护经过真实项目验证、可整体复制到项目中的版本化 Workflow Definition（工作流定义）。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
 
+## 项目定位
+
+`loop-engineering` 不实现 Loop Runtime（循环运行时）。它提供 Agent Loop Engineering（智能体循环工程）在 GitHub 上的一种使用方式：项目自有的 Workflow 根据 GitHub Event 选择可配置的 Event Prompt（事件提示模板），形成带明确 Completion Condition（结束条件）的 Goal Prompt（目标提示），再通过 Compatible Executor（兼容执行器）接入 Agent Action，由 Agent Runtime 原生的 `/goal` 自主续轮并判断完成或交接。
+
+```text
+GitHub Event
+    -> Workflow + configurable Event Prompt
+    -> Compatible Executor
+    -> Agent Action
+    -> Agent Runtime native /goal
+```
+
+Compatible Executor 是本项目维护的薄适配层，不是新的 Loop Runtime：它只映射 Goal Prompt、必要运行配置和终态结果。第一版新架构将适配 [`openai/codex-action`](https://github.com/openai/codex-action)；后续可以分别适配 [`deepseek-harness-action`](https://github.com/Lixiaoyiao/deepseek-harness-action) 与 [`claude-code-action`](https://github.com/anthropics/claude-code-action)，而不假定三种 Action 的输入、权限和输出完全相同。
+
+具体应用的 Issue、Ticket 或 PR 拥有业务目标与 Acceptance Criteria（验收条件）。Workflow 不把 Acceptance Criteria 固化为通用 Schema，但项目最佳实践要求业务对象提供明确、可验证的验收条件，使 Event Prompt 能引用它们形成有效的 Goal Prompt。
+
+新架构以 Fresh Goal Run（全新目标运行）作为跨 GitHub Workflow Run 的正确性基线：每次运行重新读取 Issue、PR、branch、commit 与 Check 等 GitHub 持久事实，识别已经完成的效果并协调剩余工作，而不是重放上一次运行的步骤。Session、runner 工作区、日志和 artifact 只可用于执行或诊断，Workflow 不维护跨 Run 的 Agent 会话恢复状态。取消、异常退出或人工 rerun 后，也必须能够仅依据 GitHub 当前事实重新运行。
+
+下面记录的是当前已经发布并验证的 `github-development-ticket` v0.1.x；Workflow-first 与 Compatible Executor 方向仍在 [Wayfinder 决策地图](https://github.com/tutar/loop-engineering/issues/11) 中规划，尚未作为新版本发布。
+
 ## 当前进展与效果
 
 当前已经完成首个 Reference Application（参考应用）：`github-development-ticket` v0.1.2。它把一个带指定标签的 GitHub Development Ticket（研发票据）转换为 Codex `/goal`，由持久化 self-hosted runner 中的 Codex 使用 Matt `$implement` Skill 持续完成：
