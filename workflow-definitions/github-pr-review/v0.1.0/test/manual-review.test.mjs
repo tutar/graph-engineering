@@ -15,6 +15,7 @@ test("the manual Workflow Instance runs a controlled Action and publishes its tr
   const requests = [];
   let pullRequestReads = 0;
   let checkReads = 0;
+  let currentHead = "head-456";
   const server = createServer(async (request, response) => {
     if (request.method === "GET" && request.url === "/repos/acme/widgets/pulls/42") {
       pullRequestReads += 1;
@@ -23,20 +24,34 @@ test("the manual Workflow Instance runs a controlled Action and publishes its tr
         title: "Add the widget contract",
         body: "Closes #41 and preserves the public API.",
         base: { sha: "base-123", ref: "main" },
-        head: { sha: "head-456", ref: "feature/widget" },
+        head: { sha: currentHead, ref: "feature/widget" },
       }));
       return;
     }
-    if (request.method === "GET" && request.url === "/repos/acme/widgets/commits/head-456/check-runs") {
+    if (request.method === "GET" && request.url.startsWith("/repos/acme/widgets/commits/") && request.url.includes("/check-runs")) {
       checkReads += 1;
+      const isOriginalHead = request.url.includes("/commits/head-456/check-runs");
       response.setHeader("content-type", "application/json");
-      response.end(JSON.stringify({ check_runs: [{ name: "tests", conclusion: "success" }] }));
+      response.end(JSON.stringify({
+        check_runs: [
+          { name: "tests", conclusion: "success" },
+          ...(isOriginalHead ? requests.filter((write) => write.body.external_id).map((write) => ({
+            id: 7,
+            name: write.body.name,
+            head_sha: "head-456",
+            external_id: write.body.external_id,
+          })) : []),
+        ],
+      }));
       return;
     }
-    if (request.method === "POST" && request.url === "/repos/acme/widgets/check-runs") {
+    if (
+      (request.method === "POST" && request.url === "/repos/acme/widgets/check-runs")
+      || (request.method === "PATCH" && request.url === "/repos/acme/widgets/check-runs/7")
+    ) {
       let body = "";
       for await (const chunk of request) body += chunk;
-      requests.push(JSON.parse(body));
+      requests.push({ method: request.method, body: JSON.parse(body) });
       response.setHeader("content-type", "application/json");
       response.end(JSON.stringify({ id: 7 }));
       return;
@@ -96,14 +111,33 @@ test("the manual Workflow Instance runs a controlled Action and publishes its tr
     });
 
     assert.equal(requests.length, 1);
-    assert.equal(requests[0].name, "Loop Engineering / PR Review");
-    assert.equal(requests[0].head_sha, "head-456");
-    assert.equal(requests[0].conclusion, "success");
-    assert.match(requests[0].output.summary, /Standards: pass/);
-    assert.match(requests[0].output.summary, /Spec: pass/);
+    assert.equal(requests[0].method, "POST");
+    assert.equal(requests[0].body.name, "Loop Engineering / PR Review");
+    assert.equal(requests[0].body.head_sha, "head-456");
+    assert.equal(requests[0].body.conclusion, "success");
+    assert.match(requests[0].body.output.summary, /Standards: pass/);
+    assert.match(requests[0].body.output.summary, /Spec: pass/);
     const captured = JSON.parse(await readFile(join(directory, "review-result.json"), "utf8"));
     assert.equal(captured.runtime.terminal, "completed");
     assert.match(captured.runtime.summary, /openai\/codex-action/);
+
+    await execute(process.execPath, [new URL("publish-review.mjs", scripts).pathname], {
+      cwd: directory,
+      env: commonEnv,
+    });
+    assert.equal(requests[1].method, "PATCH");
+    assert.equal(requests[1].body.external_id, requests[0].body.external_id);
+    assert.equal("head_sha" in requests[1].body, false);
+
+    currentHead = "head-789";
+    await assert.rejects(
+      execute(process.execPath, [new URL("publish-review.mjs", scripts).pathname], {
+        cwd: directory,
+        env: commonEnv,
+      }),
+      /stale-target/,
+    );
+    assert.equal(requests.length, 2, "stale results never write a Check");
 
     await execute(process.execPath, [new URL("prepare-review.mjs", scripts).pathname], {
       cwd: directory,
@@ -114,8 +148,33 @@ test("the manual Workflow Instance runs a controlled Action and publishes its tr
         EVENT_PROMPT: "Review this change against repository rules.",
       },
     });
-    assert.equal(pullRequestReads, 3, "initial preparation, trusted publication, and rerun reread PR facts");
-    assert.equal(checkReads, 2, "initial preparation and rerun both reread Check facts");
+    const newTarget = JSON.parse(await readFile(join(directory, "pr-review-target.json"), "utf8"));
+    await execute(process.execPath, [new URL("capture-review.mjs", scripts).pathname], {
+      cwd: directory,
+      env: {
+        ...commonEnv,
+        TRUSTED_TARGET: JSON.stringify(newTarget),
+        FINAL_MESSAGE: JSON.stringify({
+          repository: newTarget.repository,
+          pullRequestNumber: newTarget.number,
+          baseSha: newTarget.baseSha,
+          headSha: newTarget.headSha,
+          standards: { verdict: "pass", findings: [] },
+          spec: { verdict: "pass", findings: [] },
+        }),
+      },
+    });
+    await copyFile(join(directory, "pr-review-target.json"), join(artifact, "pr-review-target.json"));
+    await copyFile(join(directory, "review-result.json"), join(artifact, "review-result.json"));
+    await execute(process.execPath, [new URL("publish-review.mjs", scripts).pathname], {
+      cwd: directory,
+      env: commonEnv,
+    });
+    assert.equal(requests[2].method, "POST");
+    assert.equal(requests[2].body.head_sha, "head-789");
+    assert.notEqual(requests[2].body.external_id, requests[0].body.external_id);
+    assert.equal(pullRequestReads, 6, "every preparation and publication rereads PR facts");
+    assert.equal(checkReads, 5, "every preparation and fresh publication rereads Check facts");
   } finally {
     server.closeAllConnections();
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
