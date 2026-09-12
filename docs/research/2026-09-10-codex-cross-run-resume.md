@@ -1,115 +1,153 @@
-# Codex 跨 GitHub Workflow Run 恢复可行性调研
+# Codex 跨 GitHub Workflow Run 恢复研究
 
-> 研究快照：2026-09-10。Codex 源码核对到 `openai/codex@713caa89f389acd9cbcd77016edbb607273826af`；`openai/codex-action@v1` 核对到 `86365089eb2b84e0a8fb0717b304f8bdcb13b20e`。本文没有执行真实的跨 Runner 重启实验。
+> 研究快照：2026-09-11。`openai/codex-action@v1` 当前 annotated tag 指向 commit `86365089eb2b84e0a8fb0717b304f8bdcb13b20e`；Codex Goal 行为的源码证据固定到 `openai/codex@713caa89f389acd9cbcd77016edbb607273826af`。远端旧稿位于 `research/codex-cross-run-resume@6e95043bebd41fbfef3cf592ea9c1c6025752599`。本轮没有改 Workflow，也没有完成真实 GitHub rerun/recovery dispatch 实验。
 
-## 结论
+## 决策摘要
 
-技术上可以让 Codex 的同一 Session（会话）跨 GitHub Workflow Run（工作流运行）继续，但 **`openai/codex-action@v1` 本身不足以实现该能力**。可靠恢复至少需要同时保存并恢复：
+跨 GitHub Workflow Run（工作流运行）继续同一个原生 Goal 在技术上可行，但当前 `openai/codex-action@v1` **没有原生提供所需接口**，Codex 原生状态也**不能独立证明** GitHub repository、Issue/PR、执行器兼容性或“中间无人侵入”。因此，当前不能把它作为正式 Workflow 的安全能力。
 
-1. Codex Thread（线程）的 Session rollout（会话记录）；
-2. 与该 Thread 对应的 Goal（目标）SQLite 状态；
-3. 独立持久化的工作区变更，例如 Git 分支、提交或 Patch Artifact（补丁制品）；
-4. 稳定的 GitHub 对象到 Codex Thread ID 的映射。
+建议把 Resume（恢复）保留为 Compatible Executor（兼容执行器）的显式、默认关闭能力，并先开 Prototype/Tracer Bullet 验证。最小安全方案是：仅允许同一 Run 的 rerun 或显式绑定原 Application Object（应用对象）的人工 recovery dispatch；恢复前验证 GitHub 入口、不可变 Executor Profile（执行器配置档）、专用持久 runner 的本机租约、唯一 active Goal、干净且与权威 Git ref 一致的工作区；任一条件缺失、损坏、冲突或候选不唯一时，**明确失败并 handoff（交接），绝不静默启动 fresh Goal**。
 
-Codex CLI（命令行工具）能够按 Session ID 恢复；源码还表明，同一 Thread 中持久状态仍为 `active` 的 `/goal` 会在恢复后重新装载，并在 Thread idle（空闲）时继续执行。`paused`、`blocked`、`usage-limited` 或 `complete` 不会被隐式改回 `active`。
+这修正了远端旧稿中的一句错误建议。旧稿称恢复失败可退化为新 Session；这会把 recovery 意图偷换成新的执行，可能让旧 Goal 与新 Goal 同时产生外部效果，与本票据已确认的失败语义冲突。Fresh Goal 只能由普通新 GitHub Event 的正常入口显式创建，不能成为 resume 路径的 fallback。
 
-GitHub 重新运行 Job（作业）不会承诺回到原 Runner（运行器）。给唯一一台 Self-hosted Runner（自托管运行器）配置唯一标签只能形成部署拓扑上的倾向，不是 Runner Affinity（运行器亲和性）契约。因此首版不应把“命中同一机器的本地磁盘”作为正确性前提。
+## 证据边界
 
-推荐把跨 Run Session 恢复定义为 Compatible Executor（兼容执行器）的可选能力，而不是 Workflow（工作流）的基础正确性。首版应以 GitHub 中可恢复的 Git 状态和明确验收条件为事实源；恢复失败时能够安全退化为新的 Codex Session。
+- **官方契约**：OpenAI 或 GitHub 文档明确承诺的公开行为。
+- **官方源码**：固定 commit 上可观察的实现，不等于未来版本兼容承诺。
+- **工程结论**：由官方契约和源码推导出的安全约束。
+- **未验证**：尚无真实 GitHub Run 或故障注入证据；不得写成已支持。
 
-## 证据等级
+## 支持矩阵
 
-- **官方明示**：OpenAI 或 GitHub 文档直接承诺的接口和行为。
-- **官方源码**：当前快照源码可直接观察到的实现；不等同于所有已发布 CLI 版本的长期兼容承诺。
-- **工程推断**：由官方接口、存储结构和 GitHub 调度语义推导出的设计约束。
-- **未验证假设**：尚未通过真实 CLI 重启和 GitHub Runner 故障实验验证的部分。
-
-## Codex 能否恢复指定 Session
-
-**官方明示**：`codex exec resume [SESSION_ID]` 可以按 ID 恢复非交互 Session，也支持 `--last`、`--all` 和后续 Prompt（提示词）。交互式 CLI 同样提供 `codex resume SESSION_ID`。[Codex Developer commands：`codex exec`](https://learn.chatgpt.com/docs/developer-commands?surface=cli#codex-exec) [Codex Developer commands：`codex resume`](https://learn.chatgpt.com/docs/developer-commands?surface=cli#codex-resume)
-
-**官方源码**：CLI 把 UUID 或 Session name（会话名称）解析为恢复标识，再调用 App Server（应用服务器）的 `thread/resume`。[Resume 参数定义](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/exec/src/cli.rs#L149-L255) [Exec 恢复实现](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/exec/src/lib.rs#L979-L1012)
-
-**工程推断**：Session ID 只是定位符，不是远端托管状态。新的 Runner 还必须能读取原 Thread 的本地 rollout。Codex 测试辅助代码把 rollout 放在 `$CODEX_HOME/sessions/YYYY/MM/DD/rollout-...-<thread-id>.jsonl`。[Rollout 路径构造](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/app-server/tests/common/rollout.rs#L23-L35) `--ephemeral` 明确不持久化 Session rollout，因此不能作为跨 Run 恢复的起点。[Codex Developer commands：`--ephemeral`](https://learn.chatgpt.com/docs/developer-commands?surface=cli#codex-exec)
-
-## Active `/goal` 能否随 Session 继续
-
-**官方明示**：`/goal <objective>` 把 Goal 附着在当前 Active Chat（活动对话）上，Codex 在工作继续期间保持该 Goal。[Codex Developer commands：`/goal`](https://learn.chatgpt.com/docs/developer-commands?surface=cli#slash-commands)
-
-**官方源码**：
-
-- Thread resume 生命周期调用 `restore_after_resume()`；[Goal extension resume hook](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/ext/goal/src/extension.rs#L161-L174)
-- 恢复逻辑按 Thread ID 从 SQLite 读取 Goal，只有持久状态仍为 `Active` 时才恢复内存中的活动标记；[Goal restore](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/ext/goal/src/runtime.rs#L394-L416)
-- 随后的 idle 生命周期调用 `continue_if_idle()`，再次检查 `Active` 状态并启动 `turn_trigger: goal` 的 continuation turn（续行轮次）；[Idle hook](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/ext/goal/src/extension.rs#L176-L188) [Goal continuation](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/ext/goal/src/runtime.rs#L418-L480)
-- 官方测试验证：`paused` Goal 在 Thread resume 后仍为 `paused`，且不会启动新轮次。[Paused goal resume test](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/app-server/tests/suite/v2/thread_resume.rs#L2729-L2825)
-
-Goal 状态位于 `goals_1.sqlite`，`thread_goals` 以 `thread_id` 为主键保存 Objective（目标描述）、状态与用量。[SQLite 文件定义](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/state/src/sqlite.rs#L25-L43) [Goal schema](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/state/migrations/0029_thread_goals.sql#L1-L11) [Goal read path](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/state/src/runtime/goals.rs#L35-L59)
-
-因此，**源码支持的准确结论**是：同一持久化 Thread 中仍为 `active` 的 Goal 会在 resume 后恢复并可自动续行。不能扩大为“任何未完成 Goal 都会自动恢复”，也不能假设只保存 Session ID 就足够。
-
-## `openai/codex-action@v1` 暴露了什么
-
-**官方 Action 契约**：该版本只声明 `final-message` 一个 Output（输出），没有暴露 Session ID、Thread ID 或 Goal ID。[Action outputs](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/action.yml#L123-L126)
-
-Action 固定组装 `codex exec`，写入 `--output-last-message`，再追加 `codex-args` 和 Prompt。它没有公开选择 `codex exec resume` 子命令的输入，也没有启用并解析 `--json` 中的 `thread.started.thread_id`。[命令组装源码](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/src/runCodexExec.ts#L256-L315) Codex CLI 自身可以用 `--json` 输出包含 `thread_id` 的 JSONL 事件，但 Action 没有把该信号提升为输出。[Codex non-interactive mode](https://developers.openai.com/codex/noninteractive)
-
-`codex-home` Input（输入）只是选择当前 Job 使用的目录；Action 没有跨 Runner 上传或恢复这个目录，也不会替用户提交、暂存或上传未提交工作区。[Action inputs](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/action.yml) OpenAI 的自动化示例把 Patch 的保存和 Artifact 上传明确写成 Action 之外的后续步骤，进一步说明工作区持久化由 Workflow 拥有。[Codex non-interactive automation](https://developers.openai.com/codex/noninteractive)
-
-**结论**：若要支持跨 Run 恢复，需要在 Compatible Executor 中补充捕获 Thread ID、持久化状态和调用 resume 的适配。不能仅通过现有 `codex-args` 把固定的 `codex exec` 可靠改造成 `codex exec resume`。
-
-## GitHub rerun 能否回到同一 Runner
-
-**官方明示**：GitHub rerun 保留原触发者权限以及原 `GITHUB_SHA`、`GITHUB_REF`，但文档没有承诺再次调度到原 Runner。[Re-running workflows and jobs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)
-
-Self-hosted Runner 调度按 Runner Group（运行器组）和 Label（标签）匹配：GitHub 把 Job 分配给任一在线且空闲的匹配 Runner；若 Runner 60 秒内未接单，Job 会重新排队供其他匹配 Runner 接受。[Self-hosted runner routing](https://docs.github.com/en/actions/reference/runners/self-hosted-runners) 多个 `runs-on` 标签只是累计匹配条件。[Using self-hosted runners in a workflow](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/use-in-a-workflow)
-
-**工程推断**：若一个唯一标签始终只属于一台在线 Runner，调度结果通常会落到该机器；但可靠性来自当前部署拓扑，而不是 GitHub 提供的机器身份契约。Runner 离线、替换、重新注册、清理本地盘，或同标签被加到另一台机器时，该假设立即失效。GitHub 也明确指出更换 Runner 后需要重新分配自定义标签。[Managing custom labels](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/apply-labels)
-
-GitHub-hosted Runner（GitHub 托管运行器）的每个 Job 使用新虚拟机，因此其本地 `$CODEX_HOME` 和未提交工作区天然丢失。[GitHub-hosted runners](https://docs.github.com/en/actions/concepts/runners/github-hosted-runners)
-
-## 状态持久化与安全边界
-
-| 状态 | Fresh Runner 上是否天然保留 | 推荐事实源 |
+| 能力 | 当前判定 | 依据与边界 |
 |---|---|---|
-| GitHub Issue、PR、评论、Run 元数据 | 是，位于 GitHub | GitHub API / Event payload |
-| 已推送 Git commit、branch、tag | 是 | Git remote |
-| Codex Thread ID | 否，除非显式记录 | 受控映射存储或 Workflow Artifact |
-| Session rollout、Goal SQLite | 否，除非显式备份和恢复 | 隔离、加密、版本化的 Codex state bundle |
-| 未提交工作区 | 否 | Git commit/branch 或 Patch Artifact |
-| Runner 进程、内存、临时文件 | 否；持久机器上残留也不应依赖 | 不作为事实源 |
+| Codex CLI 按 Thread/Session ID 恢复 | 原生支持 | `codex exec resume [SESSION_ID]` 与交互式 `codex resume` 是公开 CLI；`--ephemeral` 不保存 rollout，不能用于跨 Run 恢复。[Codex CLI：exec/resume](https://developers.openai.com/codex/cli/reference) |
+| 同一 Thread 恢复持久化 active Goal | 源码支持，需版本固定 | resume hook 从 SQLite 按 Thread ID 恢复 Goal；只有持久状态 `Active` 会恢复，idle hook 才继续触发 Goal turn。[Goal restore](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/ext/goal/src/runtime.rs#L394-L416) [Goal continuation](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/ext/goal/src/runtime.rs#L418-L480) |
+| `openai/codex-action@v1` 输出 Thread/Goal ID | 不支持 | Action 只有 `final-message` 输出。[action.yml](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/action.yml#L123-L126) |
+| `openai/codex-action@v1` 调用 `codex exec resume` | 不支持 | Action 固定组装 `codex exec`，没有 resume 输入，也没有把 JSONL `thread_id` 提升为输出。[命令组装](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/src/runCodexExec.ts#L256-L315) |
+| Workflow 不保存映射而由本地 Codex 状态找到唯一候选 | 有条件可扩展，但原生不足 | rollout 文件名和 Goal 表能把 Thread 与 Goal 相连，却不含可信 GitHub object identity；只能作为候选发现，不能作为授权证据。[rollout 路径](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/app-server/tests/common/rollout.rs#L23-L35) [Goal schema](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/state/migrations/0029_thread_goals.sql#L1-L11) |
+| 同一台持久 self-hosted runner 上恢复 | 仅受控部署/实验可支持 | GitHub 只按 group/labels 把 Job 发给任一在线、空闲且匹配的 runner，不承诺物理机亲和性。[Self-hosted runner routing](https://docs.github.com/en/actions/reference/runners/self-hosted-runners) |
+| GitHub-hosted runner 依赖本地状态恢复 | 不可支持 | 每个 Job 获得新的 VM，本地状态不连续。[GitHub-hosted runners](https://docs.github.com/en/actions/concepts/runners/github-hosted-runners) |
+| 跨机器迁移最小 Codex 状态 | 理论可扩展，当前不可安全声称支持 | 必须一致快照 rollout 与 Goal DB、排除认证、加密会话内容并做单写者 fencing；当前无官方 bundle/export 契约或实验。
+| 恢复失败后自动 fresh Goal | 不可安全支持 | 会改变入口语义，并可能与仍运行的旧 Goal 重复外部效果；必须 fail closed 并 handoff。
 
-持久化整个 `$CODEX_HOME` 操作上最简单，但风险最高：其中可能包含认证信息、配置、Session transcript（会话记录）、Prompt、工具输出和项目内容。OpenAI 明确要求把 `~/.codex/auth.json` 当作密码，不得提交或分享，持久化认证必须使用安全存储。[Codex authentication for CI](https://developers.openai.com/codex/noninteractive)
+## 七个研究问题
 
-持久 Self-hosted Runner 还缺少 GitHub-hosted Runner 的干净隔离保证，可能在 Job 间残留被修改的文件、进程或凭证；GitHub 警告其可能被持续攻陷，并建议自动扩缩场景使用 Ephemeral Runner（一次性运行器）。[Secure use of GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use) [Self-hosted runners](https://docs.github.com/en/actions/reference/runners/self-hosted-runners) Codex Action 也提醒 Codex 可能留下进程、修改 Action 源码、配置或 Hook，因此应尽量让它作为最后一步运行；启用 `drop-sudo` 时产生的账户或 Socket 变更在复用 Runner 上还可能跨 Job 存在。[Codex Action security](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/docs/security.md) [Codex Action README](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/README.md)
+### 1. Action 能否原生 resume；如何扩展而不削弱边界
 
-因此即使做状态恢复，也应满足：按仓库和任务隔离、静态加密、最短保留期、最小文件权限、不跨信任域复用，以及恢复前校验仓库、Thread 和目标身份。工作区应从干净 checkout 加受审计的 Git/Patch 状态重建，不应直接复用历史脏目录。
+`openai/codex-action@v1` 不能原生完成安全 resume。它只输出最终消息，固定执行 `codex exec`，没有 Session/Thread/Goal 标识输出、resume 子命令输入或恢复状态接口。[Action outputs](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/action.yml#L123-L126) [执行命令实现](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/src/runCodexExec.ts#L256-L315)
 
-## 可行方案与推荐约束
+`codex-home` 只指定当前 Job 使用的目录；Action 不负责跨 Run 上传、恢复或校验目录。[Action inputs](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/action.yml) Codex CLI 的 JSONL 模式会发出带 `thread_id` 的 `thread.started` 事件，但当前 Action 未暴露它。[Codex non-interactive mode](https://developers.openai.com/codex/noninteractive)
 
-### 推荐基线
+安全扩展应进入同一个 Compatible Executor，而不是在 Action 后追加裸 `codex exec resume`：
 
-首版每个 GitHub Event（事件）重新 checkout 已持久化的 Git 状态，构造该 Event 可配置的 Prompt，并启动新的原生 `/goal`。以 Issue/Ticket 的验收条件、Git 分支和提交作为跨 Run 事实源。Session 恢复失败不得妨碍重新开始。
+1. 固定 Action 与 Codex revision，并把认证、代理、sandbox、权限、`codex-home`、工作目录和关键配置组成不可变 Executor Profile；
+2. 由同一受信执行器捕获 JSONL Thread ID、检查本地 Goal DB、执行 resume，并保持 Action 的进程清理与降权边界；
+3. 恢复前验证入口和本机租约，恢复后输出可审计 Result；
+4. 任何配置不兼容或验证不可得都失败交接。
 
-### 可选的跨 Run Resume 能力
+Action 官方安全说明指出 Codex 可能修改文件、配置、hook 或留下进程，并建议把它尽量放在 Job 末尾；`drop-sudo` 还会改变复用 runner 上的账户/socket 状态。这说明“Action 后裸跑 CLI”并非安全等价替换。[Codex Action security](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/docs/security.md) [Codex Action README](https://github.com/openai/codex-action/blob/86365089eb2b84e0a8fb0717b304f8bdcb13b20e/README.md)
 
-若后续证明长任务确实需要连续上下文，可在 Codex Compatible Executor 中实现以下最小契约：
+### 2. Codex 原生状态能验证什么
 
-1. 用 Codex JSONL 输出捕获并返回 `thread_id`；
-2. 以稳定 Operation Key（操作键）关联 GitHub 对象、目标版本和 Thread ID；
-3. 在 Codex 进程退出后，以一致快照保存 Session rollout 和 Goal SQLite；
-4. 新 Run 先恢复相同版本、相同信任域的状态，再调用 `codex exec resume <SESSION_ID>`；
-5. 独立从 Git commit/branch 或 Patch Artifact 恢复工作区；
-6. 用 GitHub `concurrency` 和幂等键避免同一 Goal 并发恢复；
-7. 仅自动续行持久状态为 `active` 的 Goal，不自动解除 `paused`、`blocked` 或用量限制；
-8. 状态缺失、损坏、版本不兼容或身份不匹配时，安全退化为新的 Session。
+Codex 原生状态可以确定：某 Thread 的 rollout 是否存在、某 Thread 是否有 Goal、Goal 的 objective/status/usage，以及 active 候选数量。Goal 位于 `goals_1.sqlite`，`thread_goals` 以 `thread_id` 为主键。[SQLite 定义](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/state/src/sqlite.rs#L25-L43) [Goal read path](https://github.com/openai/codex/blob/713caa89f389acd9cbcd77016edbb607273826af/codex-rs/state/src/runtime/goals.rs#L35-L59)
 
-采用唯一标签的持久 Runner 只能作为受控试验：限定单仓库或单信任域、只有一个合格 Runner、并发为一、禁用不可信 Fork 代码，并接受机器替换即丢失恢复能力。它不能替代显式状态契约。
+它不能作为可信证据确定：
 
-## 尚未验证
+- 当前 GitHub repository 与 Issue/PR 身份；会话文字里提到对象只是 agent 生成内容，不是 trusted binding（可信绑定）；
+- 当前 checkout、branch/commit 是否等于应恢复的权威 Git 状态；
+- Action 类型、版本、runtime、代理、权限、sandbox、配置是否兼容；
+- 两个 Workflow Run 之间没有其他 Issue、其他 Action 或人工运行侵入同一目录/状态；
+- 一个旧进程是否仍在产生外部效果。
 
-- 尚未用一个已发布且固定版本的 Codex CLI 做“创建 active Goal → 进程退出 → 新进程按 ID resume → 自动续行”的端到端实验；当前 Goal 连续性结论来自官方 `main` 源码和测试。
-- 尚未验证对运行中 SQLite 直接打包的安全性；实现时必须在进程退出后生成一致快照，并验证 WAL 等数据库文件处理。
-- 尚未做 Runner 离线、替换、重复投递和两个 Run 并发恢复同一 Thread 的故障实验。
-- OpenAI 没有承诺 GitHub-hosted fresh Runner 仅凭 Session ID 即可远端恢复；现有源码显示它依赖本地 rollout 和 SQLite。
+因此“不让 Workflow 保存 Resume Record”并不等于“不保存任何恢复约束”。对象身份与授权来自当前 GitHub event/API；执行兼容性来自版本化 Executor Profile；本地连续性来自部署隔离和运行时租约。Codex 状态只负责验证“唯一可恢复 active Goal 候选”，不能单独授权恢复。
 
-这些验证完成前，跨 Run resume 应保持为可选优化，不应成为 Workflow 完成任务的唯一正确路径。
+### 3. Runner 连续性：运行时检查与部署约束
+
+可在运行时确定性检查：
+
+- 当前 event 是允许的 rerun/recovery dispatch，且 repository、Application Object、原 run/attempt 关系匹配；GitHub rerun 保留原 `GITHUB_SHA`、`GITHUB_REF` 和原触发者权限，可通过 Actions API/event 元数据核验，但 GitHub 不承诺同一 runner。[Re-running workflows and jobs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)
+- 本地 machine/installation marker、workspace marker、Codex state marker 与不可变 Executor Profile digest 匹配；
+- 工作区无意外脏改动，HEAD/remote ref 与恢复策略匹配；
+- 进程锁和 lease epoch（租约世代）表明当前执行器是唯一 writer；
+- rollout 可读、SQLite integrity check 通过，且恰好一个与当前 profile 匹配的 active Goal。
+
+只能作为部署约束：
+
+- `runs-on` label/group 实际只匹配一台任务专用、持久化 runner；GitHub 的调度契约只是任一匹配且空闲 runner。[Runner routing](https://docs.github.com/en/actions/reference/runners/self-hosted-runners)
+- runner 串行且不承载其他 repository、Issue、Agent Action 或人工 Goal Run；
+- 本地磁盘不会被外部清理/回滚，机器 marker 不会被镜像复制；
+- 不执行不可信 fork 代码，并按单一信任域隔离。GitHub 警告 self-hosted runner 可能被持久攻陷，并建议自动扩缩使用 ephemeral runner。[Secure use of GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use) [Self-hosted runners](https://docs.github.com/en/actions/reference/runners/self-hosted-runners)
+
+label、group、runner name 或“目录还在”都不能单独证明是原物理机和未受侵入的连续状态。
+
+### 4. 取消、下线、重建与磁盘损坏的失败语义
+
+恢复入口必须 fail closed（闭锁失败）：
+
+| 故障 | 可观察信号 | 结果 |
+|---|---|---|
+| 原 Run 被取消但旧 Codex 进程仍存活 | lease 未释放、进程/heartbeat 尚在，或无法证明已终止 | 不恢复；标记 `RESUME_CONFLICT`，handoff |
+| runner 下线或 Job 被调度到别处 | machine marker/本地状态缺失 | `RESUME_RUNNER_UNAVAILABLE`，handoff |
+| runner 重建/磁盘清理 | installation epoch 改变、rollout/DB 缺失 | `RESUME_STATE_MISSING`，handoff |
+| rollout 或 SQLite 损坏/不一致 | 解析失败、integrity check 失败、Thread 与 Goal 不匹配 | `RESUME_STATE_CORRUPT`，handoff；保留证据，禁止修复式猜测 |
+| 版本或关键配置变化 | Executor Profile digest 不同 | `RESUME_INCOMPATIBLE`，handoff |
+| 候选为零或多于一个 | 唯一性检查失败 | `RESUME_NOT_UNIQUE`，handoff |
+
+失败 Result 应包含稳定 operation key、原 run/attempt、当前 run、失败码及可公开诊断，但不能上传 transcript、token 或认证文件。它不得调用 fresh Goal；由人明确选择新的普通事件/工作请求后，才走 fresh-run 路径。
+
+### 5. 能否迁移最小恢复状态
+
+概念上可迁移，但当前没有足够证据宣称安全支持。最小逻辑集合至少包括：
+
+- 目标 Thread 的 session rollout；
+- `goals_1.sqlite` 中与该 Thread 关联的 Goal 状态，且要用 SQLite 一致快照而不是运行中随意复制 DB/WAL；
+- Thread ID、Codex revision、Executor Profile digest、machine-independent bundle manifest；
+- 独立的权威工作区状态（已推送 commit/branch，或受控 Patch Artifact），不能把历史脏工作目录当恢复包。
+
+必须排除 `auth.json`、API key、代理凭据和其他认证材料。OpenAI 明确要求把 `~/.codex/auth.json` 当作密码，不得分享或提交，并建议 CI 使用 secret 注入。[Codex authentication for CI](https://developers.openai.com/codex/noninteractive)
+
+恢复包还包含 prompt、对话、工具输出和可能的仓库敏感内容，必须按 repository/对象/信任域隔离、加密、限制读取权限和保留期，并做完整性与防回滚校验。GitHub Artifact 本身不能解决一致性和并发：上传必须发生在 Codex 退出、Goal 状态稳定且 lease fencing 成功之后；恢复端必须以原子 claim 消费特定 generation，禁止两个 Run 同时恢复。由于当前没有官方最小 export/import 格式、兼容版本承诺或本票据实验，跨机器状态 bundle 判定为“需扩展且尚不可安全支持”。
+
+### 6. 防止旧 Goal、新 Goal 并发和重复外部效果
+
+GitHub `concurrency` 可限制同一 group 最多一个 running 与一个 pending Job，并可取消正在运行者，但取消是调度控制，不是外部效果的事务保证。[Workflow concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+
+最小防线需要三层：
+
+1. **GitHub 调度层**：按 repository + Application Object 使用稳定 concurrency group；recovery 与正常事件必须落入同一组。
+2. **Executor fencing 层**：原子获得单写者 lease，带单调 epoch；每次 continuation 和有副作用的工具调用前检查租约仍有效。无法证明旧进程退出时不得恢复。
+3. **Effect（外部效果）层**：每个操作使用稳定 operation key，并在权威系统查询既有 Result；GitHub comment、label、branch/PR 等写入应可查重或具幂等 precondition。Session transcript 和 agent 最终文本不能证明效果是否发生。
+
+`cancel-in-progress` 只能缩短重叠窗口，不能替代 fencing 与幂等。尤其不能在 resume 验证失败后 fresh fallback；那会创建第二个 Goal，绕过唯一 Goal 约束。
+
+### 7. 真实跨 Run 实验
+
+**状态：未执行，不能作为支持证据。** 本轮只核对官方文档、固定源码与远端旧稿；没有可审计的两个 GitHub Workflow Run、runner 身份、Thread/Goal 状态变化和外部效果记录。
+
+后续 Prototype/Tracer Bullet 应固定版本并至少覆盖：
+
+1. 在任务专用持久 runner 上由 Run A 创建 Thread 和 active Goal，记录 JSONL `thread_id`、Goal DB 状态、HEAD、Executor Profile digest 和 machine epoch；让进程在可控 continuation 边界退出。
+2. 对 Run A 做真实 rerun，证明 Run B 验证同一对象、同一机器/状态、唯一 active Goal 后执行 Session resume，并由 Goal continuation 继续；记录两个 Run URL 与完整 Result。
+3. 分别注入：第二个匹配 runner、runner 重建、状态缺失、DB 损坏、profile 变化、多个 active 候选、旧进程仍运行、重复 recovery dispatch；每种必须得到确定失败码和 handoff，且不得出现 fresh Goal。
+4. 用唯一 operation key 触发一个可查询的测试效果，验证 rerun/并发恢复不会重复写入。
+5. 若研究跨机器 bundle，再单独验证一致快照、认证排除、加密、篡改/回滚拒绝和两个恢复者竞争。
+
+在这些实验完成前，唯一诚实结论是：Codex 的底层恢复机制存在，项目级安全恢复契约尚未验证。
+
+## 推荐的最小 Resume 配置
+
+仅建议用于后续原型，不建议现在进入正式 Workflow：
+
+- 默认 `resume: disabled`；普通 GitHub event 总是 fresh Goal。
+- 允许入口只有同一 Workflow Run 的 rerun，或显式携带并由 GitHub API 验证原 Application Object/Run 的人工 recovery dispatch。
+- 一个 repository/信任域专用的持久 self-hosted runner，唯一匹配 label，部署层保证并发一；不接受 fork/untrusted code。
+- 固定不可变 Action/Codex revision；Executor Profile 覆盖 action 类型/revision、runtime、workdir、`CODEX_HOME`、权限、代理、sandbox、模型及影响恢复的配置。
+- Workflow 不保存 Session/Goal mapping；Compatible Executor 从隔离本地状态发现候选，但必须结合可信 GitHub event 与本机 marker 验证，且候选恰好一个。
+- GitHub concurrency + 本机 lease/fencing + effect operation key 三层并发控制。
+- Git 工作区从权威 branch/commit 重建或验证；Session 状态不代替 GitHub/Git 事实。
+- 失败只返回分类 Result 并 handoff；不猜测、不自动修复、不 fresh fallback。
+
+## 最终建议
+
+当前决策应是“**暂不在正式 Workflow 支持跨 Run resume；创建独立 Prototype/Tracer Bullet 票据验证同机恢复契约与故障语义**”。若同机实验通过，再决定是否值得研究跨机器最小状态 bundle。无论优化是否落地，GitHub Issue/PR、branch/commit、Check/Run 和稳定 operation result 仍是跨 Run 正确性的权威事实；Session resume 只减少上下文重建成本，不能成为正确性的唯一基础。
