@@ -1,6 +1,8 @@
 name: Loop Engineering PR Review
 
 on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
   workflow_dispatch:
     inputs:
       pull_request_number:
@@ -13,13 +15,38 @@ on:
         default: Review this change against the repository rules and its requested behavior.
         type: string
 
+concurrency:
+  group: ${{ github.repository }}:pull-request:${{ github.event.pull_request.number || inputs.pull_request_number }}
+  cancel-in-progress: false
+
 jobs:
+  route:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      should_start: ${{ steps.route.outputs.should_start }}
+      pull_request_number: ${{ steps.route.outputs.pull_request_number }}
+    steps:
+      - name: Check out the trusted router
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Route the GitHub Event
+        id: route
+        run: node .github/loop-engineering/route-review.mjs
+
   review:
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    needs: route
+    if: >-
+      needs.route.outputs.should_start == 'true' &&
+      (github.event_name != 'workflow_dispatch' ||
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: read
+      checks: read
     steps:
       - name: Check out the selected repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -27,8 +54,8 @@ jobs:
         id: target
         env:
           GH_TOKEN: ${{ github.token }}
-          PULL_REQUEST_NUMBER: ${{ inputs.pull_request_number }}
-          EVENT_PROMPT: ${{ inputs.event_prompt }}
+          PULL_REQUEST_NUMBER: ${{ needs.route.outputs.pull_request_number }}
+          EVENT_PROMPT: ${{ inputs.event_prompt || 'Review this change against the repository rules and its requested behavior.' }}
         run: node .github/loop-engineering/prepare-review.mjs
       - name: Check out the trusted PR target
         env:

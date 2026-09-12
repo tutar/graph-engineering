@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+import { SUPPORTED_ACTIONS } from "../files/.github/loop-engineering/route-review.mjs";
+
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const workflow = read("../files/.github/workflows/github-pr-review.yml");
 const profile = JSON.parse(read("../files/.github/loop-engineering/codex-compatibility-profile.json"));
@@ -13,6 +15,18 @@ test("the copyable template has a manual entry and separate review and publish j
   assert.match(workflow, /^  review:/m);
   assert.match(workflow, /^  publish:/m);
   assert.match(workflow, /needs: review/);
+});
+
+test("the Workflow routes the supported PR lifecycle into fresh serialized runs", () => {
+  assert.match(workflow, /pull_request:\s+types: \[opened, reopened, synchronize, ready_for_review\]/);
+  assert.match(workflow, /node \.github\/loop-engineering\/route-review\.mjs/);
+  assert.match(workflow, /steps\.route\.outputs\.pull_request_number/);
+  assert.match(workflow, /needs\.route\.outputs\.should_start == 'true'/);
+  assert.match(workflow, /group:.*github\.repository.*pull-request.*pull_request_number/);
+  assert.match(workflow, /cancel-in-progress: false/);
+  assert.doesNotMatch(workflow, /session[-_]id|goal[-_]id|resume record|transcript/i);
+  const configuredActions = workflow.match(/types: \[([^\]]+)\]/)[1].split(",").map((action) => action.trim());
+  assert.deepEqual(configuredActions, [...SUPPORTED_ACTIONS]);
 });
 
 test("the review job is read-only and only the trusted publisher can write Checks", () => {
