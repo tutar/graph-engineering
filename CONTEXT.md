@@ -52,6 +52,10 @@ _Avoid_: Compatible Executor、Agent Runtime、Workflow Definition
 本项目维护的薄适配层，把 Workflow 提供的 Goal Prompt 与运行配置映射为一个 Agent Action 的输入，并把其终态映射回 Workflow；它不实现 Goal、续轮、Evaluator 或业务验收。
 _Avoid_: Agent Action、Loop Runtime、动态 Provider 系统
 
+**Compatibility Profile（兼容配置）**:
+随 Compatible Executor 版本交付的静态约束，以不可变 revision 锁定一个具体 Agent Action 来源，并声明输入映射、所需权限、可用输出及可信验证方式；约束不匹配时运行失败并交接，不协商、猜测或动态发现能力。
+_Avoid_: Effect Profile、运行时 capability discovery、通用 Agent Runtime 接口
+
 **Graph Engineering（图工程）**:
 定义多个 Goal Run、Verifier、Human Gate 与业务节点之间的拓扑、转移和整体完成判断；CI 或 Review Gate 失败后启动新的 Repair Goal Run 属于这一层。
 _Avoid_: Loop Engineering、Harness Engineering、LangGraph 特定实现
@@ -91,6 +95,42 @@ _Avoid_: 长期授权、内容安全证明、运行占用状态
 **Workflow Definition（工作流定义）**:
 `loop-engineering` 为一种 GitHub Agent Loop 用法维护的、带来源版本且可整体复制的普通文件集合，包括事件路由、可配置 Event Prompt 和 Compatible Executor；未经真实 Consumer Project 验证时是 Candidate Definition。
 _Avoid_: Reusable Workflow、中央 Runtime、通用 DSL
+
+**Candidate Definition（候选工作流定义）**:
+已经形成可复制版本、但尚未在真实 Consumer Project 中完整验证其正常完成、失败或交接及重复运行语义的 Workflow Definition；只有留下可复核的真实运行证据后才能晋级为 Stable Definition（稳定工作流定义）。
+_Avoid_: 草稿、仅凭静态测试即可发布的稳定版本、Legacy Frozen Definition
+
+**Legacy Frozen Definition（旧版冻结定义）**:
+已经发布并验证、仍可由 Consumer Project 复制使用，但退出默认演进路线的 Workflow Definition；保留其版本化文件与验证记录，仅接受严重安全问题和事实纠错，不新增能力或承诺适配未来平台变化。
+_Avoid_: Candidate Definition、默认推荐路线、已删除或不可使用的版本
+
+**Repository Release（仓库发布版本）**:
+表达 `loop-engineering` 仓库整体架构与内容快照的版本；它与各 Workflow Definition 独立拥有的版本生命周期不同。
+_Avoid_: Workflow Definition Version、所有 Definition 共用的统一版本
+
+**Candidate Publication Gate（候选发布门）**:
+判断一个 Candidate Definition 是否已具备可供真实项目试用且不会误导使用者的静态完整性门槛；通过它不表示该 Definition 已在真实 Consumer Project 中验证或已晋级 Stable。
+_Avoid_: Stable Promotion Gate、真实运行验收、生产兼容保证
+
+**Stable Promotion Gate（稳定晋级门）**:
+依据同一冻结版本在真实 Consumer Project 中形成的 Evidence Bundle，判断 Candidate Definition 是否可以在明确 Supported Profile 内晋级为 Stable Definition。
+_Avoid_: Candidate Publication Gate、一次 happy path、未限定范围的通用兼容声明
+
+**Supported Profile（受支持配置）**:
+一个 Stable Definition 以真实证据承诺支持的精确运行组合，包括 Workflow Definition、Compatibility Profile、Agent Action revision、runner、权限模式、事件来源及其他影响契约的环境边界；未经验证的组合不自动继承该承诺。
+_Avoid_: Consumer 可配置项清单、动态 capability discovery、对所有环境的兼容声明
+
+**Evidence Bundle（证据包）**:
+针对同一冻结 Candidate、Action revision、Consumer Workflow Instance 与 Supported Profile 完整执行发布 Case 后形成的版本化证据集合；不同契约版本的历史结果不能拼接成一个通过结论。
+_Avoid_: 单个绿色 Workflow Run、Agent 自述、跨版本证据拼接
+
+**Evidence Manifest（证据清单）**:
+Evidence Bundle 的仓库内索引，记录冻结输入、Case Result、外部事实链接、已知限制、证据可见性及必要的核验信息，但不复制敏感日志或 Consumer Project 私有内容。
+_Avoid_: 原始运行日志、测试实现、无证据链接的人工总结
+
+**Case Result（用例结果）**:
+一个发布 Case 的 Expected Outcome、Observed Outcome、Assertions、Gate Decision 与证据链接；预期失败路径在实际行为符合预期时可以判为 `PASS`。
+_Avoid_: Workflow conclusion、仅有通过或失败文字的结论、Agent final text
 
 **Workflow Instance（工作流实例）**:
 Consumer Project 从某个 Workflow Definition 版本复制并自行拥有的可运行工作流；项目可以自由修改，记录的来源版本只表示最后参考的定义版本，不保证文件仍完全一致。
