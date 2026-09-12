@@ -14,7 +14,7 @@ test("the copyable template has a manual entry and separate review and publish j
   assert.match(workflow, /pull_request_number:/);
   assert.match(workflow, /^  review:/m);
   assert.match(workflow, /^  publish:/m);
-  assert.match(workflow, /needs: review/);
+  assert.match(workflow, /needs: \[route, review\]/);
 });
 
 test("the Workflow routes the supported PR lifecycle into fresh serialized runs", () => {
@@ -22,6 +22,7 @@ test("the Workflow routes the supported PR lifecycle into fresh serialized runs"
   assert.match(workflow, /node \.github\/loop-engineering\/route-review\.mjs/);
   assert.match(workflow, /steps\.route\.outputs\.pull_request_number/);
   assert.match(workflow, /needs\.route\.outputs\.should_start == 'true'/);
+  assert.match(workflow, /needs\.route\.result == 'success'/);
   assert.match(workflow, /group:.*github\.repository.*pull-request.*pull_request_number/);
   assert.match(workflow, /cancel-in-progress: false/);
   assert.doesNotMatch(workflow, /session[-_]id|goal[-_]id|resume record|transcript/i);
@@ -35,9 +36,26 @@ test("the review job is read-only and only the trusted publisher can write Check
   assert.match(review, /contents: read/);
   assert.match(review, /pull-requests: read/);
   assert.doesNotMatch(review, /checks: write/);
+  assert.doesNotMatch(review, /issues: write|pull-requests: write|contents: write/);
+  assert.match(review, /permission-profile: :read-only/);
+  assert.match(review, /safety-strategy: read-only/);
   assert.match(review, /github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/);
   assert.match(publish, /checks: write/);
   assert.match(publish, /pull-requests: read/);
+  assert.doesNotMatch(publish, /issues: write|pull-requests: write|contents: write/);
+});
+
+test("untrusted PR contents cannot replace control-plane scripts or retain Git credentials", () => {
+  const review = workflow.slice(workflow.indexOf("  review:"), workflow.indexOf("  publish:"));
+  const publish = workflow.slice(workflow.indexOf("  publish:"));
+  assert.match(review, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}[\s\S]*path: \.loop-engineering-trusted/);
+  assert.match(review, /ref: \$\{\{ steps\.target\.outputs\.head_sha \}\}[\s\S]*path: review-workspace/);
+  assert.match(review, /working-directory: \$\{\{ github\.workspace \}\}\/review-workspace/);
+  assert.match(review, /node \.loop-engineering-trusted\/\.github\/loop-engineering\/prepare-review\.mjs/);
+  assert.match(review, /node \.loop-engineering-trusted\/\.github\/loop-engineering\/capture-review\.mjs/);
+  assert.doesNotMatch(review, /run: node \.github\/loop-engineering\/(prepare|capture)-review\.mjs/);
+  assert.match(publish, /node \.loop-engineering-publisher\/\.github\/loop-engineering\/publish-review\.mjs/);
+  assert.equal((workflow.match(/persist-credentials: false/g) ?? []).length, 4);
 });
 
 test("the Executor pins the documented codex-action v1 commit and maps only real outputs", () => {
@@ -53,8 +71,10 @@ test("the Executor pins the documented codex-action v1 commit and maps only real
 });
 
 test("the candidate output schema requires exact identity and both review axes", () => {
-  assert.deepEqual(schema.required, ["repository", "pullRequestNumber", "baseSha", "headSha", "standards", "spec"]);
+  assert.deepEqual(schema.required, ["repository", "pullRequestNumber", "baseSha", "headSha"]);
   assert.equal(schema.properties.standards.$ref, "#/$defs/axis");
   assert.equal(schema.properties.spec.$ref, "#/$defs/axis");
   assert.deepEqual(schema.$defs.axis.required, ["verdict", "findings"]);
+  assert.equal(schema.oneOf.length, 2);
+  assert.deepEqual(schema.properties.handoff.required, ["summary"]);
 });
