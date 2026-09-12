@@ -11,9 +11,11 @@
 3. 在 Actions secrets 中配置 `OPENAI_API_KEY`。
 4. 从 Actions 页面运行 `Loop Engineering PR Review`，输入真实 PR number，可选修改 Event Prompt。
 
-Workflow 先用只读 GitHub token 读取 PR 的 repository、number、base SHA、head SHA、title 与 body，再 checkout 已固定的 base/head。Event Prompt 与这些可信事实形成 Goal Prompt，并要求 Agent 调用 Consumer Project 的 `code-review` Skill。Codex review job 只有 `contents: read` 与 `pull-requests: read`；它只产出符合 JSON Schema 的候选 review output。
+Workflow 先把默认分支上的控制脚本 checkout 到独立的 `.loop-engineering-trusted` 目录且不持久化 Git 凭据，用只读 GitHub token 读取 PR 的 repository、number、base SHA、head SHA、title 与 body；随后把固定的 head SHA checkout 到独立 `review-workspace`。Event Prompt 与这些可信事实形成 Goal Prompt，并要求 Agent 在该待审目录调用 Consumer Project 的 `code-review` Skill。prepare、schema 与 capture 始终来自可信目录，PR 内容不能替换执行器映射。Codex review job 只有 `contents: read`、`pull-requests: read` 与读取现有 Checks 所需的权限；它只产出符合 JSON Schema 的候选 review output。
 
-独立 `publish` job 才拥有 `checks: write`。Workflow 只允许从默认分支启动，并让该 job 明确 checkout 默认分支上的可信 publisher；publisher 重新读取当前 PR head、核对候选结果中的目标身份与两轴结构，然后创建绑定 reviewed head SHA 的 Check Run。Agent 文本本身不是可信发布结果的证据。
+独立 `publish` job 才拥有 `checks: write`。Workflow 只允许从默认分支启动，并让该 job 明确 checkout 默认分支上的可信 publisher；publisher 先验证上游 job 成功，再重新读取当前 PR head、核对候选结果中的目标身份与两轴结构，然后创建绑定 reviewed head SHA 的 Check Run。Agent 文本本身不是可信发布结果的证据，额外的“已发布”或“已通过”字段会被拒绝。
+
+Action step 的真实 outcome 与结构化输出共同映射为 `completed`、`handoff`、`failed` 或 `cancelled`。只有 `completed` 且结果完整、目标匹配时才会进入发布；Action 失败/取消、明确 handoff、空或畸形 JSON、缺少任一 review 轴、未知字段和 SHA/目标错配都会 fail closed。失败诊断写入 job summary 与 `review-diagnostic.md`，不会创建成功 Check，也不会启动外层 retry loop。review job 的 token 只有 contents、PR 和既有 Checks 的读取权限，同时 Codex 使用 `:read-only` permission profile 与无网络的 `read-only` safety strategy，因此评论、改标签、push 或发布 Check 的尝试均不具备可用能力；可信 publish job 也没有 Issues、PR 或 contents 写权限。
 
 Check 的稳定身份是 `github-pr-review/v0.1.0 + repository + PR number + reviewed head SHA`，记录在 Check Run 的 `external_id`。publisher 只在当前 head 上查找名称、head SHA 和 `external_id` 均匹配的既有 Check：同 SHA rerun 更新原 Check，新 SHA 创建独立 Check，旧 SHA Check 仍保留在旧 commit 上。若发布前 PR head 已改变，publisher 以 `stale-target` 诊断失败且不写入旧结果；此判断只依赖可信 GitHub facts 和固定身份，不依赖 Agent 文本、本地跨 Run 状态或 Session。
 
