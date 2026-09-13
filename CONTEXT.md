@@ -56,6 +56,10 @@ _Avoid_: Agent Action、Loop Runtime、动态 Provider 系统
 随 Compatible Executor 版本交付的静态约束，以不可变 revision 锁定一个具体 Agent Action 来源，并声明输入映射、所需权限、可用输出及可信验证方式；约束不匹配时运行失败并交接，不协商、猜测或动态发现能力。
 _Avoid_: Effect Profile、运行时 capability discovery、通用 Agent Runtime 接口
 
+**Runner-backed Codex Authentication（Runner 承载的 Codex 认证）**:
+由专用 self-hosted runner 向 Codex Agent Action 提供既有 Codex 登录状态的认证方式；Agent Action 仍拥有 Codex CLI 版本与调用边界，runner 上偶然存在的 CLI 不构成兼容承诺。
+_Avoid_: 预安装 Codex、仓库 API Key、动态 Provider
+
 **Graph Engineering（图工程）**:
 定义多个 Goal Run、Verifier、Human Gate 与业务节点之间的拓扑、转移和整体完成判断；CI 或 Review Gate 失败后启动新的 Repair Goal Run 属于这一层。
 _Avoid_: Loop Engineering、Harness Engineering、LangGraph 特定实现
