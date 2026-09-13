@@ -1,8 +1,10 @@
-# github-development-ticket v0.1.0
+# github-development-ticket v0.1.0 — Legacy Frozen
 
 将同时带 `ready-for-agent` 与 `development-ticket` 标签的 Development Ticket（研发票据）交给 Codex Goal Runtime，由 Matt `$implement` Skill 完成实现、自测、review、commit、push 与 Draft PR。
 
 这是可复制的 Workflow Definition（工作流定义），不是远程依赖。`files/` 中的路径与 Consumer Project（消费项目）仓库根目录相同；复制后形成由项目自行维护的 Workflow Instance（工作流实例）。
+
+本版本属于 Legacy Frozen（旧版冻结）产品线：此前已经验证，继续可用并保留原文件与行为，只接受严重安全修复和事实纠正，不新增能力。
 
 ## 接入
 

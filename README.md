@@ -1,6 +1,6 @@
 # Loop Engineering
 
-本仓库维护经过真实项目验证、可整体复制到项目中的版本化 Workflow Definition（工作流定义）。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
+本仓库维护可整体复制到项目中的版本化 Workflow Definition（工作流定义），并明确区分 Candidate、Stable 与 Legacy Frozen 状态。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
 
 ## 项目定位
 
@@ -20,9 +20,16 @@ Compatible Executor 是本项目维护的薄适配层，不是新的 Loop Runtim
 
 新架构以 Fresh Goal Run（全新目标运行）作为跨 GitHub Workflow Run 的正确性基线：每次运行重新读取 Issue、PR、branch、commit 与 Check 等 GitHub 持久事实，识别已经完成的效果并协调剩余工作，而不是重放上一次运行的步骤。Session、runner 工作区、日志和 artifact 只可用于执行或诊断，Workflow 不维护跨 Run 的 Agent 会话恢复状态。取消、异常退出或人工 rerun 后，也必须能够仅依据 GitHub 当前事实重新运行。
 
-下面记录的是当前已经发布并验证的 `github-development-ticket` v0.1.x；Workflow-first 与 Compatible Executor 方向仍在 [Wayfinder 决策地图](https://github.com/tutar/loop-engineering/issues/11) 中规划，尚未作为新版本发布。
+Repository Release `v0.2.0` 已把 Workflow-first 与 Compatible Executor 设为默认演进方向，并发布 `github-pr-review/v0.1.0` Candidate。Repository Release 与 Workflow Definition 各自版本化；`v0.2.0` 不等于 Definition `v0.2.0`，也不代表 Candidate 已经真实兼容或晋级 Stable。
 
-## 当前进展与效果
+## 定义状态
+
+- [`github-pr-review/v0.1.0`](workflow-definitions/github-pr-review/v0.1.0/README.md)：默认演进方向，当前为 Candidate；已通过自动化 Candidate Publication Gate，但尚无 Stable Supported Profile。
+- [`github-development-ticket/v0.1.x`](workflow-definitions/github-development-ticket/v0.1.2/README.md)：Legacy Frozen；此前已验证且继续可用，只接受严重安全修复和事实纠正。
+
+两条 Definition 是可并存的独立产品，不是原地升级。采用 PR Review 不要求迁移旧版 Thread Record、标签、Controller 状态或 Workflow Instance，也没有自动迁移承诺。
+
+## Legacy 已验证效果
 
 当前已经完成首个 Reference Application（参考应用）：`github-development-ticket` v0.1.2。它把一个带指定标签的 GitHub Development Ticket（研发票据）转换为 Codex `/goal`，由持久化 self-hosted runner 中的 Codex 使用 Matt `$implement` Skill 持续完成：
 
@@ -35,7 +42,13 @@ Compatible Executor 是本项目维护的薄适配层，不是新的 Loop Runtim
 
 该闭环已在 [`tutar/agent-infra`](https://github.com/tutar/agent-infra) 的真实 Development Ticket 上验证。当前范围刻意保持较窄：只交付到 Draft PR，不自动 approve、merge、deploy，也不编排多个业务节点。
 
-## Quick Start（快速开始）
+## Candidate Quick Start（默认方向）
+
+将 [`github-pr-review/v0.1.0/files/.github/`](workflow-definitions/github-pr-review/v0.1.0/files/.github/) 整体复制到 Consumer Project 的 `.github/`，安装项目自己的 `code-review` Skill，配置 `OPENAI_API_KEY`，再按 [Candidate 文档](workflow-definitions/github-pr-review/v0.1.0/README.md) 编辑唯一允许的 `pr-review-config.json`。该 Definition 只做只读 PR Review，并由独立可信 publish job 创建或更新 Check Run。
+
+这一路线当前是 Candidate，不应把本仓库的静态测试、Fake Action 或 Agent final text 当成真实 Consumer 兼容证据。Candidate Gate 详情见 [`CANDIDATE-GATE.md`](workflow-definitions/github-pr-review/v0.1.0/CANDIDATE-GATE.md)。
+
+## Legacy Quick Start（已验证旧版）
 
 ### 1. 准备项目
 
@@ -109,8 +122,9 @@ npx skills add https://github.com/mattpocock/skills
 
 ## 已发布定义
 
-- [`github-development-ticket` v0.1.2](workflow-definitions/github-development-ticket/v0.1.2/README.md)：当前版本；增加中断工作恢复、可调累计预算、Stop hook 收尾、取消处理和交付标签清理。
-- [`github-development-ticket` v0.1.1](workflow-definitions/github-development-ticket/v0.1.1/README.md)：增加基于证据的验收条件同步。
-- [`github-development-ticket` v0.1.0](workflow-definitions/github-development-ticket/v0.1.0/README.md)：首个已验证版本。
+- [`github-pr-review` v0.1.0 Candidate](workflow-definitions/github-pr-review/v0.1.0/README.md)：Repository Release `v0.2.0` 引入的 Workflow-first 只读 PR Review；没有 Stable Supported Profile。
+- [`github-development-ticket` v0.1.2 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.2/README.md)：增加中断工作恢复、可调累计预算、Stop hook 收尾、取消处理和交付标签清理。
+- [`github-development-ticket` v0.1.1 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.1/README.md)：增加基于证据的验收条件同步。
+- [`github-development-ticket` v0.1.0 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.0/README.md)：首个已验证版本。
 
-Workflow Definition 是普通文件模板，不是 Reusable Workflow，也不是中央 Runtime。版本号只表示实例最后参考的定义版本。
+Workflow Definition 是普通文件模板，不是 Reusable Workflow，也不是中央 Runtime。Definition 版本只表示实例最后参考的定义版本；仓库发布说明见 [`v0.2.0`](docs/releases/v0.2.0.md)。
