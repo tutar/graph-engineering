@@ -2,7 +2,7 @@
 
 这是 Workflow-first 路线的 Candidate Definition（候选工作流定义）。把 `files/.github/` 整体复制到 Consumer Project（消费项目）后，项目自行拥有其 Workflow Instance（工作流实例）；运行时不依赖 `loop-engineering` 仓库。
 
-当前版本支持非 Draft PR 的 `opened`、`reopened`、`synchronize`、`ready_for_review` 与人工 dispatch；Draft 创建和更新保持静默，转为 ready 后启动。它尚未通过 Candidate Publication Gate，也没有 Supported Profile（受支持配置）。完整失败路径与真实 Consumer 验证由后续 tickets 补齐。
+当前版本支持非 Draft PR 的 `opened`、`reopened`、`synchronize`、`ready_for_review` 与人工 dispatch；Draft 创建和更新保持静默，转为 ready 后启动。它已通过 [Candidate Publication Gate](CANDIDATE-GATE.md)，但该 Gate 只有静态与自动化契约证据，尚无 Stable Supported Profile（稳定受支持配置）。真实 Consumer 验证与 Stable Promotion 仍需后续 Evidence Bundle。
 
 ## 安装与运行
 
