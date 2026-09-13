@@ -27,6 +27,12 @@ jobs:
     outputs:
       should_start: ${{ steps.route.outputs.should_start }}
       pull_request_number: ${{ steps.route.outputs.pull_request_number }}
+      runner: ${{ steps.route.outputs.runner }}
+      event_prompt: ${{ steps.route.outputs.event_prompt }}
+      codex_model: ${{ steps.route.outputs.codex_model }}
+      codex_effort: ${{ steps.route.outputs.codex_effort }}
+      permission_profile: ${{ steps.route.outputs.permission_profile }}
+      safety_strategy: ${{ steps.route.outputs.safety_strategy }}
     steps:
       - name: Check out the trusted router
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -43,7 +49,7 @@ jobs:
       needs.route.outputs.should_start == 'true' &&
       (github.event_name != 'workflow_dispatch' ||
       github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
-    runs-on: ubuntu-24.04
+    runs-on: ${{ needs.route.outputs.runner }}
     permissions:
       contents: read
       pull-requests: read
@@ -60,7 +66,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PULL_REQUEST_NUMBER: ${{ needs.route.outputs.pull_request_number }}
-          EVENT_PROMPT: ${{ inputs.event_prompt || 'Review this change against the repository rules and its requested behavior.' }}
+          EVENT_PROMPT: ${{ needs.route.outputs.event_prompt }}
         run: node .loop-engineering-trusted/.github/loop-engineering/prepare-review.mjs
       - name: Check out the trusted PR target
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -78,8 +84,10 @@ jobs:
           prompt-file: ${{ github.workspace }}/pr-review-goal.md
           output-schema-file: ${{ github.workspace }}/.loop-engineering-trusted/.github/loop-engineering/review-result.schema.json
           working-directory: ${{ github.workspace }}/review-workspace
-          permission-profile: :read-only
-          safety-strategy: read-only
+          model: ${{ needs.route.outputs.codex_model }}
+          effort: ${{ needs.route.outputs.codex_effort }}
+          permission-profile: ${{ needs.route.outputs.permission_profile }}
+          safety-strategy: ${{ needs.route.outputs.safety_strategy }}
       - name: Map the Action terminal and final-message
         if: always()
         env:

@@ -11,6 +11,19 @@
 3. 在 Actions secrets 中配置 `OPENAI_API_KEY`。
 4. 从 Actions 页面运行 `Loop Engineering PR Review`，输入真实 PR number，可选修改 Event Prompt。
 
+## Consumer 配置边界
+
+Consumer 只编辑 `pr-review-config.json`。允许的键和边界如下：
+
+- `events.pullRequestActions`：从 `opened`、`reopened`、`synchronize`、`ready_for_review` 中选择无重复子集；`manualDispatch` 可开关；`includeDrafts` 在本 Candidate 中必须保持 `false`。
+- `eventPrompt`：自动事件使用的非空 Goal 前言；人工 dispatch 可为单次运行覆盖它。
+- `runner`：`ubuntu-24.04` 或 `ubuntu-22.04`。这些是 Candidate 可配置值，不是已经真实验证的 Stable Supported Profile。
+- `codex.model`：空值表示 Action 默认值，也可填写只含字母、数字、点、下划线和连字符的明确 model；`codex.effort` 可为默认空值、`low`、`medium`、`high`、`xhigh`。
+- `codex.permissionProfile` 与 `codex.safetyStrategy` 属于公开但受限的 sandbox 配置面；本只读 Candidate 分别只允许 `:read-only` 与 `read-only`，不能降级。
+- `check.name` 与 `check.title`：非空且不超过 100 字符的发布显示设置。
+
+配置文件不提供 Action source/revision、输入输出 mapping、Profile implementation、Provider 或 capability 开关。缺字段、未知字段、未允许值、Profile 身份不符或静态 Profile 任一契约被修改时，router 输出 `configuration-handoff`、不启动 review，也不自动换 Action/Provider 或降低安全限制。修改 Action SHA、mapping、Executor 或 Profile 后，该副本已退出 `github-pr-review/v0.1.0` Candidate 声明；官方升级必须发布新的 Definition 版本并重新验证。
+
 Workflow 先把默认分支上的控制脚本 checkout 到独立的 `.loop-engineering-trusted` 目录且不持久化 Git 凭据，用只读 GitHub token 读取 PR 的 repository、number、base SHA、head SHA、title 与 body；随后把固定的 head SHA checkout 到独立 `review-workspace`。Event Prompt 与这些可信事实形成 Goal Prompt，并要求 Agent 在该待审目录调用 Consumer Project 的 `code-review` Skill。prepare、schema 与 capture 始终来自可信目录，PR 内容不能替换执行器映射。Codex review job 只有 `contents: read`、`pull-requests: read` 与读取现有 Checks 所需的权限；它只产出符合 JSON Schema 的候选 review output。
 
 独立 `publish` job 才拥有 `checks: write`。Workflow 只允许从默认分支启动，并让该 job 明确 checkout 默认分支上的可信 publisher；publisher 先验证上游 job 成功，再重新读取当前 PR head、核对候选结果中的目标身份与两轴结构，然后创建绑定 reviewed head SHA 的 Check Run。Agent 文本本身不是可信发布结果的证据，额外的“已发布”或“已通过”字段会被拒绝。
@@ -23,7 +36,7 @@ Check 的稳定身份是 `github-pr-review/v0.1.0 + repository + PR number + rev
 
 ## Compatibility Profile
 
-`codex-compatibility-profile.json` 与本 Definition 一起版本化，锁定 `openai/codex-action` 来源 tag `v1` 对应的 commit `86365089eb2b84e0a8fb0717b304f8bdcb13b20e`。本切片只映射 Action 已公开的 prompt/output/schema/permission inputs 与 `final-message` 输出；没有 Resume Record、Session ID、Goal ID、动态 Provider、Agent-write 或 v0.1.x Controller。
+`codex-compatible-executor.mjs` 与 `codex-compatibility-profile.json` 随本 Definition 一起版本化且不可独立选择。Profile 锁定 `openai/codex-action` 来源 tag `v1` 对应的 commit `86365089eb2b84e0a8fb0717b304f8bdcb13b20e`，声明必需输入、Goal/schema/runtime 映射、review/publish 权限、唯一可观察输出 `final-message`、终态与 fail-closed 规则。Executor 在每次路由与发布前验证整个静态 Profile。本切片没有 Resume Record、Session ID、Goal ID、动态 Provider、Agent-write 或 v0.1.x Controller。
 
 ## 本地验证
 
