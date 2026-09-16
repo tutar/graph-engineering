@@ -20,11 +20,12 @@ Compatible Executor 是本项目维护的薄适配层，不是新的 Loop Runtim
 
 新架构以 Fresh Goal Run（全新目标运行）作为跨 GitHub Workflow Run 的正确性基线：每次运行重新读取 Issue、PR、branch、commit 与 Check 等 GitHub 持久事实，识别已经完成的效果并协调剩余工作，而不是重放上一次运行的步骤。Session、runner 工作区、日志和 artifact 只可用于执行或诊断，Workflow 不维护跨 Run 的 Agent 会话恢复状态。取消、异常退出或人工 rerun 后，也必须能够仅依据 GitHub 当前事实重新运行。
 
-下一 Repository Release `v0.2.2` 将发布使用 Runner-backed Codex Authentication（Runner 承载的 Codex 认证）的 `github-pr-review/v0.1.2` 纠正版 Candidate，并保留 `v0.2.0` / `v0.2.1` 及旧 Definition 的历史事实。`github-pr-review/v0.1.1` 的真实 Consumer 验证已失败，不能作为兼容证据。Repository Release 与 Workflow Definition 各自版本化；Repository Release 版本不等于 Definition 版本，也不代表 Candidate 已经真实兼容或晋级 Stable。
+下一 Repository Release `v0.2.3` 将发布 `github-pr-review/v0.1.3` 纠正版 Candidate，并保留所有旧 Release/Definition 的历史事实。`v0.1.1` 与 `v0.1.2` 的真实 Consumer 验证均已失败，不能作为兼容证据。Repository Release 与 Workflow Definition 各自版本化；Repository Release 版本不等于 Definition 版本，也不代表 Candidate 已经真实兼容或晋级 Stable。
 
 ## 定义状态
 
-- [`github-pr-review/v0.1.2`](workflow-definitions/github-pr-review/v0.1.2/README.md)：默认演进方向，当前为 Candidate；锁定明确支持 runner 登录路径的维护版 Action，尚无 Stable Supported Profile。
+- [`github-pr-review/v0.1.3`](workflow-definitions/github-pr-review/v0.1.3/README.md)：默认演进方向，当前为 Candidate；修正 Draft 人工路由与只读 Action 输入组合，尚无 Stable Supported Profile。
+- [`github-pr-review/v0.1.2`](workflow-definitions/github-pr-review/v0.1.2/README.md)：历史 Candidate；Consumer 验证发现 Draft 人工路由与只读 Profile 缺陷。
 - [`github-pr-review/v0.1.1`](workflow-definitions/github-pr-review/v0.1.1/README.md)：已发布的历史 Candidate；Consumer 验证已证明其冻结 Action revision 无法使用 runner 登录路径。
 - [`github-development-ticket/v0.1.x`](workflow-definitions/github-development-ticket/v0.1.2/README.md)：Legacy Frozen；此前已验证且继续可用，只接受严重安全修复和事实纠正。
 
@@ -45,9 +46,9 @@ Compatible Executor 是本项目维护的薄适配层，不是新的 Loop Runtim
 
 ## Candidate Quick Start（默认方向）
 
-将 [`github-pr-review/v0.1.2/files/.github/`](workflow-definitions/github-pr-review/v0.1.2/files/.github/) 整体复制到 Consumer Project 的 `.github/`，安装项目自己的 `code-review` Skill，并提供带 `[self-hosted, Linux, X64, codex]` labels 与既有 Codex 登录状态的专用 runner，再按 [Candidate 文档](workflow-definitions/github-pr-review/v0.1.2/README.md) 编辑唯一允许的 `pr-review-config.json`。该 Definition 不使用仓库 `OPENAI_API_KEY`，锁定维护版 `tutar/codex-action` 的不可变修补 SHA，只做只读 PR Review，并由独立可信 publish job 创建或更新 Check Run。
+将 [`github-pr-review/v0.1.3/files/.github/`](workflow-definitions/github-pr-review/v0.1.3/files/.github/) 整体复制到 Consumer Project 的 `.github/`，安装项目自己的 `code-review` Skill，并提供带 `[self-hosted, Linux, X64, codex]` labels 与既有 Codex 登录状态的专用 runner，再按 [Candidate 文档](workflow-definitions/github-pr-review/v0.1.3/README.md) 编辑唯一允许的 `pr-review-config.json`。该 Definition 不使用仓库 `OPENAI_API_KEY`，锁定维护版 `tutar/codex-action` 的不可变修补 SHA，只做只读 PR Review，并由独立可信 publish job 创建或更新 Check Run。
 
-这一路线当前是 Candidate，不应把本仓库的静态测试、Fake Action 或 Agent final text 当成真实 Consumer 兼容证据。Candidate Gate 详情见 [`CANDIDATE-GATE.md`](workflow-definitions/github-pr-review/v0.1.2/CANDIDATE-GATE.md)。
+这一路线当前是 Candidate，不应把本仓库的静态测试、Fake Action 或 Agent final text 当成真实 Consumer 兼容证据。Candidate Gate 详情见 [`CANDIDATE-GATE.md`](workflow-definitions/github-pr-review/v0.1.3/CANDIDATE-GATE.md)。
 
 ## Legacy Quick Start（已验证旧版）
 
@@ -123,11 +124,12 @@ npx skills add https://github.com/mattpocock/skills
 
 ## 已发布定义
 
-- [`github-pr-review` v0.1.2 Candidate](workflow-definitions/github-pr-review/v0.1.2/README.md)：计划由 Repository Release `v0.2.2` 发布的 Runner-backed Codex Authentication 纠正版；没有 Stable Supported Profile。
+- [`github-pr-review` v0.1.3 Candidate](workflow-definitions/github-pr-review/v0.1.3/README.md)：计划由 Repository Release `v0.2.3` 发布的当前纠正版；没有 Stable Supported Profile。
+- [`github-pr-review` v0.1.2 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.2/README.md)：Repository Release `v0.2.2` 发布的历史 Candidate。
 - [`github-pr-review` v0.1.1 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.1/README.md)：Repository Release `v0.2.1` 发布的历史 Candidate；冻结组合的 runner-login 兼容性已被真实证据否定。
 - [`github-pr-review` v0.1.0 Candidate](workflow-definitions/github-pr-review/v0.1.0/README.md)：Repository Release `v0.2.0` 引入的 API-key 版本，保留为历史 Candidate。
 - [`github-development-ticket` v0.1.2 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.2/README.md)：增加中断工作恢复、可调累计预算、Stop hook 收尾、取消处理和交付标签清理。
 - [`github-development-ticket` v0.1.1 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.1/README.md)：增加基于证据的验收条件同步。
 - [`github-development-ticket` v0.1.0 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.0/README.md)：首个已验证版本。
 
-Workflow Definition 是普通文件模板，不是 Reusable Workflow，也不是中央 Runtime。Definition 版本只表示实例最后参考的定义版本；当前仓库发布说明见 [`v0.2.2`](docs/releases/v0.2.2.md)，历史版本见 [`v0.2.1`](docs/releases/v0.2.1.md) 与 [`v0.2.0`](docs/releases/v0.2.0.md)。
+Workflow Definition 是普通文件模板，不是 Reusable Workflow，也不是中央 Runtime。Definition 版本只表示实例最后参考的定义版本；当前仓库发布说明见 [`v0.2.3`](docs/releases/v0.2.3.md)，历史版本见 [`v0.2.2`](docs/releases/v0.2.2.md)、[`v0.2.1`](docs/releases/v0.2.1.md) 与 [`v0.2.0`](docs/releases/v0.2.0.md)。
