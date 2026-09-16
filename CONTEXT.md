@@ -57,7 +57,7 @@ _Avoid_: Agent Action、Loop Runtime、动态 Provider 系统
 _Avoid_: Effect Profile、运行时 capability discovery、通用 Agent Runtime 接口
 
 **Runner-backed Codex Authentication（Runner 承载的 Codex 认证）**:
-由专用 self-hosted runner 向 Codex Agent Action 提供既有 Codex 登录状态的认证方式；Agent Action 仍拥有 Codex CLI 版本与调用边界，runner 上偶然存在的 CLI 不构成兼容承诺。
+由专用 self-hosted runner 向明确支持该路径的 Codex Agent Action 提供既有 Codex 登录状态的认证方式；Compatibility Profile 必须锁定该 Action 的来源与 revision，不能仅因 runner 已登录或 Action 的 API key 输入可选就推断兼容。Agent Action 仍拥有 Codex CLI 版本与调用边界，runner 上偶然存在的 CLI 不构成兼容承诺。
 _Avoid_: 预安装 Codex、仓库 API Key、动态 Provider
 
 **Graph Engineering（图工程）**:

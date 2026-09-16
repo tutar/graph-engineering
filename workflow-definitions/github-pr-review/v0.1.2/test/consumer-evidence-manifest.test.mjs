@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const historicalManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.0-consumer-validation.md", import.meta.url), "utf8");
-const revisedManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.1-consumer-validation.md", import.meta.url), "utf8");
+const failedRunnerLoginManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.1-consumer-validation.md", import.meta.url), "utf8");
+const revisedManifest = new URL("../../../../docs/evidence/github-pr-review-v0.1.2-consumer-validation.md", import.meta.url);
 
 test("the historical Consumer evidence manifest remains bound to the v0.1.0 combination", () => {
   for (const value of [
@@ -15,12 +16,14 @@ test("the historical Consumer evidence manifest remains bound to the v0.1.0 comb
   ]) assert.match(historicalManifest, new RegExp(value));
 });
 
-test("the revised Candidate records its failed Consumer evidence without splicing older results", () => {
+test("the revised Candidate does not splice or invent Consumer evidence", () => {
+  assert.equal(existsSync(revisedManifest), false);
   assert.match(historicalManifest, /Draft PR routing[\s\S]*PASS/);
   assert.match(historicalManifest, /Ready review, new SHA, same-SHA rerun[\s\S]*NOT_RUN/);
   assert.match(historicalManifest, /without a Stable Supported Profile/);
   assert.match(historicalManifest, /Fake Action[\s\S]*not[\s\S]*compatibility evidence/i);
-  assert.match(revisedManifest, /Gate Decision:\s*FAIL/);
-  assert.match(revisedManifest, /35081359069/);
-  assert.match(revisedManifest, /must not be spliced/i);
+  assert.match(failedRunnerLoginManifest, /Gate Decision:\s*FAIL/);
+  assert.match(failedRunnerLoginManifest, /35081359069/);
+  assert.match(failedRunnerLoginManifest, /server info/i);
+  assert.match(failedRunnerLoginManifest, /must not be spliced/i);
 });
