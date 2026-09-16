@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["repository", "pullRequestNumber", "baseSha", "headSha"],
+  "properties": {
+    "repository": { "type": "string", "minLength": 1 },
+    "pullRequestNumber": { "type": "integer", "minimum": 1 },
+    "baseSha": { "type": "string", "minLength": 1 },
+    "headSha": { "type": "string", "minLength": 1 },
+    "standards": { "$ref": "#/$defs/axis" },
+    "spec": { "$ref": "#/$defs/axis" },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary"],
+      "properties": {
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["standards", "spec"],
+      "not": { "required": ["handoff"] }
+    },
+    {
+      "required": ["handoff"],
+      "not": {
+        "anyOf": [
+          { "required": ["standards"] },
+          { "required": ["spec"] }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "axis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "findings"],
+      "properties": {
+        "verdict": { "enum": ["pass", "fail"] },
+        "findings": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
