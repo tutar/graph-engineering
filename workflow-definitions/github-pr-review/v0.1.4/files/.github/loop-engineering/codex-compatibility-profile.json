@@ -1,0 +1,67 @@
+{
+  "definition": "github-pr-review/v0.1.4",
+  "profile": "github-pr-review/codex/v0.1.4",
+  "executor": {
+    "id": "codex-compatible-executor",
+    "version": "v0.1.4"
+  },
+  "runner": {
+    "labels": ["self-hosted", "Linux", "X64", "codex"]
+  },
+  "authentication": {
+    "mode": "runner-backed-codex",
+    "credentialSource": "default-codex-home",
+    "repositorySecret": false
+  },
+  "action": {
+    "source": "tutar/codex-action",
+    "sourceRef": "fix/runner-login-no-proxy",
+    "commit": "f33581290086e62dc34d420a7f1862477fc2b503",
+    "upstream": {
+      "source": "openai/codex-action",
+      "commit": "86365089eb2b84e0a8fb0717b304f8bdcb13b20e"
+    },
+    "patch": "read-proxy-server-info-only-with-openai-api-key",
+    "codexVersion": "0.153.4",
+    "requiredInputs": ["prompt-file", "output-schema-file", "working-directory", "codex-version", "safety-strategy"],
+    "acceptedInputs": ["prompt-file", "output-schema-file", "working-directory", "codex-version", "model", "effort", "permission-profile", "safety-strategy"]
+  },
+  "mapping": {
+    "goalPrompt": "prompt-file",
+    "reviewSchema": "output-schema-file",
+    "codexVersion": "codex-version",
+    "workingDirectory": "working-directory",
+    "model": "model",
+    "reasoningEffort": "effort",
+    "safetyStrategy": "safety-strategy",
+    "terminal": "step-outcome",
+    "finalMessage": "final-message"
+  },
+  "outputs": ["final-message"],
+  "permissions": {
+    "reviewJob": {
+      "contents": "read",
+      "pull-requests": "read",
+      "checks": "read"
+    },
+    "publishJob": {
+      "contents": "read",
+      "pull-requests": "read",
+      "checks": "write"
+    }
+  },
+  "consumerConfiguration": {
+    "pullRequestActions": ["opened", "reopened", "synchronize", "ready_for_review"],
+    "manualDispatch": "boolean",
+    "includeDrafts": [false],
+    "modelPattern": "^[A-Za-z0-9._-]*$",
+    "reasoningEfforts": ["", "low", "medium", "high", "xhigh"],
+    "safetyStrategies": ["read-only"],
+    "checkTextMaxLength": 100
+  },
+  "validation": {
+    "failClosed": true,
+    "resultSchema": "review-result.schema.json",
+    "terminals": ["completed", "handoff", "failed", "cancelled"]
+  }
+}

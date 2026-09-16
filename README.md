@@ -1,5 +1,7 @@
 # Loop Engineering
 
+本地下一 Candidate：[`github-pr-review/v0.1.4`](workflow-definitions/github-pr-review/v0.1.4/README.md)，计划随 Repository Release `v0.2.4` 交付。修复 Bundle 5 暴露的 Structured Outputs schema 不兼容；尚未公开发布、没有 Stable Supported Profile，不将本地测试视为 Consumer 通过证据。
+
 本仓库维护可整体复制到项目中的版本化 Workflow Definition（工作流定义），并明确区分 Candidate、Stable 与 Legacy Frozen 状态。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
 
 ## 项目定位
