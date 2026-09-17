@@ -1,30 +1,8 @@
 {
   "schemaVersion": 1,
   "currentDefinitions": [
-    {
-      "name": "github-development-ticket",
-      "definitionVersion": "v0.1.2",
-      "sourceCommit": "3adf5644e03f83b69ddfe1fefc5a41663dadee43",
-      "repositoryRelease": {
-        "version": "0.1.2",
-        "gitRef": "0.1.2",
-        "kind": "legacy-tag"
-      },
-      "path": "workflow-definitions/github-development-ticket/v0.1.2",
-      "installRoot": "files/.github"
-    },
-    {
-      "name": "github-pr-review",
-      "definitionVersion": "v0.1.4",
-      "sourceCommit": "d41b988c5e93e2bb51a33b47d1f98a080af41edb",
-      "repositoryRelease": {
-        "version": "v0.2.4",
-        "gitRef": "v0.2.4",
-        "kind": "github-release"
-      },
-      "path": "workflow-definitions/github-pr-review/v0.1.4",
-      "installRoot": "files/.github"
-    }
+    "github-development-ticket/v0.1.2",
+    "github-pr-review/v0.1.4"
   ],
   "publishedDefinitions": [
     {
@@ -49,7 +27,8 @@
       "sourceCommit": "3adf5644e03f83b69ddfe1fefc5a41663dadee43",
       "repositoryRelease": { "version": "0.1.2", "gitRef": "0.1.2", "kind": "legacy-tag" },
       "path": "workflow-definitions/github-development-ticket/v0.1.2",
-      "installRoot": "files/.github"
+      "installRoot": "files/.github",
+      "testRoot": "test"
     },
     {
       "name": "github-pr-review",
@@ -89,7 +68,8 @@
       "sourceCommit": "d41b988c5e93e2bb51a33b47d1f98a080af41edb",
       "repositoryRelease": { "version": "v0.2.4", "gitRef": "v0.2.4", "kind": "github-release" },
       "path": "workflow-definitions/github-pr-review/v0.1.4",
-      "installRoot": "files/.github"
+      "installRoot": "files/.github",
+      "testRoot": "test"
     }
   ],
   "evidenceBindings": [
@@ -99,7 +79,13 @@
       "repositoryRelease": "v0.2.0",
       "profile": "github-pr-review/codex/v0.1.0",
       "actionRevision": "86365089eb2b84e0a8fb0717b304f8bdcb13b20e",
-      "status": "IN_PROGRESS"
+      "status": "IN_PROGRESS",
+      "decisionMarker": "Status: in progress",
+      "frozenInputs": [
+        "5234bc345ac76077ea3b21141f21a3d29e445ed4",
+        "ubuntu-24.04",
+        "85258029f84ddfa6fab6142fd8ef9b0170abfcc275327ee7543760a4eb59059e"
+      ]
     },
     {
       "manifest": "docs/evidence/github-pr-review-v0.1.1-consumer-validation.md",
@@ -107,7 +93,13 @@
       "repositoryRelease": "v0.2.1",
       "profile": "github-pr-review/codex/v0.1.1",
       "actionRevision": "86365089eb2b84e0a8fb0717b304f8bdcb13b20e",
-      "status": "FAIL"
+      "status": "FAIL",
+      "decisionMarker": "Gate Decision: FAIL",
+      "frozenInputs": [
+        "0.153.4",
+        "cedca3ec607fe7e7256ce5971f67b9827b8691fe",
+        "[self-hosted, Linux, X64, codex]"
+      ]
     },
     {
       "manifest": "docs/evidence/github-pr-review-v0.1.2-consumer-validation.md",
@@ -115,7 +107,14 @@
       "repositoryRelease": "v0.2.2",
       "profile": "github-pr-review/codex/v0.1.2",
       "actionRevision": "f33581290086e62dc34d420a7f1862477fc2b503",
-      "status": "FAIL"
+      "status": "FAIL",
+      "decisionMarker": "Gate Decision: FAIL",
+      "frozenInputs": [
+        "f52737ebde5f0d116fafc7f74881c7a79c2574cf",
+        "cedca3ec607fe7e7256ce5971f67b9827b8691fe",
+        "permission-profile: :read-only",
+        "safety-strategy: read-only"
+      ]
     },
     {
       "manifest": "docs/evidence/github-pr-review-v0.1.4-consumer-validation.md",
@@ -123,7 +122,16 @@
       "repositoryRelease": "v0.2.4",
       "profile": "github-pr-review/codex/v0.1.4",
       "actionRevision": "f33581290086e62dc34d420a7f1862477fc2b503",
-      "status": "FAIL"
+      "status": "FAIL",
+      "decisionMarker": "Gate Decision: FAIL",
+      "frozenInputs": [
+        "3c6334403c46180879bfe189b27f055bdde91b8c",
+        "c2f486fc39caa363ba6d30d0be2688e15dd47907",
+        "363ad49a084bf1aab1cbaf3152f5da34f146b7de",
+        "983a6821f4e7b4643b0b7f79f9eeada418d6638200b75de2fb1a0bb4942a16ea",
+        "6036cf09e6e5e02b9cb4336ecf1990bee454dd4cac2482cfa87bffd5bfa4b134",
+        "e9ccabe1b39445514888059bfad70019586419570abd7cc56537f6ee221ffd7b"
+      ]
     }
   ],
   "auditSources": [

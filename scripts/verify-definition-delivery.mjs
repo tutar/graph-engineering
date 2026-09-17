@@ -88,24 +88,37 @@ export async function verifyDelivery(options) {
   }
 
   const currentNames = new Set();
-  for (const [index, definition] of manifest.currentDefinitions.entries()) {
-    validateDefinitionShape(definition, `currentDefinitions[${index}]`);
+  const currentDefinitions = [];
+  for (const [index, key] of manifest.currentDefinitions.entries()) {
+    requireString(key, `currentDefinitions[${index}]`);
+    const definition = published.get(key);
+    if (!definition) fail(`current Definition ${key} lacks a published mapping`);
     if (currentNames.has(definition.name)) fail(`multiple current Definitions named ${definition.name}`);
     currentNames.add(definition.name);
-    const historical = published.get(definitionKey(definition));
-    if (!historical || JSON.stringify(historical) !== JSON.stringify(definition)) {
-      fail(`current Definition ${definitionKey(definition)} lacks one identical published mapping`);
-    }
     await access(resolve(options.repository, definition.path, definition.installRoot));
+    requireString(definition.testRoot, `publishedDefinitions entry ${key}.testRoot`);
+    await access(resolve(options.repository, definition.path, definition.testRoot));
+    git(options.repository, ["cat-file", "-e", `${definition.repositoryRelease.gitRef}:${definition.path}/${definition.testRoot}`]);
+    currentDefinitions.push(definition);
   }
 
   for (const [index, binding] of manifest.evidenceBindings.entries()) {
     const label = `evidenceBindings[${index}]`;
-    for (const field of ["manifest", "definition", "repositoryRelease", "actionRevision", "status"]) {
+    for (const field of ["manifest", "definition", "repositoryRelease", "actionRevision", "status", "decisionMarker"]) {
       requireString(binding[field], `${label}.${field}`);
     }
+    if (!Array.isArray(binding.frozenInputs) || binding.frozenInputs.length === 0) {
+      fail(`${label}.frozenInputs must be a non-empty array`);
+    }
     const evidence = await readFile(resolve(options.repository, binding.manifest), "utf8");
-    for (const value of [binding.definition, binding.repositoryRelease, binding.profile, binding.actionRevision].filter(Boolean)) {
+    for (const value of [
+      binding.definition,
+      binding.repositoryRelease,
+      binding.profile,
+      binding.actionRevision,
+      binding.decisionMarker,
+      ...binding.frozenInputs,
+    ].filter(Boolean)) {
       if (!evidence.includes(value)) fail(`${binding.manifest} does not freeze ${value}`);
     }
     const mapped = published.get(binding.definition);
@@ -122,15 +135,18 @@ export async function verifyDelivery(options) {
     await access(resolve(options.repository, source.unfrozenPreparation));
   }
 
-  const currentDefinitions = manifest.currentDefinitions.map((definition) => ({
+  const currentOutput = currentDefinitions.map((definition) => ({
     name: definition.name,
     definitionVersion: definition.definitionVersion,
     sourceCommit: definition.sourceCommit,
     repositoryRelease: definition.repositoryRelease.version,
     gitRef: definition.repositoryRelease.gitRef,
+    path: definition.path,
+    installRoot: definition.installRoot,
+    testRoot: definition.testRoot,
   }));
   return {
-    currentDefinitions,
+    currentDefinitions: currentOutput,
     publishedDefinitions: manifest.publishedDefinitions.length,
     evidenceBindings: manifest.evidenceBindings.length,
     auditSources: manifest.auditSources.length,

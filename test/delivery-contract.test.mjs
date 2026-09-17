@@ -42,6 +42,30 @@ test("the delivery manifest resolves each current Definition to one immutable re
   assert.equal(output.evidenceBindings, 4);
 });
 
+test("both current Workflow Task installation roots can be exported offline", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "current-definitions-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const output = await verifyDelivery({ repository });
+  const expectedWorkflows = new Map([
+    ["github-development-ticket", "github-development-ticket.yml"],
+    ["github-pr-review", "github-pr-review.yml"],
+  ]);
+
+  for (const definition of output.currentDefinitions) {
+    const archive = join(directory, `${definition.name}.tar`);
+    const installPath = `${definition.path}/${definition.installRoot}`;
+    const archived = run(
+      "git",
+      ["archive", `--output=${archive}`, definition.gitRef, installPath],
+      repository,
+    );
+    assert.equal(archived.status, 0, archived.stderr);
+    const listing = run("tar", ["-tf", archive], repository);
+    assert.equal(listing.status, 0, listing.stderr);
+    assert.match(listing.stdout, new RegExp(`/workflows/${expectedWorkflows.get(definition.name)}$`, "m"));
+  }
+});
+
 test("published content remains verifiable after its source copy leaves HEAD", async (t) => {
   const fixture = await mkdtemp(join(tmpdir(), "definition-delivery-"));
   t.after(() => rm(fixture, { recursive: true, force: true }));

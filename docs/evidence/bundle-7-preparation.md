@@ -1,6 +1,6 @@
 # Bundle 7 本地准备（NOT_FROZEN / NOT_RUN）
 
-针对 Bundle 6 实际两个同身份 Check 的失败证据，准备 `github-pr-review/v0.1.5` / `github-pr-review/codex/v0.1.5`，计划 Repository Release `v0.2.5`。当前为 Draft PR 交付内容，未合并或发布。不得改变已冻结 Bundle 6 或删除重复 Check 来制造通过。
+针对 Bundle 6 实际两个同身份 Check 的失败证据，记录后续修复与重新验证所需工作。新的 Definition、Profile、Repository Release、Consumer PR、commit/head SHA 与 Case Result 均未分配或冻结；PR #46 只是修复来源，不是待发布 Candidate。不得改变已冻结 Bundle 6 或删除重复 Check 来制造通过。
 
 ## 已完成的本地保障
 
@@ -14,7 +14,7 @@
 
 ## 必须重新冻结与执行
 
-1. 单独授权远端交付后，冻结新 Candidate merge/tag、Action SHA、CLI、runner 版本、配置、资产 hashes。认证、Model 输入与权限不能因额度不足而切换。
+1. 当前任务布局中的替代实现完成并获得远端交付授权后，才为新 Candidate 分配并冻结 Definition/Profile/Release 身份、merge/tag、Action SHA、CLI、runner 版本、配置与资产 hashes。认证、Model 输入与权限不能因额度不足而切换。
 2. Actions 暂停、runner 停止时更新完整 Consumer main 控制文件；从新 main 创建全新业务分支和 Draft PR，产生两个实际 head。
 3. 核验 base 和两个 head 的 `.github` tree 完全一致，再公开最终冻结清单；当前不填写虚构 SHA、PR 或 run。
 4. 跑 Draft 人工 dispatch、第一 head Ready、第二 head synchronize、第二 head 人工重跑四项；全部真实 Case 目前 NOT_RUN。
@@ -26,4 +26,3 @@
 ## 未完成边界
 
 Bundle 6 完整结果已获授权并[公开到 Issue #29](https://github.com/tutar/loop-engineering/issues/29#issuecomment-5706374180)，结论仍为 FAIL。Issue #29 未因本地保障而宣告完成，尚未勾选幂等验收，也不创建“验收已完成”PR。可选 tracing 失败独立性尚无直接 failure-injection 证据，不把未启用 tracing 伪装为该测试通过。未验证 forks、共享/其他 runners、网络、凭据与 revisions 不继承支持声明；没有 Stable Supported Profile。
-

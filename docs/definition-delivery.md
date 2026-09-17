@@ -10,6 +10,8 @@ node scripts/verify-definition-delivery.mjs
 
 验证器要求 tag 精确解析到记录的完整 commit，并直接从该 tag 的 Git tree 检查安装内容。因此历史 Definition 即使以后不再保留于主分支，仍可从固定引用取得。它还要求每种当前 Definition 只有一条记录，并检查 Evidence Manifest 明示的 Definition、Repository Release、Compatibility Profile（如该 Bundle 已记录）和 Action revision，不允许迁移后的当前实现自动继承旧 Evidence。
 
+Legacy Development Definition 发布早于 GitHub Release 对象的使用；清单将其历史仓库交付版本 `0.1.2` 明确标为 `legacy-tag`，不虚构不存在的 GitHub Release。PR Review 的 `v0.2.x` 条目则标为 `github-release`。
+
 ## 获取与所有权
 
 - **当前实现**：主分支中正在演进、后续将迁入无版本任务布局的源码。当前映射以交付清单为准；不能从“目录中版本号最大”猜测。
