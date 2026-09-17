@@ -1,6 +1,23 @@
 {
-  "schemaVersion": 1,
-  "currentDefinitions": [
+  "schemaVersion": 2,
+  "currentTasks": [
+    {
+      "name": "development",
+      "path": "workflow-tasks/development",
+      "installRoot": "files/.github",
+      "testRoot": "test",
+      "workflow": "github-development-ticket.yml"
+    },
+    {
+      "name": "pr-review",
+      "path": "workflow-tasks/pr-review",
+      "installRoot": "files/.github",
+      "testRoot": "test",
+      "workflow": "github-pr-review.yml"
+    }
+  ],
+  "retiredSourceRoots": ["workflow-definitions"],
+  "latestPublishedDefinitions": [
     "github-development-ticket/v0.1.2",
     "github-pr-review/v0.1.4"
   ],
@@ -28,8 +45,7 @@
       "repositoryRelease": { "version": "0.1.2", "gitRef": "0.1.2", "kind": "legacy-tag" },
       "path": "workflow-definitions/github-development-ticket/v0.1.2",
       "installRoot": "files/.github",
-      "testRoot": "test",
-      "currentPath": "workflow-tasks/development"
+      "testRoot": "test"
     },
     {
       "name": "github-pr-review",
@@ -70,8 +86,7 @@
       "repositoryRelease": { "version": "v0.2.4", "gitRef": "v0.2.4", "kind": "github-release" },
       "path": "workflow-definitions/github-pr-review/v0.1.4",
       "installRoot": "files/.github",
-      "testRoot": "test",
-      "currentPath": "workflow-tasks/pr-review"
+      "testRoot": "test"
     }
   ],
   "evidenceBindings": [

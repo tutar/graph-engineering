@@ -13,4 +13,4 @@ Workflow Definition（工作流定义）是 Consumer Project（消费项目）�
 - 保持复制后项目自有的交付方式；不因内部代码复用而改为依赖中央远程 Reusable Workflow（可复用工作流）。
 - 本次重构仅整理 Development Task（研发实现任务）与 PR Review Task（PR 审查任务），不顺带实现人工评论命令或定时扫描票据、PR。
 - 后续扩展 Repository Review Task（仓库审查任务），包含代码审查与架构改进分析；定时只是它的触发方式，不以触发事件作为代码分块的主要依据。具体需求由 GitHub Issue 承载，不放入领域词汇表。
-- 当前源码布局尚未迁移；本决策不将旧研发实现工作流的会话恢复方式视为新架构保证，也不授权替换其运行时。
+- [将 PR Review Task 迁入当前任务布局](https://github.com/tutar/loop-engineering/issues/49)、[将 Development Task 迁入统一任务布局](https://github.com/tutar/loop-engineering/issues/50) 与 [移除历史版本副本并完成当前布局切换](https://github.com/tutar/loop-engineering/issues/51) 已将两种任务迁入当前布局；该迁移不把旧研发实现工作流的会话恢复方式扩大为其他任务或运行环境的保证，也不授权替换其运行时。

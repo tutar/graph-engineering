@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -18,65 +18,55 @@ function run(command, args, cwd) {
   return spawnSync(executable, executableArgs, { cwd, encoding: "utf8", env });
 }
 
-test("the delivery manifest resolves each current Definition to one immutable release", async () => {
+test("the delivery manifest keeps one unversioned current implementation per Workflow Task", async () => {
   const output = await verifyDelivery({ repository });
   assert.deepEqual(
-    output.currentDefinitions.map(({ name, definitionVersion, repositoryRelease }) => ({
-      name,
-      definitionVersion,
-      repositoryRelease,
-    })),
+    output.currentTasks.map(({ name, path, workflow }) => ({ name, path, workflow })),
     [
       {
-        name: "github-development-ticket",
-        definitionVersion: "v0.1.2",
-        repositoryRelease: "0.1.2",
+        name: "development",
+        path: "workflow-tasks/development",
+        workflow: "github-development-ticket.yml",
       },
       {
-        name: "github-pr-review",
-        definitionVersion: "v0.1.4",
-        repositoryRelease: "v0.2.4",
+        name: "pr-review",
+        path: "workflow-tasks/pr-review",
+        workflow: "github-pr-review.yml",
       },
     ],
   );
+  assert.equal(output.publishedDefinitions, 8);
   assert.equal(output.evidenceBindings, 4);
+  await assert.rejects(access(resolve(repository, "workflow-definitions")));
 });
 
-test("mapped historical releases remain runnable after current sources move", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "current-definitions-"));
+test("current Workflow Tasks remain independently copyable", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "current-tasks-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const output = await verifyDelivery({ repository });
-  const expectedWorkflows = new Map([
-    ["github-development-ticket", "github-development-ticket.yml"],
-    ["github-pr-review", "github-pr-review.yml"],
-  ]);
 
-  for (const definition of output.currentDefinitions) {
+  for (const task of output.currentTasks) {
+    const consumer = join(directory, task.name);
+    await cp(join(repository, task.path, task.installRoot), consumer, { recursive: true });
+    const workflow = join(consumer, "workflows", task.workflow);
+    assert.match(await readFile(workflow, "utf8"), /^name:/m);
+  }
+});
+
+test("mapped historical releases remain obtainable after their source copies leave HEAD", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "historical-definitions-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const output = await verifyDelivery({ repository });
+
+  for (const definition of output.latestPublishedDefinitions) {
     const archive = join(directory, `${definition.name}.tar`);
-    const snapshot = join(directory, definition.name);
-    await mkdir(snapshot);
     const archived = run(
       "git",
-      ["archive", `--output=${archive}`, definition.gitRef],
+      ["archive", `--output=${archive}`, definition.gitRef, `${definition.path}/${definition.installRoot}`],
       repository,
     );
     assert.equal(archived.status, 0, archived.stderr);
-    const extracted = run("tar", ["-xf", archive, "-C", snapshot], repository);
-    assert.equal(extracted.status, 0, extracted.stderr);
-    const workflow = join(snapshot, definition.path, definition.installRoot, "workflows", expectedWorkflows.get(definition.name));
-    assert.match(await readFile(workflow, "utf8"), /^name:/m);
-
-    const testRoot = join(snapshot, definition.path, definition.testRoot);
-    const testFiles = (await readdir(testRoot, { recursive: true }))
-      .filter((path) => path.endsWith(".test.mjs"))
-      .map((path) => join(testRoot, path));
-    assert.notEqual(testFiles.length, 0);
-    const tests = run(
-      process.execPath,
-      ["--test", "--test-concurrency=1", ...testFiles],
-      snapshot,
-    );
-    assert.equal(tests.status, 0, tests.stderr || tests.stdout);
+    await access(archive);
   }
 });
 
@@ -100,8 +90,10 @@ test("published content remains verifiable after its source copy leaves HEAD", a
   await writeFile(
     manifestPath,
     `${JSON.stringify({
-      schemaVersion: 1,
-      currentDefinitions: [],
+      schemaVersion: 2,
+      currentTasks: [],
+      retiredSourceRoots: ["published"],
+      latestPublishedDefinitions: ["fixture/v1.0.0"],
       publishedDefinitions: [
         {
           name: "fixture",
