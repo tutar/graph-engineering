@@ -35,8 +35,8 @@ test("the delivery manifest keeps one unversioned current implementation per Wor
       },
     ],
   );
-  assert.equal(output.publishedDefinitions, 8);
-  assert.equal(output.evidenceBindings, 4);
+  assert.equal(output.publishedDefinitions, 9);
+  assert.equal(output.evidenceBindings, 5);
   await assert.rejects(access(resolve(repository, "workflow-definitions")));
 });
 
@@ -51,6 +51,55 @@ test("current Workflow Tasks remain independently copyable", async (t) => {
     const workflow = join(consumer, "workflows", task.workflow);
     assert.match(await readFile(workflow, "utf8"), /^name:/m);
   }
+});
+
+test("a current-layout release binds delivery version independently from source identity", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "current-release-identity-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const manifest = JSON.parse(await readFile(join(repository, "delivery/definitions.json"), "utf8"));
+  const definition = manifest.publishedDefinitions.find(({ definitionVersion }) => definitionVersion === "v0.1.5");
+  assert.equal(definition.path, "workflow-tasks/pr-review");
+  assert.equal(definition.repositoryRelease.version, "v0.2.5");
+  assert.deepEqual(definition.sourceIdentity, {
+    definition: "github-pr-review/current",
+    profile: "github-pr-review/codex/current",
+  });
+  definition.sourceIdentity.profile = "github-pr-review/codex/not-the-frozen-profile";
+  const manifestPath = join(directory, "delivery.json");
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  await assert.rejects(verifyDelivery({ repository, manifest: manifestPath }), /source profile does not match/);
+  for (const invalid of [null, [], { definition: "github-pr-review/current", profile: "" }]) {
+    definition.sourceIdentity = invalid;
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    await assert.rejects(verifyDelivery({ repository, manifest: manifestPath }), /sourceIdentity/);
+  }
+});
+
+test("PASS evidence metadata still enforces its frozen release boundary", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "pass-evidence-boundary-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const manifest = JSON.parse(await readFile(join(repository, "delivery/definitions.json"), "utf8"));
+  const binding = {
+    manifest: join(directory, "shape-fixture.md"),
+    definition: "github-pr-review/v0.1.5",
+    repositoryRelease: "v0.2.5",
+    profile: "github-pr-review/codex/current",
+    actionRevision: "f33581290086e62dc34d420a7f1862477fc2b503",
+    status: "PASS",
+    decisionMarker: "Gate Decision: PASS",
+    frozenInputs: { candidateCommit: "927bd96156f750546019581b653b7601db9c71c8" },
+  };
+  // Shape fixture only: these tests do not constitute real Consumer evidence.
+  await writeFile(binding.manifest, [binding.definition, "v0.2.5", "v0.2.4",
+    binding.profile, binding.actionRevision, binding.decisionMarker,
+    binding.frozenInputs.candidateCommit].join("\n"));
+  manifest.evidenceBindings = [binding];
+  const manifestPath = join(directory, "delivery.json");
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  assert.equal((await verifyDelivery({ repository, manifest: manifestPath })).evidenceBindings, 1);
+  binding.repositoryRelease = "v0.2.4";
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  await assert.rejects(verifyDelivery({ repository, manifest: manifestPath }), /crosses.*release boundary/);
 });
 
 test("mapped historical releases remain obtainable after their source copies leave HEAD", async (t) => {

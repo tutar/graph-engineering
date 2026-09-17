@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 
-import { mapActionExecution } from "../files/.github/loop-engineering/pr-review-case.mjs";
+import { buildCheck, mapActionExecution } from "../files/.github/loop-engineering/pr-review-case.mjs";
 
 const execute = promisify(execFile);
 const scripts = new URL("../files/.github/loop-engineering/", import.meta.url);
@@ -63,6 +63,23 @@ test("empty, malformed, incomplete, mismatched, and spoofed output fails closed"
     assert.match(execution.diagnostic, /candidate-output/i, name);
     assert.equal(execution.review, undefined, name);
   }
+});
+
+test("diagnostic tracing failures neither reject valid review nor mask failed axes", () => {
+  const execution = mapActionExecution({
+    actionOutcome: "success",
+    finalMessage: JSON.stringify(completedOutput),
+  }, target);
+  for (const summary of ["Trace upload completed.", "Optional trace exporter failed."]) {
+    const review = {
+      ...execution.review,
+      runtime: { terminal: "completed", summary },
+    };
+    assert.equal(buildCheck(review, target).conclusion, "success");
+    assert.equal(buildCheck({ ...review, spec: { verdict: "fail", findings: ["Missing required behavior."] } }, target).conclusion, "failure");
+    assert.equal(buildCheck({ ...review, standards: { verdict: "fail", findings: ["Violates repository rules."] } }, target).conclusion, "failure");
+  }
+  // This exercises the production Gate, not an external tracing plugin/exporter.
 });
 
 test("a failed upstream execution cannot cause a Check write", async () => {

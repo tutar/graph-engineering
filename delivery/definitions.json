@@ -19,7 +19,7 @@
   "retiredSourceRoots": ["workflow-definitions"],
   "latestPublishedDefinitions": [
     "github-development-ticket/v0.1.2",
-    "github-pr-review/v0.1.4"
+    "github-pr-review/v0.1.5"
   ],
   "publishedDefinitions": [
     {
@@ -87,9 +87,45 @@
       "path": "workflow-definitions/github-pr-review/v0.1.4",
       "installRoot": "files/.github",
       "testRoot": "test"
+    },
+    {
+      "name": "github-pr-review",
+      "definitionVersion": "v0.1.5",
+      "sourceCommit": "927bd96156f750546019581b653b7601db9c71c8",
+      "repositoryRelease": { "version": "v0.2.5", "gitRef": "v0.2.5", "kind": "github-release" },
+      "path": "workflow-tasks/pr-review",
+      "installRoot": "files/.github",
+      "testRoot": "test",
+      "sourceIdentity": {
+        "definition": "github-pr-review/current",
+        "profile": "github-pr-review/codex/current"
+      }
     }
   ],
   "evidenceBindings": [
+    {
+      "manifest": "docs/evidence/github-pr-review-v0.1.5-consumer-validation.md",
+      "definition": "github-pr-review/v0.1.5",
+      "repositoryRelease": "v0.2.5",
+      "profile": "github-pr-review/codex/current",
+      "actionRevision": "f33581290086e62dc34d420a7f1862477fc2b503",
+      "status": "FAIL",
+      "decisionMarker": "Gate Decision: FAIL",
+      "frozenInputs": {
+        "candidateCommit": "927bd96156f750546019581b653b7601db9c71c8",
+        "consumerProject": "tutar/loop-engineering-consumer-validation",
+        "consumerControlPlaneCommit": "f15d91f2f61cebd93a2fdfea20400c082321bf91",
+        "firstReviewedHead": "f9b00040854fb1f77fdd2781a39ea4bcb0a4964e",
+        "secondReviewedHead": "44b3ed211c05fe7bf8be73ef6293c79ec3532df1",
+        "controlPlaneTree": "1351da1bd2d2144c1ee2019de5871387abeb8321",
+        "runnerProfile": "Dedicated private repository runner 2.337.0 Linux/X64 codex; NODE_USE_ENV_PROXY=1",
+        "authentication": "Existing default-home Codex login; CLI 0.153.4; no repository API key",
+        "includeDrafts": "false",
+        "manualDispatch": "true",
+        "safety": "read-only",
+        "modelAndEffort": "empty"
+      }
+    },
     {
       "manifest": "docs/evidence/github-pr-review-v0.1.0-consumer-validation.md",
       "definition": "github-pr-review/v0.1.0",

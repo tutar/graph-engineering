@@ -23,4 +23,4 @@ node --test --test-concurrency=1 workflow-tasks/pr-review/test/*.test.mjs
 
 测试从当前目录直接执行当前生产文件，不读取历史版本源码。它们覆盖事件路由、Draft、人工入口、Goal、双轴输出、权限、固定 Action/CLI、fail-closed、Fresh Goal Run、并发和 Check 历史协调。
 
-当前目录尚未形成新的冻结 Candidate 或真实 Consumer Evidence Bundle。历史 Release 与对应 Evidence 从 [`delivery/definitions.json`](../../delivery/definitions.json) 和 [Workflow Definition 交付契约](../../docs/definition-delivery.md) 定位；历史 FAIL 不能作为当前实现的通过证据。
+当前布局在 commit `927bd96156f750546019581b653b7601db9c71c8` / Release `v0.2.5` 冻结为 `github-pr-review/v0.1.5` Candidate；源码身份继续使用 `current`，而不是恢复版本化源码目录。[Bundle 7](../../docs/evidence/github-pr-review-v0.1.5-consumer-validation.md) 使用私有独立 Consumer 和全新 PR，单独记录真实功能与幂等结果；这不声明 Stable Supported Profile。精确交付身份、历史 Release 与对应 Evidence 从 [`delivery/definitions.json`](../../delivery/definitions.json) 和 [交付契约](../../docs/definition-delivery.md) 定位；历史 FAIL 不能作为当前实现的通过证据。

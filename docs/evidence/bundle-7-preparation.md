@@ -1,5 +1,7 @@
 # Bundle 7 本地准备（NOT_FROZEN / NOT_RUN）
 
+> 历史准备快照：标题及下列未分配/未执行状态描述草案创建时的事实，不是当前状态。当前布局的 `v0.2.5` / `github-pr-review/v0.1.5` 冻结和全新 Consumer PR #6 的真实 Case 由 [Bundle 7 Evidence Manifest](github-pr-review-v0.1.5-consumer-validation.md) 承载；不合并 PR #46 的旧目录形态、不复用 PR #2–#4 或拼接旧结果。下列 49/49、231/231 是当时修复来源的本地检查，不是新布局的真实验收证据。
+
 针对 Bundle 6 实际两个同身份 Check 的失败证据，记录后续修复与重新验证所需工作。新的 Definition、Profile、Repository Release、Consumer PR、commit/head SHA 与 Case Result 均未分配或冻结；PR #46 只是修复来源，不是待发布 Candidate。不得改变已冻结 Bundle 6 或删除重复 Check 来制造通过。
 
 ## 已完成的本地保障

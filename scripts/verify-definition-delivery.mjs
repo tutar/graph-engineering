@@ -62,6 +62,14 @@ function validateDefinitionShape(definition, label) {
   }
   requireRepositoryPath(definition.path, `${label}.path`);
   requireRepositoryPath(definition.installRoot, `${label}.installRoot`);
+  if (Object.hasOwn(definition, "sourceIdentity")) {
+    if (!definition.sourceIdentity || typeof definition.sourceIdentity !== "object" || Array.isArray(definition.sourceIdentity)) {
+      fail(`${label}.sourceIdentity must be a named object`);
+    }
+    for (const field of ["definition", "profile"]) {
+      requireString(definition.sourceIdentity[field], `${label}.sourceIdentity.${field}`);
+    }
+  }
 }
 
 function validateCurrentTaskShape(task, label) {
@@ -90,6 +98,16 @@ function verifyPublishedDefinition(repository, definition) {
   }
   const installPath = `${definition.path}/${definition.installRoot}`;
   git(repository, ["cat-file", "-e", `${gitRef}:${installPath}`]);
+  if (definition.sourceIdentity) {
+    for (const filename of ["pr-review-config.json", "codex-compatibility-profile.json"]) {
+      const config = JSON.parse(git(repository, ["show", `${gitRef}:${installPath}/loop-engineering/${filename}`]));
+      for (const field of ["definition", "profile"]) {
+        if (config[field] !== definition.sourceIdentity[field]) {
+          fail(`${definitionKey(definition)} ${filename} source ${field} does not match its frozen identity`);
+        }
+      }
+    }
+  }
 }
 
 export async function verifyDelivery(options) {
@@ -144,6 +162,7 @@ export async function verifyDelivery(options) {
     const expectedDecisionMarker = {
       FAIL: "Gate Decision: FAIL",
       IN_PROGRESS: "Status: in progress",
+      PASS: "Gate Decision: PASS",
     }[binding.status];
     if (!expectedDecisionMarker || binding.decisionMarker !== expectedDecisionMarker) {
       fail(`${label}.status does not match its decisionMarker`);

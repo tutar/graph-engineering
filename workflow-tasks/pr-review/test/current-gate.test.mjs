@@ -11,7 +11,7 @@ test("the current static gate covers the task contract without claiming Consumer
     "permissions", "validation", "SHA freshness", "idempotency", "fail-closed", "Check", "Fresh Goal Run", "concurrency",
   ]) assert.match(gate, new RegExp(category, "i"), category);
   assert.match(gate, /PASS for current-layout implementation only/);
-  assert.match(gate, /Candidate freeze pending.*no Stable Supported Profile/i);
+  assert.match(gate, /Candidate frozen: `v0\.2\.5` \/ `github-pr-review\/v0\.1\.5`; no Stable Supported Profile/i);
   assert.match(gate, /Fake Action.*不证明真实 Consumer compatibility/s);
   assert.match(gate, /历史 Evidence 也不证明当前实现已通过真实 Consumer 验证/);
 });
