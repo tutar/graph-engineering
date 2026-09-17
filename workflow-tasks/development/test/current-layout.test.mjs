@@ -7,9 +7,9 @@ const installRoot = new URL("../files/.github/", import.meta.url);
 
 test("the current Development Task is a complete copy-owned file set", async () => {
   const workflow = await readFile(new URL("workflows/github-development-ticket.yml", installRoot), "utf8");
-  assert.match(workflow, /^name: Loop Engineering - GitHub Development Ticket$/m);
+  assert.match(workflow, /^name: Graph Engineering - GitHub Development Ticket$/m);
 
-  const controllerFiles = (await readdir(new URL("loop-engineering/", installRoot))).sort();
+  const controllerFiles = (await readdir(new URL("graph-engineering/", installRoot))).sort();
   assert.deepEqual(controllerFiles, [
     "development-worktree.sh",
     "github-development-ticket.mjs",
@@ -28,5 +28,5 @@ test("current behavior tests import production files from the current task", asy
     assert.doesNotMatch(source, /workflow-definitions\/github-development-ticket/);
   }
 
-  await access(new URL("loop-engineering/github-development-ticket.mjs", installRoot));
+  await access(new URL("graph-engineering/github-development-ticket.mjs", installRoot));
 });

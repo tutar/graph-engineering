@@ -13,7 +13,7 @@
     "safetyStrategy": "read-only"
   },
   "check": {
-    "name": "Loop Engineering / PR Review",
+    "name": "Graph Engineering / PR Review",
     "title": "PR Review"
   }
 }

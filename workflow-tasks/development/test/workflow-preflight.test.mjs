@@ -7,11 +7,11 @@ const workflow = readFileSync(
   "utf8",
 );
 const controller = readFileSync(
-  new URL("../files/.github/loop-engineering/github-development-ticket.mjs", import.meta.url),
+  new URL("../files/.github/graph-engineering/github-development-ticket.mjs", import.meta.url),
   "utf8",
 );
 const worktree = readFileSync(
-  new URL("../files/.github/loop-engineering/development-worktree.sh", import.meta.url),
+  new URL("../files/.github/graph-engineering/development-worktree.sh", import.meta.url),
   "utf8",
 );
 
@@ -41,8 +41,10 @@ test("interrupted work is preserved and restored around checkout", () => {
   assert.ok(checkout < restore);
   assert.ok(restore < runGoal);
   assert.match(workflow, /development-worktree\.sh restore/);
-  assert.match(workflow, /loop-engineering:\$\{GITHUB_REPOSITORY\}:\$\{current_branch\}/);
-  assert.match(workflow, /refs\/loop-engineering\/interrupted-stash\/\$\{TARGET_BRANCH\}/);
+  assert.match(workflow, /graph-engineering:\$\{GITHUB_REPOSITORY\}:\$\{current_branch\}/);
+  assert.match(workflow, /refs\/graph-engineering\/interrupted-stash\/\$\{TARGET_BRANCH\}/);
+  assert.match(worktree, /refs\/loop-engineering\/interrupted/);
+  assert.match(worktree, /migrate_legacy_ref/);
 });
 
 test("interrupted local commits are rebuilt before their worktree changes", () => {

@@ -12,7 +12,7 @@ test("the current PR Review Task is a complete Consumer-owned file set", async (
 
   await cp(join(task, "files", ".github"), join(consumer, ".github"), { recursive: true });
   await access(join(consumer, ".github", "workflows", "github-pr-review.yml"));
-  await access(join(consumer, ".github", "loop-engineering", "publish-review.mjs"));
+  await access(join(consumer, ".github", "graph-engineering", "publish-review.mjs"));
 
   const workflow = await readFile(join(consumer, ".github", "workflows", "github-pr-review.yml"), "utf8");
   assert.doesNotMatch(workflow, /uses:\s+[^\n]*\.github\/workflows\//);
@@ -20,7 +20,7 @@ test("the current PR Review Task is a complete Consumer-owned file set", async (
 });
 
 test("the current task uses an unversioned source identity", async () => {
-  const publication = await import("../files/.github/loop-engineering/check-publication.mjs");
+  const publication = await import("../files/.github/graph-engineering/check-publication.mjs");
   assert.equal(publication.DEFINITION_ID, "github-pr-review/current");
   assert.doesNotMatch(publication.checkExternalId({
     repository: "acme/widgets",

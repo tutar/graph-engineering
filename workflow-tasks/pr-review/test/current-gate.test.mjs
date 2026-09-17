@@ -17,7 +17,7 @@ test("the current static gate covers the task contract without claiming Consumer
 });
 
 test("the current task carries every runtime asset in its own copyable tree", () => {
-  assert.deepEqual(readdirSync(new URL("../files/.github/loop-engineering/", import.meta.url)).sort(), [
+  assert.deepEqual(readdirSync(new URL("../files/.github/graph-engineering/", import.meta.url)).sort(), [
     "capture-review.mjs",
     "check-publication.mjs",
     "codex-compatibility-profile.json",

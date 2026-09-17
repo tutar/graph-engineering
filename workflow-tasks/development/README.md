@@ -8,12 +8,21 @@
 
 ## 接入
 
-1. 将 `files/.github/` 复制到项目根目录的 `.github/`。
-2. 为仓库添加名为 `ready-for-agent`、`development-ticket` 和 `in-progress` 的标签。
-3. 配置能够运行 `codex`、`gh` 和 Node.js 22+ 的持久化 self-hosted runner。
-4. 确认 GitHub Actions 可以写入 contents、issues 与 pull requests，并允许 Actions 创建 Pull Request。
-5. 根据项目实际情况修改 Workflow 中的 runner labels、默认分支、Git identity、超时和 token budget。
-6. 创建至少包含业务目标与 Acceptance Criteria（验收条件）的 Issue，先添加 `ready-for-agent`，确认它是可直接实现的 Ticket 后，再手动添加 `development-ticket`。
+在 Consumer Project 根目录执行：
+
+```bash
+npx --yes @tutar/graph-engineering@0.3.0 init development
+```
+
+CLI 会安装 `files/.github/` 中的项目自有文件、记录来源并运行检查。随后按 `ACTION REQUIRED` 创建 `ready-for-agent`、`development-ticket` 和 `in-progress` 标签，配置能够运行 `codex`、`gh` 和 Node.js 22+ 的持久化 self-hosted runner，确认 Actions 对 contents、issues 和 pull requests 的写权限，并按项目需要审阅 runner labels、默认分支、Git identity、超时和 token budget。
+
+重复检查而不修改文件：
+
+```bash
+npx --yes @tutar/graph-engineering@0.3.0 check development
+```
+
+创建至少包含业务目标与 Acceptance Criteria（验收条件）的 Issue，先添加 `ready-for-agent`，确认它是可直接实现的 Ticket 后，再手动添加 `development-ticket`。
 
 默认网络权限允许访问 GitHub 及 Agent Skill 规范来源 `agentskills.io`，并允许使用 Runner 的上游代理和本地测试端口。Consumer Project（消费项目）负责在 Goal 前准备项目依赖，并按实际依赖把可执行文件、缓存目录及额外域名加入最小权限配置；Definition 不携带 `agent-gateway`、`uv` 或 PyPI 等项目专属设置。
 

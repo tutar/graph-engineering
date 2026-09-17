@@ -1,4 +1,4 @@
-export const CHECK_NAME = "Loop Engineering / PR Review";
+export const CHECK_NAME = "Graph Engineering / PR Review";
 export const DEFINITION_ID = "github-pr-review/current";
 
 export function checkExternalId(target) {

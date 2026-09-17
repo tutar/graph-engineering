@@ -8,10 +8,10 @@ import { promisify } from "node:util";
 import test from "node:test";
 
 const execute = promisify(execFile);
-const publisher = new URL("../files/.github/loop-engineering/publish-review.mjs", import.meta.url).pathname;
+const publisher = new URL("../files/.github/graph-engineering/publish-review.mjs", import.meta.url).pathname;
 const target = { repository: "acme/widgets", number: 42, baseSha: "base", headSha: "head" };
 const externalId = "github-pr-review/current:acme/widgets:pull-request:42:head";
-const existing = { id: 7, name: "Loop Engineering / PR Review", head_sha: "head", external_id: externalId };
+const existing = { id: 7, name: "Graph Engineering / PR Review", head_sha: "head", external_id: externalId };
 
 // Adversarial latest/all fixture; the Bundle 6 creation-time token response
 // was not logged, so this is not a claimed replay of that exact response.
