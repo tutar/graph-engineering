@@ -64,28 +64,18 @@ export function mapActionExecution({ actionOutcome, finalMessage }, target) {
   }
 }
 
-export function parseSuccessfulResult(execution, target) {
-  const mapped = mapActionExecution({
-    actionOutcome: execution.terminal === "completed" ? "success" : execution.terminal,
-    finalMessage: execution.finalMessage,
-  }, target);
-  if (mapped.terminal !== "completed") throw new Error(mapped.diagnostic);
-  if (execution.summary) mapped.review.runtime.summary = execution.summary;
-  return mapped.review;
-}
-
 export function assertReviewResult(review, target) {
   assertExactKeys(review, ["repository", "pullRequestNumber", "baseSha", "headSha", "standards", "spec", "runtime"]);
   assertTrustedTarget(review, target);
   for (const axis of ["standards", "spec"]) {
     if (!review[axis] || typeof review[axis] !== "object") {
-      throw new Error(`Candidate review output is missing the ${axis} axis`);
+      throw new Error(`review output is missing the ${axis} axis`);
     }
     assertExactKeys(review[axis], ["verdict", "findings"]);
     if (!["pass", "fail"].includes(review[axis].verdict)
       || !Array.isArray(review[axis].findings)
       || !review[axis].findings.every((finding) => typeof finding === "string" && finding.trim())) {
-      throw new Error(`Candidate review output is missing the ${axis} axis`);
+      throw new Error(`review output is missing the ${axis} axis`);
     }
   }
   if (!review.runtime || review.runtime.terminal !== "completed" || !review.runtime.summary) {

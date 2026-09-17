@@ -48,7 +48,7 @@ Repository Release `v0.2.4` 发布 `github-pr-review/v0.1.4` Candidate，并保�
 
 该闭环已在 [`tutar/agent-infra`](https://github.com/tutar/agent-infra) 的真实 Development Ticket 上验证。当前范围刻意保持较窄：只交付到 Draft PR，不自动 approve、merge、deploy，也不编排多个业务节点。
 
-## Candidate Quick Start（默认方向）
+## Current Task Quick Start（默认方向）
 
 将 [`workflow-tasks/pr-review/files/.github/`](workflow-tasks/pr-review/files/.github/) 整体复制到 Consumer Project 的 `.github/`，安装项目自己的 `code-review` Skill，并提供带 `[self-hosted, Linux, X64, codex]` labels 与既有 Codex 登录状态的专用 runner，再按[当前任务文档](workflow-tasks/pr-review/README.md)编辑唯一允许的 `pr-review-config.json`。该任务不使用仓库 `OPENAI_API_KEY`，锁定维护版 `tutar/codex-action` 的不可变修补 SHA，只做只读 PR Review，并由独立可信 publish job创建或更新 Check Run。
 
@@ -128,7 +128,7 @@ npx skills add https://github.com/mattpocock/skills
 
 ## 已发布定义
 
-- [`github-pr-review` v0.1.4 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.4/README.md)：Repository Release `v0.2.4` 发布的当前 Candidate；Bundle 6 因重复同身份 Check 判为 FAIL。
+- [`github-pr-review` v0.1.4 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.4/README.md)：Repository Release `v0.2.4` 发布的最近历史 Candidate；Bundle 6 因重复同身份 Check 判为 FAIL。
 - [`github-pr-review` v0.1.3 Candidate](workflow-definitions/github-pr-review/v0.1.3/README.md)：Repository Release `v0.2.3` 发布的历史 Candidate；没有 Stable Supported Profile。
 - [`github-pr-review` v0.1.2 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.2/README.md)：Repository Release `v0.2.2` 发布的历史 Candidate。
 - [`github-pr-review` v0.1.1 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.1/README.md)：Repository Release `v0.2.1` 发布的历史 Candidate；冻结组合的 runner-login 兼容性已被真实证据否定。

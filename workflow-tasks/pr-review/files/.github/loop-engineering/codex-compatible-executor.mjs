@@ -101,12 +101,12 @@ function validateProfile(profile) {
 
 function validateConfiguration(config, profile) {
   assertExactKeys(config, ["definition", "profile", "events", "eventPrompt", "codex", "check"], "configuration");
-  if (config.definition !== DEFINITION) throw new Error("configuration definition does not match this Candidate");
+  if (config.definition !== DEFINITION) throw new Error("configuration definition does not match this current task");
   if (config.profile !== profile.profile) throw new Error("configuration profile does not match the bundled Profile");
   assertExactKeys(config.events, ["pullRequestActions", "manualDispatch", "includeDrafts"], "events");
   if (!Array.isArray(config.events.pullRequestActions) || !config.events.pullRequestActions.every((action) => profile.consumerConfiguration.pullRequestActions.includes(action)) || new Set(config.events.pullRequestActions).size !== config.events.pullRequestActions.length) throw new Error("events.pullRequestActions contains an unsupported or duplicate event");
   if (typeof config.events.manualDispatch !== "boolean") throw new Error("events.manualDispatch must be boolean");
-  if (!profile.consumerConfiguration.includeDrafts.includes(config.events.includeDrafts)) throw new Error("events.includeDrafts must remain false for this Candidate");
+  if (!profile.consumerConfiguration.includeDrafts.includes(config.events.includeDrafts)) throw new Error("events.includeDrafts must remain false for this current task");
   if (typeof config.eventPrompt !== "string" || !config.eventPrompt.trim()) throw new Error("eventPrompt is required");
   assertExactKeys(config.codex, ["model", "effort", "safetyStrategy"], "codex");
   if (typeof config.codex.model !== "string" || !new RegExp(profile.consumerConfiguration.modelPattern).test(config.codex.model)) throw new Error("codex.model contains unsupported characters");
