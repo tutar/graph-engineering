@@ -42,7 +42,7 @@ test("the delivery manifest resolves each current Definition to one immutable re
   assert.equal(output.evidenceBindings, 4);
 });
 
-test("both current Workflow Task installation and test roots run from immutable snapshots", async (t) => {
+test("mapped historical releases remain runnable after current sources move", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "current-definitions-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const output = await verifyDelivery({ repository });
