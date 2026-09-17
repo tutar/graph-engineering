@@ -24,6 +24,26 @@ _Avoid_: Workflow 重试策略、Graph Engineering、中央 Runtime
 Consumer Project 为某类 GitHub Event 配置的模板；Workflow 用它引用业务对象并形成 Goal Prompt。
 _Avoid_: Acceptance Criteria、固定系统 Prompt、Agent Action 配置
 
+**Workflow Task（工作流任务）**:
+Consumer Project 希望 Agent 完成的一种工作，具有明确的目标、Completion Condition、副作用权限与结果交付责任；它不是触发事件，同一任务可以由多个事件启动。
+_Avoid_: GitHub Event、单个 Job、Workflow Definition
+
+**Development Task（研发实现任务）**:
+以 Development Ticket 的目标和 Acceptance Criteria 为依据，实现、验证代码并交付 Draft PR 的 Workflow Task；不包含自动批准、合并或发布。
+_Avoid_: Development Ticket、PR Review Task、完整 CI/Review Graph
+
+**PR Review Task（PR 审查任务）**:
+针对具体 PR 的代码变更，分别检查 Standards（规范）与 Spec（规格），并交付绑定目标提交的审查结果的 Workflow Task；Agent 分析不拥有结果发布的写权限，也不负责实现修复或合并。
+_Avoid_: Development Task、Repository Review Task、自动批准
+
+**Repository Review Task（仓库审查任务）**:
+面向仓库的增量代码审查与结合整体结构、近期变更的架构改进分析，交付建议报告的 Workflow Task；它不是针对单个 PR 的审查，也不授权自动修改代码。
+_Avoid_: PR Review Task、自动重构、Graph Gate
+
+**Review Report（审查报告）**:
+Repository Review Task 的结果载体，分别呈现代码审查与架构改进分析；可信发布步骤拥有报告发布责任，报告本身不构成修复授权或变更验收证据。
+_Avoid_: Evidence Bundle、修复 PR、通过证明
+
 **Goal Prompt（目标提示）**:
 由 Event Prompt 形成、交给 Agent Runtime 原生 Goal 的输入，包含工作目标、Completion Condition，并可引用业务对象中的 Acceptance Criteria。
 _Avoid_: Acceptance Criteria 的事实源、普通单轮指令、Graph Definition
@@ -105,7 +125,7 @@ _Avoid_: Reusable Workflow、中央 Runtime、通用 DSL
 _Avoid_: 草稿、仅凭静态测试即可发布的稳定版本、Legacy Frozen Definition
 
 **Legacy Frozen Definition（旧版冻结定义）**:
-已经发布并验证、仍可由 Consumer Project 复制使用，但退出默认演进路线的 Workflow Definition；保留其版本化文件与验证记录，仅接受严重安全问题和事实纠错，不新增能力或承诺适配未来平台变化。
+已经发布并验证、仍可由 Consumer Project 复制使用，但退出默认演进路线的 Workflow Definition；其历史交付内容与验证记录保持可追溯，仅接受严重安全问题和事实纠错，不新增能力或承诺适配未来平台变化。
 _Avoid_: Candidate Definition、默认推荐路线、已删除或不可使用的版本
 
 **Repository Release（仓库发布版本）**:
