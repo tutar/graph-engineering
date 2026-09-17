@@ -7,12 +7,12 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 
-import { enforceManualPullRequestState, planReviewRun, routeReviewEvent } from "../files/.github/loop-engineering/route-review.mjs";
-import profile from "../files/.github/loop-engineering/codex-compatibility-profile.json" with { type: "json" };
-import config from "../files/.github/loop-engineering/pr-review-config.json" with { type: "json" };
+import { enforceManualPullRequestState, planReviewRun, routeReviewEvent } from "../files/.github/graph-engineering/route-review.mjs";
+import profile from "../files/.github/graph-engineering/codex-compatibility-profile.json" with { type: "json" };
+import config from "../files/.github/graph-engineering/pr-review-config.json" with { type: "json" };
 
 const execute = promisify(execFile);
-const router = new URL("../files/.github/loop-engineering/route-review.mjs", import.meta.url).pathname;
+const router = new URL("../files/.github/graph-engineering/route-review.mjs", import.meta.url).pathname;
 
 for (const action of ["opened", "reopened", "synchronize", "ready_for_review"]) {
   test(`a ready pull request ${action} event starts a fresh review`, () => {

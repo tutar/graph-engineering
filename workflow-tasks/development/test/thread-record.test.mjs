@@ -3,8 +3,9 @@ import test from "node:test";
 import {
   findThreadRecord,
   formatThreadRecord,
+  LEGACY_RECORD_KIND,
   parseThreadRecord,
-} from "../files/.github/loop-engineering/thread-record.mjs";
+} from "../files/.github/graph-engineering/thread-record.mjs";
 
 function botComment(body) {
   return { body, user: { login: "github-actions[bot]" } };
@@ -13,6 +14,22 @@ function botComment(body) {
 test("round-trips a Thread Record", () => {
   const record = { repository: "owner/project", issueNumber: 1, threadId: "thread-one" };
   assert.deepEqual(parseThreadRecord(formatThreadRecord(record)), record);
+});
+
+test("reads the legacy Loop Engineering Thread Record during migration", () => {
+  const body = [
+    `<!-- ${LEGACY_RECORD_KIND}`,
+    "repository=owner/project",
+    "issue=3",
+    "thread=legacy-thread",
+    "-->",
+  ].join("\n");
+  assert.deepEqual(parseThreadRecord(body), {
+    repository: "owner/project",
+    issueNumber: 3,
+    threadId: "legacy-thread",
+  });
+  assert.doesNotMatch(formatThreadRecord({ repository: "owner/project", issueNumber: 3, threadId: "new" }), /loop-engineering/);
 });
 
 test("an existing Issue 1 record does not resume for Issue 2", () => {

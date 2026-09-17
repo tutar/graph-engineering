@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { SUPPORTED_ACTIONS } from "../files/.github/loop-engineering/route-review.mjs";
+import { SUPPORTED_ACTIONS } from "../files/.github/graph-engineering/route-review.mjs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const workflow = read("../files/.github/workflows/github-pr-review.yml");
-const profile = JSON.parse(read("../files/.github/loop-engineering/codex-compatibility-profile.json"));
-const config = JSON.parse(read("../files/.github/loop-engineering/pr-review-config.json"));
-const schema = JSON.parse(read("../files/.github/loop-engineering/review-result.schema.json"));
+const profile = JSON.parse(read("../files/.github/graph-engineering/codex-compatibility-profile.json"));
+const config = JSON.parse(read("../files/.github/graph-engineering/pr-review-config.json"));
+const schema = JSON.parse(read("../files/.github/graph-engineering/review-result.schema.json"));
 
 test("the copyable template has a manual entry and separate review and publish jobs", () => {
   assert.match(workflow, /workflow_dispatch:/);
@@ -20,7 +20,7 @@ test("the copyable template has a manual entry and separate review and publish j
 
 test("the Workflow routes the supported PR lifecycle into fresh serialized runs", () => {
   assert.match(workflow, /pull_request:\s+types: \[opened, reopened, synchronize, ready_for_review\]/);
-  assert.match(workflow, /node \.github\/loop-engineering\/route-review\.mjs/);
+  assert.match(workflow, /node \.github\/graph-engineering\/route-review\.mjs/);
   assert.match(workflow, /steps\.route\.outputs\.pull_request_number/);
   assert.match(workflow, /needs\.route\.outputs\.should_start == 'true'/);
   assert.match(workflow, /needs\.route\.result == 'success'/);
@@ -67,13 +67,13 @@ test("only the review job uses the frozen Runner-backed Codex Profile", () => {
 test("untrusted PR contents cannot replace control-plane scripts or retain Git credentials", () => {
   const review = workflow.slice(workflow.indexOf("  review:"), workflow.indexOf("  publish:"));
   const publish = workflow.slice(workflow.indexOf("  publish:"));
-  assert.match(review, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}[\s\S]*path: \.loop-engineering-trusted/);
+  assert.match(review, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}[\s\S]*path: \.graph-engineering-trusted/);
   assert.match(review, /ref: \$\{\{ steps\.target\.outputs\.head_sha \}\}[\s\S]*path: review-workspace/);
   assert.match(review, /working-directory: \$\{\{ github\.workspace \}\}\/review-workspace/);
-  assert.match(review, /node \.loop-engineering-trusted\/\.github\/loop-engineering\/prepare-review\.mjs/);
-  assert.match(review, /node \.loop-engineering-trusted\/\.github\/loop-engineering\/capture-review\.mjs/);
-  assert.doesNotMatch(review, /run: node \.github\/loop-engineering\/(prepare|capture)-review\.mjs/);
-  assert.match(publish, /node \.loop-engineering-publisher\/\.github\/loop-engineering\/publish-review\.mjs/);
+  assert.match(review, /node \.graph-engineering-trusted\/\.github\/graph-engineering\/prepare-review\.mjs/);
+  assert.match(review, /node \.graph-engineering-trusted\/\.github\/graph-engineering\/capture-review\.mjs/);
+  assert.doesNotMatch(review, /run: node \.github\/graph-engineering\/(prepare|capture)-review\.mjs/);
+  assert.match(publish, /node \.graph-engineering-publisher\/\.github\/graph-engineering\/publish-review\.mjs/);
   assert.equal((workflow.match(/persist-credentials: false/g) ?? []).length, 4);
 });
 

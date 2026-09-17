@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { mapActionExecution } from "../files/.github/loop-engineering/pr-review-case.mjs";
+import { mapActionExecution } from "../files/.github/graph-engineering/pr-review-case.mjs";
 
-const schema = JSON.parse(readFileSync(new URL("../files/.github/loop-engineering/review-result.schema.json", import.meta.url)));
+const schema = JSON.parse(readFileSync(new URL("../files/.github/graph-engineering/review-result.schema.json", import.meta.url)));
 
 // Conservative offline contract guard, not an API acceptance emulator.
 function assertSupported(node) {
@@ -22,7 +22,7 @@ function assertSupported(node) {
 
 test("the exact Action output-schema file avoids the Bundle 5 API rejection", () => {
   const workflow = readFileSync(new URL("../files/.github/workflows/github-pr-review.yml", import.meta.url), "utf8");
-  assert.match(workflow, /output-schema-file: \$\{\{ github.workspace \}\}\/\.loop-engineering-trusted\/\.github\/loop-engineering\/review-result\.schema\.json/);
+  assert.match(workflow, /output-schema-file: \$\{\{ github.workspace \}\}\/\.graph-engineering-trusted\/\.github\/graph-engineering\/review-result\.schema\.json/);
   assert.equal(schema.type, "object");
   assert.equal("anyOf" in schema, false);
   assertSupported(schema);

@@ -9,15 +9,15 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import test from "node:test";
 
-import { resolveCompatibleExecution } from "../files/.github/loop-engineering/codex-compatible-executor.mjs";
-import { buildCheck } from "../files/.github/loop-engineering/pr-review-case.mjs";
-import { planReviewRun, routeReviewEvent } from "../files/.github/loop-engineering/route-review.mjs";
+import { resolveCompatibleExecution } from "../files/.github/graph-engineering/codex-compatible-executor.mjs";
+import { buildCheck } from "../files/.github/graph-engineering/pr-review-case.mjs";
+import { planReviewRun, routeReviewEvent } from "../files/.github/graph-engineering/route-review.mjs";
 
 const readJson = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
-const config = readJson("../files/.github/loop-engineering/pr-review-config.json");
-const profile = readJson("../files/.github/loop-engineering/codex-compatibility-profile.json");
+const config = readJson("../files/.github/graph-engineering/pr-review-config.json");
+const profile = readJson("../files/.github/graph-engineering/codex-compatibility-profile.json");
 const execute = promisify(execFile);
-const bundledScripts = fileURLToPath(new URL("../files/.github/loop-engineering/", import.meta.url));
+const bundledScripts = fileURLToPath(new URL("../files/.github/graph-engineering/", import.meta.url));
 
 test("allowed Consumer configuration resolves through the locked Codex profile", () => {
   const resolved = resolveCompatibleExecution({
@@ -124,7 +124,7 @@ test("production adapters cover allowed, missing, forbidden, and mismatched conf
 
   for (const [name, candidate, candidateProfile, shouldStart] of cases) {
     const directory = await mkdtemp(join(tmpdir(), `pr-review-config-${name}-`));
-    const scripts = join(directory, "loop-engineering");
+    const scripts = join(directory, "graph-engineering");
     try {
       await cp(bundledScripts, scripts, { recursive: true });
       await writeFile(join(scripts, "pr-review-config.json"), JSON.stringify(candidate));

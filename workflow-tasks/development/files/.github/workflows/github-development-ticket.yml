@@ -1,4 +1,4 @@
-name: Loop Engineering - GitHub Development Ticket
+name: Graph Engineering - GitHub Development Ticket
 
 on:
   issues:
@@ -56,8 +56,8 @@ jobs:
             current_branch="$(git branch --show-current)"
             test -n "${current_branch}"
             if test "${current_branch}" = "${TARGET_BRANCH}"; then
-              interrupted_ref="refs/loop-engineering/interrupted/${TARGET_BRANCH}"
-              interrupted_stash_ref="refs/loop-engineering/interrupted-stash/${TARGET_BRANCH}"
+              interrupted_ref="refs/graph-engineering/interrupted/${TARGET_BRANCH}"
+              interrupted_stash_ref="refs/graph-engineering/interrupted-stash/${TARGET_BRANCH}"
               git update-ref -d "${interrupted_ref}"
               git update-ref -d "${interrupted_stash_ref}"
               if git ls-remote --exit-code origin "refs/heads/${TARGET_BRANCH}" >/dev/null 2>&1; then
@@ -71,7 +71,7 @@ jobs:
             fi
             if test -n "$(git status --porcelain)"; then
               git stash push --include-untracked \
-                --message "loop-engineering:${GITHUB_REPOSITORY}:${current_branch}"
+                --message "graph-engineering:${GITHUB_REPOSITORY}:${current_branch}"
               if test "${current_branch}" = "${TARGET_BRANCH}"; then
                 git update-ref "${interrupted_stash_ref}" refs/stash
               fi
@@ -85,10 +85,10 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare development branch
-        run: bash .github/loop-engineering/development-worktree.sh prepare
+        run: bash .github/graph-engineering/development-worktree.sh prepare
 
       - name: Restore interrupted Ticket work
-        run: bash .github/loop-engineering/development-worktree.sh restore
+        run: bash .github/graph-engineering/development-worktree.sh restore
 
       - name: Mark Ticket in progress
         shell: bash
@@ -102,7 +102,7 @@ jobs:
 
       - name: Start or resume Goal
         shell: bash
-        run: node .github/loop-engineering/github-development-ticket.mjs
+        run: node .github/graph-engineering/github-development-ticket.mjs
 
       - name: Verify Codex delivery
         shell: bash

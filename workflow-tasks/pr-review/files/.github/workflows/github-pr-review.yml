@@ -1,4 +1,4 @@
-name: Loop Engineering PR Review
+name: Graph Engineering PR Review
 
 on:
   pull_request:
@@ -42,7 +42,7 @@ jobs:
         id: route
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node .github/loop-engineering/route-review.mjs
+        run: node .github/graph-engineering/route-review.mjs
 
   review:
     needs: route
@@ -60,7 +60,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.repository.default_branch }}
-          path: .loop-engineering-trusted
+          path: .graph-engineering-trusted
           persist-credentials: false
       - name: Read trusted PR facts and form the Goal Prompt
         id: target
@@ -68,7 +68,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PULL_REQUEST_NUMBER: ${{ needs.route.outputs.pull_request_number }}
           EVENT_PROMPT: ${{ needs.route.outputs.event_prompt }}
-        run: node .loop-engineering-trusted/.github/loop-engineering/prepare-review.mjs
+        run: node .graph-engineering-trusted/.github/graph-engineering/prepare-review.mjs
       - name: Check out the trusted PR target
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -82,7 +82,7 @@ jobs:
         uses: tutar/codex-action@f33581290086e62dc34d420a7f1862477fc2b503 # maintained runner-login patch
         with:
           prompt-file: ${{ github.workspace }}/pr-review-goal.md
-          output-schema-file: ${{ github.workspace }}/.loop-engineering-trusted/.github/loop-engineering/review-result.schema.json
+          output-schema-file: ${{ github.workspace }}/.graph-engineering-trusted/.github/graph-engineering/review-result.schema.json
           working-directory: ${{ github.workspace }}/review-workspace
           codex-version: 0.153.4
           model: ${{ needs.route.outputs.codex_model }}
@@ -94,7 +94,7 @@ jobs:
           ACTION_OUTCOME: ${{ steps.codex.outcome }}
           FINAL_MESSAGE: ${{ steps.codex.outputs.final-message }}
           TRUSTED_TARGET: ${{ steps.target.outputs.target_json }}
-        run: node .loop-engineering-trusted/.github/loop-engineering/capture-review.mjs
+        run: node .graph-engineering-trusted/.github/graph-engineering/capture-review.mjs
       - name: Preserve the trusted target and candidate Review Result
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -123,7 +123,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.repository.default_branch }}
-          path: .loop-engineering-publisher
+          path: .graph-engineering-publisher
           persist-credentials: false
       - name: Download the candidate Review Result
         continue-on-error: true
@@ -135,4 +135,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           UPSTREAM_RESULT: ${{ needs.review.result }}
-        run: node .loop-engineering-publisher/.github/loop-engineering/publish-review.mjs
+        run: node .graph-engineering-publisher/.github/graph-engineering/publish-review.mjs

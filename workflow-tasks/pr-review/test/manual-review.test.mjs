@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 import test from "node:test";
 
 const execute = promisify(execFile);
-const scripts = new URL("../files/.github/loop-engineering/", import.meta.url);
+const scripts = new URL("../files/.github/graph-engineering/", import.meta.url);
 
 test("the manual Workflow Instance runs a controlled Action and publishes its trusted Check", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pr-review-case-"));
@@ -114,7 +114,7 @@ test("the manual Workflow Instance runs a controlled Action and publishes its tr
 
     assert.equal(requests.length, 1);
     assert.equal(requests[0].method, "POST");
-    assert.equal(requests[0].body.name, "Loop Engineering / PR Review");
+    assert.equal(requests[0].body.name, "Graph Engineering / PR Review");
     assert.equal(requests[0].body.head_sha, "head-456");
     assert.equal(requests[0].body.conclusion, "success");
     assert.match(requests[0].body.output.summary, /Standards: pass/);

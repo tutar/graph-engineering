@@ -1,0 +1,38 @@
+{
+  "name": "@tutar/graph-engineering",
+  "version": "0.3.0",
+  "description": "Install and inspect project-owned Graph Engineering workflows for GitHub software development.",
+  "type": "module",
+  "bin": {
+    "graph-engineering": "bin/graph-engineering.mjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "templates/",
+    "migrations/",
+    "release-metadata.json",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "node scripts/sync-package-assets.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tutar/graph-engineering.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/tutar/graph-engineering/issues"
+  },
+  "homepage": "https://github.com/tutar/graph-engineering#readme",
+  "license": "MIT"
+}

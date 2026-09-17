@@ -1,6 +1,6 @@
-# Loop Engineering
+# Graph Engineering
 
-本上下文定义 Agent Loop Engineering（智能体循环工程）在 GitHub 上的应用语言：项目把 GitHub Event 转换为带结束条件的 Goal Prompt，并通过 Compatible Executor 接入 Agent Runtime 原生的 Goal 循环。本项目不拥有或实现 Loop Runtime。
+本上下文定义 Graph Engineering（图工程）在 GitHub 软件研发场景中的应用语言：项目以 GitHub 持久事实连接 Workflow Task、Goal Run、Verifier 与人工 Gate，并通过 Compatible Executor 接入 Agent Runtime 原生的 Goal 循环。本项目不拥有或实现 Loop Runtime。
 
 ## Language
 
@@ -17,7 +17,7 @@ _Avoid_: Goal Run、整个业务流程
 _Avoid_: Agent Action、Compatible Executor、GitHub Workflow
 
 **Loop Engineering（循环工程）**:
-围绕 Agent Runtime 原生 Goal，设计明确的目标、Completion Condition 和运行边界，使 Agent 可以自主持续工作直至完成或交接。本项目只提供它在 GitHub 上的应用方式，不实现 Loop Runtime。
+围绕 Agent Runtime 原生 Goal，设计明确的目标、Completion Condition 和运行边界，使 Agent 可以自主持续工作直至完成或交接；它是 Graph Engineering 中单个 Goal Run 的工程边界。
 _Avoid_: Workflow 重试策略、Graph Engineering、中央 Runtime
 
 **Event Prompt（事件提示模板）**:
@@ -81,7 +81,7 @@ _Avoid_: Effect Profile、运行时 capability discovery、通用 Agent Runtime 
 _Avoid_: 预安装 Codex、仓库 API Key、动态 Provider
 
 **Graph Engineering（图工程）**:
-定义多个 Goal Run、Verifier、Human Gate 与业务节点之间的拓扑、转移和整体完成判断；CI 或 Review Gate 失败后启动新的 Repair Goal Run 属于这一层。
+定义多个 Goal Run、Verifier、Human Gate 与业务节点之间的拓扑、转移和整体完成判断；CI 或 Review Gate 失败后启动新的 Repair Goal Run 属于这一层。本项目是 Graph Engineering 在 GitHub 软件研发场景中的一种实现。
 _Avoid_: Loop Engineering、Harness Engineering、LangGraph 特定实现
 
 **Development Ticket（研发票据）**:
@@ -117,7 +117,7 @@ _Avoid_: 默认执行模式、无限制仓库管理权限、可信步骤代执�
 _Avoid_: 长期授权、内容安全证明、运行占用状态
 
 **Workflow Definition（工作流定义）**:
-`loop-engineering` 为一种 GitHub Agent Loop 用法维护的、带来源版本且可整体复制的普通文件集合，包括事件路由、可配置 Event Prompt 和 Compatible Executor；未经真实 Consumer Project 验证时是 Candidate Definition。
+`graph-engineering` 为 GitHub 软件研发场景中的一种 Graph Engineering 实现维护的、带来源版本且可整体复制的普通文件集合，包括事件路由、可配置 Event Prompt 和 Compatible Executor；未经真实 Consumer Project 验证时是 Candidate Definition。
 _Avoid_: Reusable Workflow、中央 Runtime、通用 DSL
 
 **Candidate Definition（候选工作流定义）**:
@@ -129,7 +129,7 @@ _Avoid_: 草稿、仅凭静态测试即可发布的稳定版本、Legacy Frozen 
 _Avoid_: Candidate Definition、默认推荐路线、已删除或不可使用的版本
 
 **Repository Release（仓库发布版本）**:
-表达 `loop-engineering` 仓库整体架构与内容快照的版本；它与各 Workflow Definition 独立拥有的版本生命周期不同。
+表达 `graph-engineering` 仓库整体架构、CLI 与内容快照的版本；它与各 Workflow Definition 独立拥有的版本生命周期不同。
 _Avoid_: Workflow Definition Version、所有 Definition 共用的统一版本
 
 **Candidate Publication Gate（候选发布门）**:

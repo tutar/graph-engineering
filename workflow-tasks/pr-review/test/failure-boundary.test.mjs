@@ -7,10 +7,10 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 
-import { mapActionExecution } from "../files/.github/loop-engineering/pr-review-case.mjs";
+import { mapActionExecution } from "../files/.github/graph-engineering/pr-review-case.mjs";
 
 const execute = promisify(execFile);
-const scripts = new URL("../files/.github/loop-engineering/", import.meta.url);
+const scripts = new URL("../files/.github/graph-engineering/", import.meta.url);
 const target = {
   repository: "acme/widgets",
   number: 42,
