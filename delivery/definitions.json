@@ -81,11 +81,16 @@
       "actionRevision": "86365089eb2b84e0a8fb0717b304f8bdcb13b20e",
       "status": "IN_PROGRESS",
       "decisionMarker": "Status: in progress",
-      "frozenInputs": [
-        "5234bc345ac76077ea3b21141f21a3d29e445ed4",
-        "ubuntu-24.04",
-        "85258029f84ddfa6fab6142fd8ef9b0170abfcc275327ee7543760a4eb59059e"
-      ]
+      "frozenInputs": {
+        "candidateCommit": "0c2e87a66e79e32213e2aa3d0207852340dbabe3",
+        "consumerProject": "nian1123/loop-engineering-consumer-validation",
+        "consumerBaseline": "5234bc345ac76077ea3b21141f21a3d29e445ed4",
+        "runnerProfile": "ubuntu-24.04",
+        "permission": ":read-only",
+        "safety": "read-only",
+        "eventPrompt": "Review this change against the repository rules and its requested behavior.",
+        "workflowInstanceDigest": "85258029f84ddfa6fab6142fd8ef9b0170abfcc275327ee7543760a4eb59059e"
+      }
     },
     {
       "manifest": "docs/evidence/github-pr-review-v0.1.1-consumer-validation.md",
@@ -95,11 +100,13 @@
       "actionRevision": "86365089eb2b84e0a8fb0717b304f8bdcb13b20e",
       "status": "FAIL",
       "decisionMarker": "Gate Decision: FAIL",
-      "frozenInputs": [
-        "0.153.4",
-        "cedca3ec607fe7e7256ce5971f67b9827b8691fe",
-        "[self-hosted, Linux, X64, codex]"
-      ]
+      "frozenInputs": {
+        "candidateCommit": "25d122696d96d0e71e4ae47c88da1071b85a7c19",
+        "codexCli": "0.153.4",
+        "consumerProject": "tutar/loop-engineering-consumer-validation",
+        "consumerPullRequestAndHead": "PR #2 / `cedca3ec607fe7e7256ce5971f67b9827b8691fe`",
+        "runnerLabels": "[self-hosted, Linux, X64, codex]"
+      }
     },
     {
       "manifest": "docs/evidence/github-pr-review-v0.1.2-consumer-validation.md",
@@ -109,12 +116,12 @@
       "actionRevision": "f33581290086e62dc34d420a7f1862477fc2b503",
       "status": "FAIL",
       "decisionMarker": "Gate Decision: FAIL",
-      "frozenInputs": [
-        "f52737ebde5f0d116fafc7f74881c7a79c2574cf",
-        "cedca3ec607fe7e7256ce5971f67b9827b8691fe",
-        "permission-profile: :read-only",
-        "safety-strategy: read-only"
-      ]
+      "frozenInputs": {
+        "consumerControlPlaneCommit": "f52737ebde5f0d116fafc7f74881c7a79c2574cf",
+        "consumerPullRequestAndHead": "PR #2 head `cedca3ec607fe7e7256ce5971f67b9827b8691fe`",
+        "permissionProfile": "permission-profile: :read-only",
+        "safetyStrategy": "safety-strategy: read-only"
+      }
     },
     {
       "manifest": "docs/evidence/github-pr-review-v0.1.4-consumer-validation.md",
@@ -124,14 +131,22 @@
       "actionRevision": "f33581290086e62dc34d420a7f1862477fc2b503",
       "status": "FAIL",
       "decisionMarker": "Gate Decision: FAIL",
-      "frozenInputs": [
-        "3c6334403c46180879bfe189b27f055bdde91b8c",
-        "c2f486fc39caa363ba6d30d0be2688e15dd47907",
-        "363ad49a084bf1aab1cbaf3152f5da34f146b7de",
-        "983a6821f4e7b4643b0b7f79f9eeada418d6638200b75de2fb1a0bb4942a16ea",
-        "6036cf09e6e5e02b9cb4336ecf1990bee454dd4cac2482cfa87bffd5bfa4b134",
-        "e9ccabe1b39445514888059bfad70019586419570abd7cc56537f6ee221ffd7b"
-      ]
+      "frozenInputs": {
+        "consumerControlPlaneCommit": "3c6334403c46180879bfe189b27f055bdde91b8c",
+        "firstReviewedHead": "c2f486fc39caa363ba6d30d0be2688e15dd47907",
+        "secondReviewedHead": "363ad49a084bf1aab1cbaf3152f5da34f146b7de",
+        "controlPlaneTree": "e814dfaa0d9b9b2c2be856925e83f451afe68150",
+        "profileDigest": "983a6821f4e7b4643b0b7f79f9eeada418d6638200b75de2fb1a0bb4942a16ea",
+        "workflowDigest": "6036cf09e6e5e02b9cb4336ecf1990bee454dd4cac2482cfa87bffd5bfa4b134",
+        "schemaDigest": "e9ccabe1b39445514888059bfad70019586419570abd7cc56537f6ee221ffd7b",
+        "runner": "Dedicated repo-scoped `tutar-consumer-validation`, `2.337.0`, Linux/X64, `[self-hosted, Linux, X64, codex]`",
+        "authentication": "Runner default-home existing Codex login; no repository API key",
+        "modelAndEffort": "Empty model/effort",
+        "includeDrafts": "includeDrafts=false",
+        "manualDispatch": "manualDispatch=true",
+        "safetyStrategy": "safetyStrategy=read-only",
+        "permissionProfile": "no permission-profile"
+      }
     }
   ],
   "auditSources": [

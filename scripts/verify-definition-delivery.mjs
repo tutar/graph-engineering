@@ -107,8 +107,18 @@ export async function verifyDelivery(options) {
     for (const field of ["manifest", "definition", "repositoryRelease", "actionRevision", "status", "decisionMarker"]) {
       requireString(binding[field], `${label}.${field}`);
     }
-    if (!Array.isArray(binding.frozenInputs) || binding.frozenInputs.length === 0) {
-      fail(`${label}.frozenInputs must be a non-empty array`);
+    if (!binding.frozenInputs || typeof binding.frozenInputs !== "object" || Array.isArray(binding.frozenInputs)) {
+      fail(`${label}.frozenInputs must be a named object`);
+    }
+    const frozenInputs = Object.entries(binding.frozenInputs);
+    if (frozenInputs.length === 0) fail(`${label}.frozenInputs must not be empty`);
+    for (const [field, value] of frozenInputs) requireString(value, `${label}.frozenInputs.${field}`);
+    const expectedDecisionMarker = {
+      FAIL: "Gate Decision: FAIL",
+      IN_PROGRESS: "Status: in progress",
+    }[binding.status];
+    if (!expectedDecisionMarker || binding.decisionMarker !== expectedDecisionMarker) {
+      fail(`${label}.status does not match its decisionMarker`);
     }
     const evidence = await readFile(resolve(options.repository, binding.manifest), "utf8");
     for (const value of [
@@ -117,7 +127,7 @@ export async function verifyDelivery(options) {
       binding.profile,
       binding.actionRevision,
       binding.decisionMarker,
-      ...binding.frozenInputs,
+      ...frozenInputs.map(([, value]) => value),
     ].filter(Boolean)) {
       if (!evidence.includes(value)) fail(`${binding.manifest} does not freeze ${value}`);
     }

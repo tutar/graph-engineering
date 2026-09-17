@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -42,7 +42,7 @@ test("the delivery manifest resolves each current Definition to one immutable re
   assert.equal(output.evidenceBindings, 4);
 });
 
-test("both current Workflow Task installation roots can be exported offline", async (t) => {
+test("both current Workflow Task installation and test roots run from immutable snapshots", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "current-definitions-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const output = await verifyDelivery({ repository });
@@ -53,16 +53,31 @@ test("both current Workflow Task installation roots can be exported offline", as
 
   for (const definition of output.currentDefinitions) {
     const archive = join(directory, `${definition.name}.tar`);
-    const installPath = `${definition.path}/${definition.installRoot}`;
+    const snapshot = join(directory, definition.name);
+    await mkdir(snapshot);
     const archived = run(
       "git",
-      ["archive", `--output=${archive}`, definition.gitRef, installPath],
+      ["archive", `--output=${archive}`, definition.gitRef],
       repository,
     );
     assert.equal(archived.status, 0, archived.stderr);
-    const listing = run("tar", ["-tf", archive], repository);
-    assert.equal(listing.status, 0, listing.stderr);
-    assert.match(listing.stdout, new RegExp(`/workflows/${expectedWorkflows.get(definition.name)}$`, "m"));
+    const extracted = run("tar", ["-xf", archive, "-C", snapshot], repository);
+    assert.equal(extracted.status, 0, extracted.stderr);
+    const workflow = join(snapshot, definition.path, definition.installRoot, "workflows", expectedWorkflows.get(definition.name));
+    assert.match(await readFile(workflow, "utf8"), /^name:/m);
+
+    const testRoot = join(snapshot, definition.path, definition.testRoot);
+    const testFiles = (await readdir(testRoot, { recursive: true }))
+      .filter((path) => path.endsWith(".test.mjs"))
+      .map((path) => join(testRoot, path));
+    assert.notEqual(testFiles.length, 0);
+    const tests = run(
+      process.execPath,
+      ["--test", "--test-concurrency=1", ...testFiles],
+      snapshot,
+    );
+    assert.equal(tests.status, 0, tests.stderr || tests.stdout);
+    assert.match(`${tests.stdout}${tests.stderr}`, /pass\s+[1-9]/);
   }
 });
 
