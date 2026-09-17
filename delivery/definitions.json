@@ -3,20 +3,13 @@
   "currentTasks": [
     {
       "name": "development",
-      "path": "workflow-tasks/development",
-      "installRoot": "files/.github",
+      "path": "workflow",
+      "installRoot": ".github",
       "testRoot": "test",
       "workflow": "github-development-ticket.yml"
-    },
-    {
-      "name": "pr-review",
-      "path": "workflow-tasks/pr-review",
-      "installRoot": "files/.github",
-      "testRoot": "test",
-      "workflow": "github-pr-review.yml"
     }
   ],
-  "retiredSourceRoots": ["workflow-definitions"],
+  "retiredSourceRoots": ["workflow-definitions", "workflow-tasks"],
   "latestPublishedDefinitions": [
     "github-development-ticket/v0.1.2",
     "github-pr-review/v0.1.4"

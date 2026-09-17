@@ -1,23 +1,25 @@
 #!/usr/bin/env node
 
 import { resolve } from "node:path";
-import { checkTask, printCheck } from "../lib/check.mjs";
-import { initTask } from "../lib/init.mjs";
+import { checkWorkflow, printCheck } from "../lib/check.mjs";
+import { initWorkflow } from "../lib/init.mjs";
 import { migrate } from "../lib/migrate.mjs";
 
 function usage() {
   return `Usage:
-  graph-engineering init <pr-review|development> [--dry-run] [--project <path>]
-  graph-engineering check <pr-review|development> [--json] [--project <path>]
+  graph-engineering init [--dry-run] [--project <path>]
+  graph-engineering check [--json] [--project <path>]
   graph-engineering migrate [--apply] [--project <path>]`;
 }
 
 function parse(argv) {
-  const [command, maybeTask, ...rest] = argv;
-  const options = { command, task: command === "migrate" ? null : maybeTask, projectRoot: process.cwd(), dryRun: false, json: false, apply: false };
-  const args = command === "migrate" ? [maybeTask, ...rest].filter(Boolean) : rest;
+  const [command, ...args] = argv;
+  const options = { command, projectRoot: process.cwd(), dryRun: false, json: false, apply: false };
+
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
+    if (arg === "pr-review") throw new Error("PR Review is retired; existing Consumer instances are not automatically uninstalled.");
+    if (arg === "development") throw new Error("Task selection was removed; use init or check to manage the whole workflow set.");
     if (arg === "--project") {
       if (!args[index + 1]) throw new Error("--project requires a path");
       options.projectRoot = resolve(args[++index]);
@@ -32,17 +34,17 @@ function parse(argv) {
 try {
   const options = parse(process.argv.slice(2));
   if (options.command === "init") {
-    const plan = await initTask(options.task, options);
+    const plan = await initWorkflow(options);
     if (plan.dryRun) {
       process.stdout.write(`DRY RUN: install ${plan.task}\n${plan.files.map((file) => `+ ${file}`).join("\n")}\n`);
     } else {
       process.stdout.write(`Installed ${plan.task} (${plan.files.length} files).\n`);
-      const report = await checkTask(options.task, options);
+      const report = await checkWorkflow(options);
       printCheck(report, options);
       if (report.blocking) process.exitCode = 1;
     }
   } else if (options.command === "check") {
-    const report = await checkTask(options.task, options);
+    const report = await checkWorkflow(options);
     printCheck(report, options);
     if (report.blocking) process.exitCode = 1;
   } else if (options.command === "migrate") {

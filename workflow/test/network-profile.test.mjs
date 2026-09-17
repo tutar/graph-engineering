@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const controller = readFileSync(
-  new URL("../files/.github/graph-engineering/github-development-ticket.mjs", import.meta.url),
+  new URL("../.github/graph-engineering/github-development-ticket.mjs", import.meta.url),
   "utf8",
 );
 

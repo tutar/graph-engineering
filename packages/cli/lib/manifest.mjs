@@ -7,18 +7,20 @@ export async function readManifest(projectRoot) {
   const path = within(projectRoot, MANIFEST_PATH);
   if (!(await exists(path))) return null;
   const value = JSON.parse(await readFile(path, "utf8"));
-  if (value.schemaVersion !== 1 || typeof value.installations !== "object" || Array.isArray(value.installations)) {
+  if (![1, 2].includes(value?.schemaVersion) || !value.installations || typeof value.installations !== "object" || Array.isArray(value.installations)) {
     throw new Error(`${MANIFEST_PATH} is not a recognized Graph Engineering installation manifest`);
   }
   return value;
 }
 
-export function nextManifest(existing, record) {
+export function nextManifest(record, files) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     product: "@tutar/graph-engineering",
     productVersion: PRODUCT_VERSION,
-    installations: { ...(existing?.installations ?? {}), [record.task]: record },
+    delivery: "workflow",
+    files,
+    installations: { [record.task]: record },
   };
 }
 

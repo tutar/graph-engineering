@@ -1,14 +1,9 @@
-export const PRODUCT_VERSION = "0.3.0";
+export const PRODUCT_VERSION = "0.3.1";
 export const TASKS = Object.freeze({
   development: {
     workflow: "github-development-ticket.yml",
     profile: "github-development-ticket/current",
     requiredLabels: ["ready-for-agent", "development-ticket", "in-progress"],
-  },
-  "pr-review": {
-    workflow: "github-pr-review.yml",
-    profile: "github-pr-review/codex/current",
-    requiredLabels: [],
   },
 });
 

@@ -14,18 +14,11 @@ Legacy Development Definition 发布早于 GitHub Release 对象的使用；清�
 
 ## 获取与所有权
 
-- **当前实现**：主分支中正在演进的无版本任务源码。Development 与 PR Review 的默认入口分别是 [`workflow-tasks/development`](../workflow-tasks/development/README.md) 和 [`workflow-tasks/pr-review`](../workflow-tasks/pr-review/README.md)；它们尚未冻结为新的 Candidate，不能从历史目录版本号或旧 Evidence 推导其交付身份。
+- **当前实现**：唯一交付源 [`workflow/.github/`](../workflow/.github/)，当前只交付 [Development](../workflow/README.md)。PR Review 已退役，Repository Review 尚未实施；目录调整不冻结 Candidate 或继承历史 Evidence。
 - **历史发布内容**：由交付清单中的完整 commit 与 Git tag 承载。维护者可以在已有 clone 中使用 `git archive <gitRef> <path>/files/.github` 导出；主分支不再保存这些源码副本。
 - **Consumer Workflow Instance（消费项目工作流实例）**：Consumer 把导出的 `.github/` 普通文件复制进自己的仓库后自行拥有；运行时不访问本仓库，也不是远程 Reusable Workflow。Consumer 的本地修改不改变来源 Definition 的身份或证据。
 
-`v0.3.0` 的当前默认安装入口是锁定版本的 CLI：
-
-```bash
-npx --yes @tutar/graph-engineering@0.3.0 init pr-review
-npx --yes @tutar/graph-engineering@0.3.0 init development
-```
-
-CLI 把对应 `workflow-tasks/<task>/files/.github/` 复制到 Consumer、写入安装来源并运行只读检查；复制后的文件仍由 Consumer 拥有，不形成远程运行依赖。
+本分支未发布 CLI `0.3.1` 使用整套 `init` 与 `check`，打包资产从唯一交付源生成，不维护人工模板副本。安装与接口细节见 [CLI 说明](../packages/cli/README.md)，本地打包接入见 [README](../README.md#接入)。已发布 `v0.3.0` 和 CLI `0.3.0` 保留原契约，不因本分支更改而被回写。
 
 例如，从已发布 `v0.2.4` 取得 PR Review Definition：
 
@@ -38,14 +31,14 @@ git archive v0.2.4 workflow-definitions/github-pr-review/v0.1.4/files/.github \
 
 ## 升级与迁移
 
-现有 Consumer Workflow Instance 不会自动迁移。`npx --yes @tutar/graph-engineering@0.3.0 migrate` 只识别已冻结的旧版文件组合，先展示删除与新增 diff；交互终端确认后执行，非交互环境必须显式传入 `--apply`。来源无法识别、项目文件已有不能安全转换的修改，或新旧安装同时存在时停止。CLI 不 commit、push 或修改 GitHub Settings。
+现有 Consumer Workflow Instance 不会自动迁移。本分支 CLI 的 `graph-engineering migrate` 只识别已冻结的旧版文件组合，先展示删除与新增 diff；交互终端确认后执行，非交互环境必须显式传入 `--apply`。来源无法识别、项目文件已有不能安全转换的修改，或新旧安装同时存在时停止。CLI 不 commit、push 或修改 GitHub Settings。
 
-Development 与 PR Review 必须分别拥有权限和运行语义，不能用一个 workflow 覆盖另一个：前者保留写入 Issue、branch 与 PR 的权限和 Thread Record，后者保留只读分析与独立 `checks: write` 发布 job。
+Development 保持现有权限、标签和人工事件、Goal Prompt、恢复协议、预算与 Stop hook 收尾行为。迁移只移除经过来源校验的旧文件，保留无关 Consumer 文件；旧 PR Review 明确报告退役并要求人工处理，不自动卸载、改写或接管。旧按任务安装/检查接口不静默路由到整套安装。
 
-升级者需要逐项保留本地 runner labels、事件配置、Event Prompt 与项目策略，并检查新增或删除的权限和文件；不能安全自动转换时应进行人工审阅式合并。若需要维持已发布版本而不是跟随当前实现，应继续从清单记录的 tag 导出。当前实现尚未冻结为新 Candidate，也不继承历史 Bundle；后续[在真实 Consumer Project 验证功能与幂等 Cases](https://github.com/tutar/graph-engineering/issues/29)必须从迁移后的源码重新冻结，并使用全新的 Consumer PR，不能复用 Consumer PR #2、#3 或 #4 拼接结论。
+升级者仍应审阅 runner labels、事件配置、Event Prompt 和项目策略；来源未知或项目自有修改无法安全转换时进行人工合并。当前目录未冻结，没有新增真实 Consumer Evidence 或 Stable 晋级结论。
 
 ## Evidence 与修复来源边界
 
 交付清单的 `evidenceBindings` 是历史 Bundle 的索引，不是当前实现的通过名单。每个 Bundle 继续绑定自己的冻结 Definition、Repository Release、Profile、Action revision 与 Consumer 输入；新路径或新实现必须重新冻结并运行，不能拼接旧结果。
 
-[PR #46](https://github.com/tutar/graph-engineering/pull/46) 是 Bundle 6 失败后形成的修复来源，不作为要合并的 `v0.1.5` 目录原形。其完整 Check history 分页、重复身份 fail-closed、目标 head 重读与发布审计行为已由[将 PR Review Task 迁入当前任务布局](https://github.com/tutar/graph-engineering/issues/49)在当前任务布局中重新实现并覆盖测试；PR #46 因而由[移除历史版本副本并完成当前布局切换](https://github.com/tutar/graph-engineering/issues/51)以“被当前实现取代”关闭，而不合并旧版目录形态，也不删除其 branch、讨论或证据链接。完整 Bundle 6 FAIL（包括相同 head 上两个同身份 Check）仍保存在 [Evidence Manifest](evidence/github-pr-review-v0.1.4-consumer-validation.md)，重复 Check 不删除、不改写；[Bundle 7 准备](evidence/bundle-7-preparation.md) 继续保持 `NOT_FROZEN / NOT_RUN`，没有虚构 Release、Consumer PR、SHA 或 Case Result。
+[PR #46](https://github.com/tutar/graph-engineering/pull/46) 是 Bundle 6 失败后形成的修复来源，不作为要合并的 `v0.1.5` 目录原形。其完整 Check history 分页、重复身份 fail-closed、目标 head 重读与发布审计行为已由[将 PR Review Task 迁入当前任务布局](https://github.com/tutar/graph-engineering/issues/49)在当时的任务布局中重新实现并覆盖测试，随后按 [ADR-0006](adr/0006-retire-pr-review-and-unify-workflow-delivery.md) 退出当前产品；PR #46 因而由[移除历史版本副本并完成当前布局切换](https://github.com/tutar/graph-engineering/issues/51)以“被当前实现取代”关闭，而不合并旧版目录形态，也不删除其 branch、讨论或证据链接。完整 Bundle 6 FAIL（包括相同 head 上两个同身份 Check）仍保存在 [Evidence Manifest](evidence/github-pr-review-v0.1.4-consumer-validation.md)，重复 Check 不删除、不改写；[Bundle 7 准备](evidence/bundle-7-preparation.md) 继续保持 `NOT_FROZEN / NOT_RUN`，没有虚构 Release、Consumer PR、SHA 或 Case Result。

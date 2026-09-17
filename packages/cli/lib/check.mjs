@@ -1,15 +1,15 @@
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { TASKS } from "./constants.mjs";
-import { exists, listFiles, readJson, sha256, within } from "./files.mjs";
+import { exists, sha256, within } from "./files.mjs";
 import { readManifest } from "./manifest.mjs";
-import { taskTemplateRoot } from "./package-assets.mjs";
+import { workflowTemplateRoot, workflowFiles } from "./package-assets.mjs";
 
 function result(status, check, detail, blocking = false) { return { status, check, detail, blocking }; }
 function command(name, args = [], cwd) { return spawnSync(name, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }); }
 
-export async function checkTask(task, { projectRoot = process.cwd() } = {}) {
-  if (!TASKS[task]) throw new Error(`unknown task: ${task}`);
+export async function checkWorkflow({ projectRoot = process.cwd() } = {}) {
+  const task = "development";
   projectRoot = resolve(projectRoot);
   const results = [];
   const git = command("git", ["rev-parse", "--show-toplevel"], projectRoot);
@@ -17,8 +17,8 @@ export async function checkTask(task, { projectRoot = process.cwd() } = {}) {
   else if (resolve(git.stdout.trim()) !== projectRoot) results.push(result("ACTION REQUIRED", "git-repository", "Run the command from the Git repository root.", true));
   else results.push(result("PASS", "git-repository", projectRoot));
 
-  const templateRoot = await taskTemplateRoot(task);
-  const files = await listFiles(templateRoot);
+  const templateRoot = await workflowTemplateRoot();
+  const files = await workflowFiles(templateRoot);
   const present = [];
   const changed = [];
   for (const file of files) {
@@ -35,7 +35,16 @@ export async function checkTask(task, { projectRoot = process.cwd() } = {}) {
 
   try {
     const manifest = await readManifest(projectRoot);
-    if (!manifest?.installations?.[task]) results.push(result("ACTION REQUIRED", "installation-manifest", "Installation source is not recorded."));
+    const record = manifest?.installations?.[task];
+    const consistent = manifest?.schemaVersion === 2
+      && manifest.product === "@tutar/graph-engineering"
+      && manifest.delivery === "workflow"
+      && JSON.stringify(manifest.files) === JSON.stringify(files)
+      && JSON.stringify(Object.keys(manifest.installations)) === JSON.stringify(Object.keys(TASKS))
+      && record?.task === task
+      && record.profile === TASKS[task].profile
+      && Boolean(record.sourceCommit && record.cliVersion);
+    if (!consistent) results.push(result("ACTION REQUIRED", "installation-manifest", "Whole-workflow installation source or file list is missing or inconsistent."));
     else results.push(result("PASS", "installation-manifest", `${manifest.installations[task].cliVersion} ${manifest.installations[task].sourceCommit}`));
   } catch (error) {
     results.push(result("ACTION REQUIRED", "installation-manifest", error.message, true));

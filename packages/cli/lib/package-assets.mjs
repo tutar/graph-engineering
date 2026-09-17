@@ -1,14 +1,18 @@
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { CURRENT_NAMESPACE, PRODUCT_VERSION, TASKS } from "./constants.mjs";
-import { exists, packageRoot, readJson } from "./files.mjs";
+import { exists, listFiles, packageRoot, readJson } from "./files.mjs";
 
-export async function taskTemplateRoot(task) {
-  const bundled = join(packageRoot, "templates", task);
+export async function workflowTemplateRoot() {
+  const bundled = join(packageRoot, "templates", "workflow");
   if (await exists(bundled)) return bundled;
-  const source = resolve(packageRoot, "../..", "workflow-tasks", task, "files");
+  const source = resolve(packageRoot, "../..", "workflow");
   if (await exists(source)) return source;
-  throw new Error(`missing packaged template for ${task}`);
+  throw new Error("missing packaged workflow template");
+}
+
+export async function workflowFiles(root) {
+  return (await listFiles(join(root, ".github"))).map((file) => `.github/${file}`);
 }
 
 export async function legacyTemplateRoot(task) {

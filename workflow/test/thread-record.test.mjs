@@ -5,7 +5,7 @@ import {
   formatThreadRecord,
   LEGACY_RECORD_KIND,
   parseThreadRecord,
-} from "../files/.github/graph-engineering/thread-record.mjs";
+} from "../.github/graph-engineering/thread-record.mjs";
 
 function botComment(body) {
   return { body, user: { login: "github-actions[bot]" } };

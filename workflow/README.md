@@ -2,24 +2,24 @@
 
 将同时带 `ready-for-agent` 与 `development-ticket` 标签的 Development Ticket（研发票据）交给 Codex Goal Runtime，由 Matt `$implement` Skill 完成实现、自测、review、commit、push 与 Draft PR。
 
-这是主分支中持续维护的 Development Task（研发实现任务）。它是可复制的 Workflow Definition（工作流定义），不是远程依赖。`files/` 中的路径与 Consumer Project（消费项目）仓库根目录相同；复制后形成由项目自行维护的 Workflow Instance（工作流实例）。
+这是主分支中持续维护的 Development Task（研发实现任务）。它是可复制的 Workflow Definition（工作流定义），不是远程依赖。`.github/` 中的路径与 Consumer Project（消费项目）仓库根目录相同；复制后形成由项目自行维护的 Workflow Instance（工作流实例）。
 
 当前目录从已验证的 `github-development-ticket/v0.1.2` 迁入，并保持其 Issue 标记触发、人工入口、实现与验证、commit/push、Draft PR 交付及同一持久化 runner 上的恢复行为。迁移后的目录是未冻结的当前实现；历史 `v0.1.2` 继续作为 Legacy Frozen（旧版冻结）Definition 从 Git tag `0.1.2` 取得，内容和验证证据不被回写。
 
 ## 接入
 
-在 Consumer Project 根目录执行：
+先按[仓库接入说明](../README.md#接入)安装本分支未发布 CLI 的本地打包产物，再在 Consumer Project 根目录执行：
 
 ```bash
-npx --yes @tutar/graph-engineering@0.3.0 init development
+graph-engineering init
 ```
 
-CLI 会安装 `files/.github/` 中的项目自有文件、记录来源并运行检查。随后按 `ACTION REQUIRED` 创建 `ready-for-agent`、`development-ticket` 和 `in-progress` 标签，配置能够运行 `codex`、`gh` 和 Node.js 22+ 的持久化 self-hosted runner，确认 Actions 对 contents、issues 和 pull requests 的写权限，并按项目需要审阅 runner labels、默认分支、Git identity、超时和 token budget。
+CLI 会整体安装 `.github/` 中的项目自有文件、记录来源并运行检查。随后按 `ACTION REQUIRED` 创建 `ready-for-agent`、`development-ticket` 和 `in-progress` 标签，配置能够运行 `codex`、`gh` 和 Node.js 22+ 的持久化 self-hosted runner，确认 Actions 对 contents、issues 和 pull requests 的写权限，并按项目需要审阅 runner labels、默认分支、Git identity、超时和 token budget。
 
 重复检查而不修改文件：
 
 ```bash
-npx --yes @tutar/graph-engineering@0.3.0 check development
+graph-engineering check
 ```
 
 创建至少包含业务目标与 Acceptance Criteria（验收条件）的 Issue，先添加 `ready-for-agent`，确认它是可直接实现的 Ticket 后，再手动添加 `development-ticket`。
@@ -76,7 +76,7 @@ v0.1.2 保持既有 Thread Record 格式；升级后的 Workflow Instance 会继
 当前行为测试直接从本目录执行：
 
 ```bash
-node --test --test-concurrency=1 workflow-tasks/development/test/*.test.mjs
+node --test --test-concurrency=1 workflow/test/*.test.mjs
 ```
 
 ## 项目拥有的边界

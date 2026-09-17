@@ -5,7 +5,7 @@ import {
   STOP_HOOK_WAIT_TIMEOUT_MS,
   expireStopHookTimeouts,
   shouldAwaitStopHooks,
-} from "../files/.github/graph-engineering/stop-hook-drain.mjs";
+} from "../.github/graph-engineering/stop-hook-drain.mjs";
 
 test("Stop hook waits have a one-minute upper bound", () => {
   assert.equal(STOP_HOOK_WAIT_TIMEOUT_MS, 60_000);
