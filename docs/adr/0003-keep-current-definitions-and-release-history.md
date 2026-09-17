@@ -9,5 +9,5 @@ status: accepted
 ## 后果与边界
 
 - Repository Release 与各 Workflow Definition 仍拥有独立版本生命周期；来源版本必须能追溯到精确交付内容，不能因统一布局而混用历史证据。
-- 本决策只记录目标组织方式，尚未迁移源码。迁移前需要处理历史测试路径、文档链接与历史版本获取方式，不能让旧交付内容或验证记录失去可追溯性。
+- 本决策最初只记录目标组织方式；[将 PR Review Task 迁入当前任务布局](https://github.com/tutar/loop-engineering/issues/49)、[将 Development Task 迁入统一任务布局](https://github.com/tutar/loop-engineering/issues/50) 与 [移除历史版本副本并完成当前布局切换](https://github.com/tutar/loop-engineering/issues/51) 随后完成源码迁移、历史路径收缩、交付核验与升级说明。历史内容仍由固定 Git 引用取得，验证记录继续绑定原版本。
 - 不回写已发布版本；本决策不改变 ADR-0002 的固定 Action revision 与重新验证要求。

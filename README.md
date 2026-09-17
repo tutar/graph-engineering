@@ -2,7 +2,7 @@
 
 当前任务入口是 [`workflow-tasks/development`](workflow-tasks/development/README.md) 与 [`workflow-tasks/pr-review`](workflow-tasks/pr-review/README.md)。两者都是 Consumer 可整体复制并自行拥有的普通文件集合，继续保留独立 workflow、权限和运行语义。它们尚未冻结为新的 Candidate；历史 Definition、Release 与 Evidence 的取得和隔离规则见[交付契约](docs/definition-delivery.md)。
 
-本仓库维护可整体复制到项目中的版本化 Workflow Definition（工作流定义），并明确区分 Candidate、Stable 与 Legacy Frozen 状态。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
+本仓库在主分支为每种 Workflow Task（工作流任务）维护一套可整体复制的当前实现；已发布的版本化 Workflow Definition（工作流定义）由固定 commit、tag 与 Repository Release 保存，并明确区分 Candidate、Stable 与 Legacy Frozen 状态。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
 
 ## 项目定位
 
@@ -34,7 +34,7 @@ Repository Release `v0.2.4` 发布 `github-pr-review/v0.1.4` Candidate，并保�
 - [`github-pr-review/v0.1.1`](https://github.com/tutar/loop-engineering/tree/v0.2.1/workflow-definitions/github-pr-review/v0.1.1/README.md)：已发布的历史 Candidate；Consumer 验证已证明其冻结 Action revision 无法使用 runner 登录路径。
 - [`github-development-ticket/v0.1.x`](https://github.com/tutar/loop-engineering/tree/0.1.2/workflow-definitions/github-development-ticket/v0.1.2/README.md)：Legacy Frozen；此前已验证且继续可用，只接受严重安全修复和事实纠正。
 
-两条 Definition 是可并存的独立产品，不是原地升级。采用 PR Review 不要求迁移旧版 Thread Record、标签、Controller 状态或 Workflow Instance，也没有自动迁移承诺。
+两种任务是可并存的独立产品，不是原地升级。采用 PR Review 不要求迁移旧版 Thread Record、标签、Controller 状态或 Workflow Instance，也没有自动迁移承诺；现有 Consumer 如需采用当前实现，必须按[手动升级说明](docs/definition-delivery.md#手动升级)审阅并复制对应任务。
 
 ## Legacy 已验证效果
 

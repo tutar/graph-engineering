@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { access, readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { basename, isAbsolute, normalize, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
@@ -37,6 +37,14 @@ function requireString(value, label) {
   if (typeof value !== "string" || value.length === 0) fail(`${label} must be a non-empty string`);
 }
 
+function requireRepositoryPath(value, label) {
+  requireString(value, label);
+  const normalized = normalize(value);
+  if (isAbsolute(value) || normalized === "." || normalized === ".." || normalized.startsWith(`..${sep}`)) {
+    fail(`${label} must stay within the repository`);
+  }
+}
+
 function definitionKey(definition) {
   return `${definition.name}/${definition.definitionVersion}`;
 }
@@ -52,8 +60,25 @@ function validateDefinitionShape(definition, label) {
   if (!["github-release", "legacy-tag"].includes(definition.repositoryRelease?.kind)) {
     fail(`${label}.repositoryRelease.kind is unsupported`);
   }
-  requireString(definition.path, `${label}.path`);
-  requireString(definition.installRoot, `${label}.installRoot`);
+  requireRepositoryPath(definition.path, `${label}.path`);
+  requireRepositoryPath(definition.installRoot, `${label}.installRoot`);
+}
+
+function validateCurrentTaskShape(task, label) {
+  requireString(task.name, `${label}.name`);
+  for (const field of ["path", "installRoot", "testRoot"]) requireRepositoryPath(task[field], `${label}.${field}`);
+  requireString(task.workflow, `${label}.workflow`);
+  if (basename(task.workflow) !== task.workflow) fail(`${label}.workflow must be a filename`);
+}
+
+async function requireMissing(path, label) {
+  try {
+    await access(path);
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
+  fail(`${label} must not exist in the current source tree`);
 }
 
 function verifyPublishedDefinition(repository, definition) {
@@ -73,9 +98,27 @@ export async function verifyDelivery(options) {
     manifest: resolve(options.manifest ?? resolve(options.repository, "delivery/definitions.json")),
   };
   const manifest = JSON.parse(await readFile(options.manifest, "utf8"));
-  if (manifest.schemaVersion !== 1) fail("unsupported delivery manifest schemaVersion");
-  for (const field of ["currentDefinitions", "publishedDefinitions", "evidenceBindings", "auditSources"]) {
+  if (manifest.schemaVersion !== 2) fail("unsupported delivery manifest schemaVersion");
+  for (const field of ["currentTasks", "retiredSourceRoots", "latestPublishedDefinitions", "publishedDefinitions", "evidenceBindings", "auditSources"]) {
     if (!Array.isArray(manifest[field])) fail(`${field} must be an array`);
+  }
+
+  const currentNames = new Set();
+  const currentPaths = new Set();
+  for (const [index, task] of manifest.currentTasks.entries()) {
+    const label = `currentTasks[${index}]`;
+    validateCurrentTaskShape(task, label);
+    if (currentNames.has(task.name)) fail(`duplicate current Workflow Task name: ${task.name}`);
+    if (currentPaths.has(task.path)) fail(`duplicate current Workflow Task path: ${task.path}`);
+    currentNames.add(task.name);
+    currentPaths.add(task.path);
+    await access(resolve(options.repository, task.path, task.installRoot, "workflows", task.workflow));
+    await access(resolve(options.repository, task.path, task.testRoot));
+  }
+
+  for (const [index, path] of manifest.retiredSourceRoots.entries()) {
+    requireRepositoryPath(path, `retiredSourceRoots[${index}]`);
+    await requireMissing(resolve(options.repository, path), `retiredSourceRoots[${index}]`);
   }
 
   const published = new Map();
@@ -85,22 +128,6 @@ export async function verifyDelivery(options) {
     if (published.has(key)) fail(`duplicate published Definition: ${key}`);
     published.set(key, definition);
     verifyPublishedDefinition(options.repository, definition);
-  }
-
-  const currentNames = new Set();
-  const currentDefinitions = [];
-  for (const [index, key] of manifest.currentDefinitions.entries()) {
-    requireString(key, `currentDefinitions[${index}]`);
-    const definition = published.get(key);
-    if (!definition) fail(`current Definition ${key} lacks a published mapping`);
-    if (currentNames.has(definition.name)) fail(`multiple current Definitions named ${definition.name}`);
-    currentNames.add(definition.name);
-    requireString(definition.currentPath, `publishedDefinitions entry ${key}.currentPath`);
-    await access(resolve(options.repository, definition.currentPath, definition.installRoot));
-    requireString(definition.testRoot, `publishedDefinitions entry ${key}.testRoot`);
-    await access(resolve(options.repository, definition.currentPath, definition.testRoot));
-    git(options.repository, ["cat-file", "-e", `${definition.repositoryRelease.gitRef}:${definition.path}/${definition.testRoot}`]);
-    currentDefinitions.push(definition);
   }
 
   for (const [index, binding] of manifest.evidenceBindings.entries()) {
@@ -146,19 +173,26 @@ export async function verifyDelivery(options) {
     await access(resolve(options.repository, source.unfrozenPreparation));
   }
 
-  const currentOutput = currentDefinitions.map((definition) => ({
-    name: definition.name,
-    definitionVersion: definition.definitionVersion,
-    sourceCommit: definition.sourceCommit,
-    repositoryRelease: definition.repositoryRelease.version,
-    gitRef: definition.repositoryRelease.gitRef,
-    path: definition.path,
-    installRoot: definition.installRoot,
-    testRoot: definition.testRoot,
-    currentPath: definition.currentPath,
-  }));
+  const latestPublishedDefinitions = [];
+  const latestNames = new Set();
+  for (const [index, key] of manifest.latestPublishedDefinitions.entries()) {
+    requireString(key, `latestPublishedDefinitions[${index}]`);
+    const definition = published.get(key);
+    if (!definition) fail(`latestPublishedDefinitions[${index}] references unknown Definition ${key}`);
+    if (latestNames.has(definition.name)) fail(`multiple latest published Definitions named ${definition.name}`);
+    latestNames.add(definition.name);
+    latestPublishedDefinitions.push(definition);
+  }
   return {
-    currentDefinitions: currentOutput,
+    currentTasks: manifest.currentTasks,
+    latestPublishedDefinitions: latestPublishedDefinitions.map((definition) => ({
+      name: definition.name,
+      definitionVersion: definition.definitionVersion,
+      repositoryRelease: definition.repositoryRelease.version,
+      gitRef: definition.repositoryRelease.gitRef,
+      path: definition.path,
+      installRoot: definition.installRoot,
+    })),
     publishedDefinitions: manifest.publishedDefinitions.length,
     evidenceBindings: manifest.evidenceBindings.length,
     auditSources: manifest.auditSources.length,
