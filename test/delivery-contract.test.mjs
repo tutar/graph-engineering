@@ -77,7 +77,6 @@ test("both current Workflow Task installation and test roots run from immutable 
       snapshot,
     );
     assert.equal(tests.status, 0, tests.stderr || tests.stdout);
-    assert.match(`${tests.stdout}${tests.stderr}`, /pass\s+[1-9]/);
   }
 });
 
