@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const historicalManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.0-consumer-validation.md", import.meta.url), "utf8");
 const failedRunnerLoginManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.1-consumer-validation.md", import.meta.url), "utf8");
 const failedDraftProfileManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.2-consumer-validation.md", import.meta.url), "utf8");
-const revisedManifest = new URL("../../../../docs/evidence/github-pr-review-v0.1.4-consumer-validation.md", import.meta.url);
+const revisedManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.4-consumer-validation.md", import.meta.url), "utf8");
 
 test("the historical Consumer evidence manifest remains bound to the v0.1.0 combination", () => {
   for (const value of [
@@ -17,8 +17,15 @@ test("the historical Consumer evidence manifest remains bound to the v0.1.0 comb
   ]) assert.match(historicalManifest, new RegExp(value));
 });
 
-test("the revised Candidate does not splice or invent Consumer evidence", () => {
-  assert.equal(existsSync(revisedManifest), false);
+test("the revised Candidate keeps its failed Consumer evidence isolated", () => {
+  assert.match(revisedManifest, /Gate Decision:\s*FAIL/);
+  assert.match(revisedManifest, /github-pr-review\/v0\.1\.4/);
+  assert.match(revisedManifest, /d41b988c5e93e2bb51a33b47d1f98a080af41edb/);
+  assert.match(revisedManifest, /github-pr-review\/codex\/v0\.1\.4/);
+  assert.match(revisedManifest, /f33581290086e62dc34d420a7f1862477fc2b503/);
+  assert.match(revisedManifest, /105016714601/);
+  assert.match(revisedManifest, /105017484118/);
+  assert.match(revisedManifest, /Bundles 1–5 remain historical and must not be spliced/);
   assert.match(historicalManifest, /Draft PR routing[\s\S]*PASS/);
   assert.match(historicalManifest, /Ready review, new SHA, same-SHA rerun[\s\S]*NOT_RUN/);
   assert.match(historicalManifest, /without a Stable Supported Profile/);

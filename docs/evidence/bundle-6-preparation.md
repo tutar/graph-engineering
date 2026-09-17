@@ -1,5 +1,7 @@
 # Bundle 6 本地准备清单
 
+此文档保留准备时的历史草案；后续已发布 [冻结清单](https://github.com/tutar/loop-engineering/issues/29#issuecomment-5698487064)，实际执行结论以 [Bundle 6 结果](github-pr-review-v0.1.4-consumer-validation.md) 为准（FAIL），不得用本草案覆盖最终事实。
+
 状态：DRAFT / NOT_FROZEN / NOT_RUN。此文档不是已执行的 Evidence Manifest（证据清单），不授权公开发布、合并、启动 runner 或 Actions。
 
 ## Candidate 输入

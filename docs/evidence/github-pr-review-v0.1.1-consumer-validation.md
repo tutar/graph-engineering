@@ -6,6 +6,7 @@
 | --- | --- |
 | Repository Release | `v0.2.1` |
 | Workflow Definition | `github-pr-review/v0.1.1` |
+| Compatibility Profile | `github-pr-review/codex/v0.1.1` |
 | Candidate commit | `25d122696d96d0e71e4ae47c88da1071b85a7c19` |
 | Agent Action | `openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e` |
 | Codex CLI | `0.153.4` |
