@@ -48,7 +48,7 @@ Workflow Definition（工作流定义）在安装后是 Consumer Project 拥有�
 
 Repository Release `v0.3.0` 与 `@tutar/graph-engineering@0.3.0` 共同交付产品迁名、当前协议和安装 CLI。Repository Release、CLI 与 Workflow Definition 各有明确身份；发布当前 Task 不表示它已经成为 Stable Definition（稳定工作流定义）。
 
-PR Review Task 的新组合正在按 [Bundle 8 证据清单](docs/evidence/bundle-8-graph-engineering-v0.3.0-consumer-validation.md)验证：锁定 `v0.3.0` 的 tag、完整 commit、npm 安装来源与全新 Consumer PR。不能从本地测试、历史 Evidence 或重新打包推导出 Stable 支持结论。历史 `github-pr-review/v0.1.1`、`v0.1.2` 与 `v0.1.4` 的真实验证失败继续保留。`github-development-ticket/v0.1.2` 仍是 Legacy Frozen Definition（旧版冻结定义）。
+PR Review Task 的 `v0.3.0` 新组合已形成 [Bundle 8 证据清单](docs/evidence/bundle-8-graph-engineering-v0.3.0-consumer-validation.md)：tag、完整 commit、npm 安装来源与全新 Consumer PR 均已冻结，但 native rerun 后 GitHub Actions 复制同 identity Check，Gate Decision 为 FAIL，不能晋级 Stable。历史 `github-pr-review/v0.1.1`、`v0.1.2` 与 `v0.1.4` 的真实验证失败也继续保留。`github-development-ticket/v0.1.2` 仍是 Legacy Frozen Definition（旧版冻结定义）。
 
 ## 文档
 
