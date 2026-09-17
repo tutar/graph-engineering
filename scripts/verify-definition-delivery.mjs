@@ -109,7 +109,7 @@ export async function verifyDelivery(options) {
     const label = `currentTasks[${index}]`;
     validateCurrentTaskShape(task, label);
     if (currentNames.has(task.name)) fail(`duplicate current Workflow Task name: ${task.name}`);
-    if (currentPaths.has(task.path)) fail(`duplicate current Workflow Task path: ${task.path}`);
+    if (currentPaths.size > 0 && !currentPaths.has(task.path)) fail("current Workflow Tasks must share one delivery source");
     currentNames.add(task.name);
     currentPaths.add(task.path);
     await access(resolve(options.repository, task.path, task.installRoot, "workflows", task.workflow));

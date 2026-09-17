@@ -3,15 +3,15 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const workflow = readFileSync(
-  new URL("../files/.github/workflows/github-development-ticket.yml", import.meta.url),
+  new URL("../.github/workflows/github-development-ticket.yml", import.meta.url),
   "utf8",
 );
 const controller = readFileSync(
-  new URL("../files/.github/graph-engineering/github-development-ticket.mjs", import.meta.url),
+  new URL("../.github/graph-engineering/github-development-ticket.mjs", import.meta.url),
   "utf8",
 );
 const worktree = readFileSync(
-  new URL("../files/.github/graph-engineering/development-worktree.sh", import.meta.url),
+  new URL("../.github/graph-engineering/development-worktree.sh", import.meta.url),
   "utf8",
 );
 

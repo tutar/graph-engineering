@@ -33,11 +33,11 @@ _Avoid_: GitHub Event、单个 Job、Workflow Definition
 _Avoid_: Development Ticket、PR Review Task、完整 CI/Review Graph
 
 **PR Review Task（PR 审查任务）**:
-针对具体 PR 的代码变更，分别检查 Standards（规范）与 Spec（规格），并交付绑定目标提交的审查结果的 Workflow Task；Agent 分析不拥有结果发布的写权限，也不负责实现修复或合并。
+已退役的历史任务：针对具体 PR 的代码变更，分别检查 Standards（规范）与 Spec（规格），并交付绑定目标提交的审查结果的 Workflow Task；Agent 分析不拥有结果发布的写权限，也不负责实现修复或合并。
 _Avoid_: Development Task、Repository Review Task、自动批准
 
 **Repository Review Task（仓库审查任务）**:
-面向仓库的增量代码审查、交付建议报告的 Workflow Task，也可包含结合整体结构与近期变更的架构改进分析；它不是针对单个 PR 的审查，也不授权自动修改代码。
+尚未实施的后续 Workflow Task，面向仓库的增量代码审查并交付建议报告；架构改进分析延期，它不是针对单个 PR 的审查，也不授权自动修改代码。
 _Avoid_: PR Review Task、自动重构、Graph Gate
 
 **Review Report（审查报告）**:

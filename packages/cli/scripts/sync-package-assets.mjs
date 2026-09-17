@@ -3,16 +3,18 @@ import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { PRODUCT_VERSION } from "../lib/constants.mjs";
+
 const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const repository = resolve(packageRoot, "../..");
 const baseline = "927bd96156f750546019581b653b7601db9c71c8";
-const tasks = ["development", "pr-review"];
+const tasks = ["development"];
 
 await rm(join(packageRoot, "templates"), { recursive: true, force: true });
 await rm(join(packageRoot, "migrations"), { recursive: true, force: true });
 
+await cp(join(repository, "workflow", ".github"), join(packageRoot, "templates", "workflow", ".github"), { recursive: true });
 for (const task of tasks) {
-  await cp(join(repository, "workflow-tasks", task, "files"), join(packageRoot, "templates", task), { recursive: true });
   const prefix = `workflow-tasks/${task}/files/`;
   const files = execFileSync("git", ["ls-tree", "-r", "--name-only", baseline, prefix], { cwd: repository, encoding: "utf8" })
     .trim().split("\n").filter(Boolean);
@@ -26,4 +28,4 @@ for (const task of tasks) {
 }
 
 const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repository, encoding: "utf8" }).trim();
-await writeFile(join(packageRoot, "release-metadata.json"), `${JSON.stringify({ productVersion: "0.3.0", sourceCommit }, null, 2)}\n`);
+await writeFile(join(packageRoot, "release-metadata.json"), `${JSON.stringify({ productVersion: PRODUCT_VERSION, sourceCommit }, null, 2)}\n`);

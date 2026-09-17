@@ -1,22 +1,21 @@
 import { resolve } from "node:path";
-import { TASKS } from "./constants.mjs";
-import { assertGitRoot, copyFiles, exists, listFiles, within } from "./files.mjs";
+import { assertGitRoot, copyFiles, exists, within } from "./files.mjs";
 import { nextManifest, readManifest, replaceManifest } from "./manifest.mjs";
-import { installationRecord, releaseMetadata, taskTemplateRoot } from "./package-assets.mjs";
+import { installationRecord, releaseMetadata, workflowTemplateRoot, workflowFiles } from "./package-assets.mjs";
 
-export async function initTask(task, { projectRoot = process.cwd(), dryRun = false } = {}) {
-  if (!TASKS[task]) throw new Error(`unknown task: ${task}`);
+export async function initWorkflow({ projectRoot = process.cwd(), dryRun = false } = {}) {
+  const task = "development";
   projectRoot = resolve(projectRoot);
   assertGitRoot(projectRoot);
-  const sourceRoot = await taskTemplateRoot(task);
-  const files = await listFiles(sourceRoot);
+  const sourceRoot = await workflowTemplateRoot();
+  const files = await workflowFiles(sourceRoot);
   const conflicts = [];
   for (const file of files) if (await exists(within(projectRoot, file))) conflicts.push(file);
   const existingManifest = await readManifest(projectRoot);
-  if (existingManifest?.installations?.[task]) conflicts.push(".github/graph-engineering/installation.json (task already recorded)");
+  if (existingManifest) conflicts.push(".github/graph-engineering/installation.json (installation already recorded)");
   if (conflicts.length > 0) throw new Error(`installation conflicts:\n${conflicts.map((item) => `- ${item}`).join("\n")}`);
   const metadata = await releaseMetadata();
-  const manifest = nextManifest(existingManifest, installationRecord(task, metadata));
+  const manifest = nextManifest(installationRecord(task, metadata), files);
   if (!dryRun) {
     await copyFiles({ sourceRoot, projectRoot, files });
     try { await replaceManifest(projectRoot, manifest); }

@@ -18,20 +18,15 @@ function run(command, args, cwd) {
   return spawnSync(executable, executableArgs, { cwd, encoding: "utf8", env });
 }
 
-test("the delivery manifest keeps one unversioned current implementation per Workflow Task", async () => {
+test("the delivery manifest keeps one current delivery source", async () => {
   const output = await verifyDelivery({ repository });
   assert.deepEqual(
     output.currentTasks.map(({ name, path, workflow }) => ({ name, path, workflow })),
     [
       {
         name: "development",
-        path: "workflow-tasks/development",
+        path: "workflow",
         workflow: "github-development-ticket.yml",
-      },
-      {
-        name: "pr-review",
-        path: "workflow-tasks/pr-review",
-        workflow: "github-pr-review.yml",
       },
     ],
   );
@@ -40,7 +35,7 @@ test("the delivery manifest keeps one unversioned current implementation per Wor
   await assert.rejects(access(resolve(repository, "workflow-definitions")));
 });
 
-test("current Workflow Tasks remain independently copyable", async (t) => {
+test("the whole current delivery remains copyable", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "current-tasks-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const output = await verifyDelivery({ repository });
@@ -112,4 +107,46 @@ test("published content remains verifiable after its source copy leaves HEAD", a
   const result = await verifyDelivery({ repository: fixture, manifest: manifestPath });
   assert.equal(result.publishedDefinitions, 1);
   await assert.rejects(readFile(join(fixture, "published", "files", "workflow.yml")));
+});
+
+test("npm pack delivers the unique source through CLI into a temporary Consumer", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "packed-workflow-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const packed = run("npm", ["pack", "--json", "--pack-destination", directory, "--cache", join(directory, "npm-cache")], join(repository, "packages/cli"));
+  assert.equal(packed.status, 0, packed.stderr);
+  const metadata = JSON.parse(packed.stdout)[0];
+  assert.equal(metadata.files.some(({ path }) => /pr-review/.test(path)), false);
+  assert.equal(run("tar", ["-xf", join(directory, metadata.filename), "-C", directory], directory).status, 0);
+  const consumer = join(directory, "consumer");
+  await mkdir(consumer);
+  assert.equal(run("git", ["init", "-q"], consumer).status, 0);
+  const cli = join(directory, "package/bin/graph-engineering.mjs");
+  const installed = run(process.execPath, [cli, "init", "--project", consumer], directory);
+  assert.equal(installed.status, 0, installed.stderr);
+  const { listFiles } = await import("../packages/cli/lib/files.mjs");
+  const sourceRoot = join(repository, "workflow/.github");
+  const sourceFiles = await listFiles(sourceRoot);
+  assert.deepEqual(await listFiles(join(directory, "package/templates/workflow/.github")), sourceFiles);
+  assert.deepEqual(await listFiles(join(consumer, ".github")), [...sourceFiles, "graph-engineering/installation.json"].sort());
+  for (const file of sourceFiles) {
+    const source = await readFile(join(sourceRoot, file), "utf8");
+    assert.equal(await readFile(join(directory, "package/templates/workflow/.github", file), "utf8"), source);
+    assert.equal(await readFile(join(consumer, ".github", file), "utf8"), source);
+    // The issue permits layout/install changes only, not changes to Development behavior.
+    const previous = run("git", ["show", `d843f85:workflow-tasks/development/files/.github/${file}`], repository);
+    assert.equal(previous.status, 0, previous.stderr);
+    assert.equal(source, previous.stdout);
+  }
+  const before = await readFile(join(consumer, ".github/graph-engineering/installation.json"), "utf8");
+  const manifest = JSON.parse(before);
+  assert.equal(manifest.delivery, "workflow");
+  assert.deepEqual(manifest.files, sourceFiles.map((file) => `.github/${file}`));
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const checked = run(process.execPath, [cli, "check", "--json", "--project", consumer], directory);
+    assert.equal(checked.status, 0, checked.stderr);
+    const results = JSON.parse(checked.stdout).results;
+    assert.equal(results.find(({ check }) => check === "workflow-files").status, "PASS");
+    assert.equal(results.find(({ check }) => check === "installation-manifest").status, "PASS");
+    assert.equal(await readFile(join(consumer, ".github/graph-engineering/installation.json"), "utf8"), before);
+  }
 });

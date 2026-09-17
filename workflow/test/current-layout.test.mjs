@@ -3,7 +3,7 @@ import { access, readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 const taskRoot = new URL("../", import.meta.url);
-const installRoot = new URL("../files/.github/", import.meta.url);
+const installRoot = new URL("../.github/", import.meta.url);
 
 test("the current Development Task is a complete copy-owned file set", async () => {
   const workflow = await readFile(new URL("workflows/github-development-ticket.yml", installRoot), "utf8");
