@@ -28,6 +28,10 @@ _Avoid_: Acceptance Criteria、固定系统 Prompt、Agent Action 配置
 Consumer Project 希望 Agent 完成的一种工作，具有明确的目标、Completion Condition、副作用权限与结果交付责任；它不是触发事件，同一任务可以由多个事件启动。
 _Avoid_: GitHub Event、单个 Job、Workflow Definition
 
+**Task Invocation（任务调用）**:
+某个 Workflow Task 被一次已接纳事件启动的独立执行身份；不同事件及不同 Agent Action 调用各自独立，同一次调用的失败重试延续该身份。
+_Avoid_: Workflow Task、Issue、GitHub Event 类型、执行尝试
+
 **Development Task（研发实现任务）**:
 以 Development Ticket 的目标和 Acceptance Criteria 为依据，实现、验证代码并交付 Draft PR 的 Workflow Task；不包含自动批准、合并或发布。
 _Avoid_: Development Ticket、PR Review Task、完整 CI/Review Graph
@@ -61,8 +65,16 @@ Agent Runtime 围绕一个 Goal Prompt 原生驱动多个 Agent Turn，直至完
 _Avoid_: Agent Turn、GitHub Workflow Run、整个 Graph
 
 **Fresh Goal Run（全新目标运行）**:
-每次 GitHub Workflow Run 根据 Issue、PR、branch、commit、Check 等当前 GitHub 持久事实创建的独立 Goal Run；它重新协调剩余工作，不重放上一次执行步骤，也不依赖旧 Session、runner 工作区、日志或 artifact 才能正确运行。
-_Avoid_: Session Resume、步骤回放、跨 Run Loop Runtime
+新 Task Invocation 根据 Issue、PR、branch、commit、Check 等当前 GitHub 持久事实创建的独立 Goal Run；它重新协调剩余工作，不依赖上一任务的 Session 或本地执行状态才能正确运行。
+_Avoid_: Session Resume、步骤回放、跨任务上下文共享
+
+**Session Resume（会话恢复）**:
+Agent Action 在同一 Task Invocation 的显式失败重试中，利用 Agent Runtime 可取得的原生会话状态继续未完成工作；它是上下文延续方式，不是业务事实源，也不代表跨 Runner 迁移或自动重试。
+_Avoid_: Fresh Goal Run、步骤回放、Issue 共享会话、任务调度
+
+**Session Replacement（会话替换）**:
+原生会话不存在、损坏或无法加载时，在明确报告恢复失败后，为同一 Task Invocation 建立新的当前会话；旧会话仅作为诊断历史，不再作为后续恢复目标。
+_Avoid_: 静默降级、业务完成证明、网络错误重试
 
 **Agent Action（智能体 Action）**:
 将一种 Agent Runtime 安装并启动在 GitHub Actions Job 中的现有 GitHub Action，并拥有该 Runtime 特有的认证、权限和调用接口。
@@ -93,7 +105,7 @@ _Avoid_: Goal Run、Draft PR、完整 CI/Review Graph
 _Avoid_: 普通评论、Graph Gate、系统指令
 
 **Command Run（命令运行）**:
-Human Command 启动的独立 Goal Run；每条命令不自动重试，并在正常结束时返回成功、失败或阻塞结果。
+Human Command 启动的独立 Goal Run；每条命令不自动重试，并在正常结束时返回成功、失败或阻塞结果，显式失败重试仍属于原 Task Invocation。
 _Avoid_: Development Ticket、Graph transition、无限自主循环
 
 **Operational Label（运行态标签）**:
