@@ -78,13 +78,17 @@ test("empty, malformed, incomplete, mismatched, and spoofed output fails closed"
   }
 });
 
-test("a failed upstream execution cannot cause a Check write", async () => {
+test("a failed upstream execution rejects a stale successful result without a Check write", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pr-review-failure-"));
   const artifact = join(directory, "pr-review-artifact");
   await mkdir(artifact);
   await writeFile(join(artifact, "review-execution.json"), JSON.stringify({
     terminal: "failed",
     diagnostic: "candidate-output: malformed JSON",
+  }));
+  await writeFile(join(artifact, "review-result.json"), JSON.stringify({
+    ...completedOutput,
+    runtime: { terminal: "completed", summary: "stale prior-run result" },
   }));
 
   let requestCount = 0;
