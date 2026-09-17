@@ -37,11 +37,11 @@ _Avoid_: Development Ticket、PR Review Task、完整 CI/Review Graph
 _Avoid_: Development Task、Repository Review Task、自动批准
 
 **Repository Review Task（仓库审查任务）**:
-面向仓库的增量代码审查与结合整体结构、近期变更的架构改进分析，交付建议报告的 Workflow Task；它不是针对单个 PR 的审查，也不授权自动修改代码。
+面向仓库的增量代码审查、交付建议报告的 Workflow Task，也可包含结合整体结构与近期变更的架构改进分析；它不是针对单个 PR 的审查，也不授权自动修改代码。
 _Avoid_: PR Review Task、自动重构、Graph Gate
 
 **Review Report（审查报告）**:
-Repository Review Task 的结果载体，分别呈现代码审查与架构改进分析；可信发布步骤拥有报告发布责任，报告本身不构成修复授权或变更验收证据。
+Repository Review Task 的建议性结果载体，呈现实际执行的代码审查，并在包含架构改进分析时将其单独呈现；可信发布步骤拥有报告发布责任，报告本身不构成修复授权或变更验收证据。
 _Avoid_: Evidence Bundle、修复 PR、通过证明
 
 **Goal Prompt（目标提示）**:
