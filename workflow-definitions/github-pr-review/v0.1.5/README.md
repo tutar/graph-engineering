@@ -1,12 +1,16 @@
-# github-pr-review v0.1.4 Candidate
+# github-pr-review v0.1.5 Candidate
 
-状态：已由 [Repository Release v0.2.4](https://github.com/tutar/loop-engineering/releases/tag/v0.2.4) 发布为 Candidate。该版本针对 [Bundle 5 的 HTTP 400 schema 拒绝](https://github.com/tutar/loop-engineering/issues/29#issuecomment-5696742062) 修复 Action 输出契约，保留已发布 `v0.1.3` 不变。生命周期文档不改变冻结运行文件；真实 Consumer 证据与静态 Gate、Stable 晋级分别核验。
+Draft PR 交付版本，尚未合并或发布。新增完整历史 Check 查询与重复身份失败隔离，针对 [Bundle 6](../../../docs/evidence/github-pr-review-v0.1.4-consumer-validation.md) 的真实同 SHA 重复 Check 证据；已发布 `v0.1.4` 运行文件不变。
+
+可信 publisher 使用 `filter=all` 分页查询精确 head 上的 Check，完成列表后按 Definition/repository/PR/head 的精确身份匹配：无匹配创建，一个匹配更新，多于一个匹配诊断 `duplicate-review-check` 并零写入。畸形、重复 ID 或未完成分页不解释为“没有 Check”；达到 100 页安全上限时交接，不继续创建。查询后再次核验当前 PR head，并记录非敏感 publication method、已有 Check ID、逻辑身份及历史条目数供审计。GitHub 对极端数量 Check suites 的 API 可见性限制不构成无限历史支持承诺。
+
+新的生产 publisher 测试显式模拟 latest/all 可见性差异，并覆盖跨页匹配、重复身份、坏 ID、截断和 SHA 变化；这是防护缺口回归，不声称重放了 Bundle 6 创建瞬间未记录的 GITHUB_TOKEN 响应。实际重复创建的瞬间原因仍未完全证实，真实修复效果必须由新 Bundle 7 验证。不得删除旧重复 Check 来制造通过。
+
+继承 `v0.1.4` 针对 [Bundle 5 的 HTTP 400 schema 拒绝](https://github.com/tutar/loop-engineering/issues/29#issuecomment-5696742062) 的 Action 输出契约修复，保留所有已发布 Definition 的运行文件不变。
 
 Structured Outputs（结构化输出）schema 使用根 object、全部字段 required、对象 additionalProperties=false，不使用 oneOf 或 not。完成态必须提供 Standards/Spec 对象且 handoff=null；交接态必须提供非空 handoff summary 且两轴均为 null。可信 capture 仍检查精确字段、目标身份及互斥关系，再规范化为既有可信发布结果，不把可空 schema 误当成业务验收。
 
-官方限制参考：[OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)。本地保守 schema guard 不是服务端模拟器，不能证明 API 已接受；真实验证留给新的 Bundle 6。
-
-[Bundle 6 真实结果](../../../docs/evidence/github-pr-review-v0.1.4-consumer-validation.md)：Draft 静默和真实双轴 Review 已验证，但同一 head 留下两个同身份 Check，功能/幂等 Gate 为 FAIL。已成功重跑的绿色 run 不能替代唯一性断言；没有 Stable Supported Profile。
+官方限制参考：[OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)。本地保守 schema guard 不是服务端模拟器；Bundle 6 已实际完成双轴 review，但幂等验收失败。新版本仍需 Bundle 7 的独立真实验证。
 
 这是 Workflow-first 路线使用 Runner-backed Codex Authentication（Runner 承载的 Codex 认证）的纠正版 Candidate Definition（候选工作流定义）。把 `files/.github/` 整体复制到 Consumer Project（消费项目）后，项目自行拥有其 Workflow Instance（工作流实例）；运行时不依赖 `loop-engineering` 仓库。它与 `github-pr-review/v0.1.0`、`v0.1.1` 并存，不回写旧 Definition。
 
@@ -29,7 +33,7 @@ Consumer 只编辑 `pr-review-config.json`。允许的键和边界如下：
 - `codex.safetyStrategy` 属于公开但受限的 sandbox 配置面；本只读 Candidate 只允许 `read-only`。它使用 Action 的 legacy read-only sandbox，不再同时传入与该策略互斥的 `permission-profile`。
 - `check.name` 与 `check.title`：非空且不超过 100 字符的发布显示设置。
 
-配置文件不提供 runner、认证方式、Action source/revision、Codex CLI version、输入输出 mapping、Profile implementation、Provider 或 capability 开关。缺字段、未知字段、未允许值、Profile 身份不符或静态 Profile 任一契约被修改时，router 输出 `configuration-handoff`、不启动 review，也不自动换 runner、认证、Action/Provider 或降低安全限制。修改 runner labels、认证方式、Action SHA、CLI version、mapping、Executor 或 Profile 后，该副本已退出 `github-pr-review/v0.1.4` Candidate 声明；官方升级必须发布新的 Definition 版本并重新验证。
+配置文件不提供 runner、认证方式、Action source/revision、Codex CLI version、输入输出 mapping、Profile implementation、Provider 或 capability 开关。缺字段、未知字段、未允许值、Profile 身份不符或静态 Profile 任一契约被修改时，router 输出 `configuration-handoff`、不启动 review，也不自动换 runner、认证、Action/Provider 或降低安全限制。修改 runner labels、认证方式、Action SHA、CLI version、mapping、Executor 或 Profile 后，该副本已退出 `github-pr-review/v0.1.5` Candidate 声明；官方升级必须发布新的 Definition 版本并重新验证。
 
 Workflow 先把默认分支上的控制脚本 checkout 到独立的 `.loop-engineering-trusted` 目录且不持久化 Git 凭据，用只读 GitHub token 读取 PR 的 repository、number、base SHA、head SHA、title 与 body；随后把固定的 head SHA checkout 到独立 `review-workspace`。Event Prompt 与这些可信事实形成 Goal Prompt，并要求 Agent 在该待审目录调用 Consumer Project 的 `code-review` Skill。prepare、schema 与 capture 始终来自可信目录，PR 内容不能替换执行器映射。Codex review job 只有 `contents: read`、`pull-requests: read` 与读取现有 Checks 所需的权限；它只产出符合 JSON Schema 的候选 review output。
 
@@ -37,7 +41,7 @@ Workflow 先把默认分支上的控制脚本 checkout 到独立的 `.loop-engin
 
 Action step 的真实 outcome 与结构化输出共同映射为 `completed`、`handoff`、`failed` 或 `cancelled`。只有 `completed` 且结果完整、目标匹配时才会进入发布；Action 失败/取消、明确 handoff、空或畸形 JSON、缺少任一 review 轴、未知字段和 SHA/目标错配都会 fail closed。失败诊断写入 job summary 与 `review-diagnostic.md`，不会创建成功 Check，也不会启动外层 retry loop。review job 的 token 只有 contents、PR 和既有 Checks 的读取权限，同时 Codex 使用无网络的 legacy `read-only` safety strategy，因此评论、改标签、push 或发布 Check 的尝试均不具备可用能力；可信 publish job 也没有 Issues、PR 或 contents 写权限。
 
-Check 的稳定身份是 `github-pr-review/v0.1.4 + repository + PR number + reviewed head SHA`，记录在 Check Run 的 `external_id`。publisher 只在当前 head 上查找名称、head SHA 和 `external_id` 均匹配的既有 Check：同 SHA rerun 更新原 Check，新 SHA 创建独立 Check，旧 SHA Check 仍保留在旧 commit 上。若发布前 PR head 已改变，publisher 以 `stale-target` 诊断失败且不写入旧结果；此判断只依赖可信 GitHub facts 和固定身份，不依赖 Agent 文本、本地跨 Run 状态或 Session。
+Check 的稳定身份是 `github-pr-review/v0.1.5 + repository + PR number + reviewed head SHA`，记录在 Check Run 的 `external_id`。publisher 只在当前 head 上查找名称、head SHA 和 `external_id` 均匹配的既有 Check：同 SHA rerun 更新原 Check，新 SHA 创建独立 Check，旧 SHA Check 仍保留在旧 commit 上。若发布前 PR head 已改变，publisher 以 `stale-target` 诊断失败且不写入旧结果；此判断只依赖可信 GitHub facts 和固定身份，不依赖 Agent 文本、本地跨 Run 状态或 Session。
 
 每次 GitHub Workflow Run 都重新路由 Event，并从 GitHub API 读取当前 PR、base/head branch、commit 与 Check facts，形成独立 Fresh Goal Run（全新目标运行）。Definition 不保存 Resume Record、Session ID、Goal ID 或旧 transcript。根级 concurrency group 由 repository + PR number 构成，`cancel-in-progress: false` 让同一 PR 的完整 GitHub Workflow Runs 串行排队，不同 PR 使用不同 group。
 
@@ -50,7 +54,7 @@ route 与 trusted publish jobs 继续在 GitHub-hosted `ubuntu-24.04` 上独立�
 ## 本地验证
 
 ```bash
-node --test workflow-definitions/github-pr-review/v0.1.4/test/*.test.mjs
+node --test workflow-definitions/github-pr-review/v0.1.5/test/*.test.mjs
 ```
 
 行为测试在本地假 GitHub API 上执行生产 `prepare`、`capture` 与 `publish` adapters，并在两者之间放入可控 Agent Action 替身和 artifact 边界，观察 Goal 是否形成以及可信 Check 是否发布。模板测试只覆盖该行为 seam 无法观察的 Action pin、文件完整性和 job 权限声明。

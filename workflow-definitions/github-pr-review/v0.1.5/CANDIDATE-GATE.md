@@ -1,18 +1,18 @@
-# github-pr-review v0.1.4 Candidate Publication Gate
+# github-pr-review v0.1.5 Candidate Publication Gate
 
-- Evaluated: 2026-09-16
-- Definition: `github-pr-review/v0.1.4`
-- Repository release: `v0.2.4`
+- Evaluated: 2026-09-17
+- Definition: `github-pr-review/v0.1.5`
+- Repository release: `v0.2.5`
 - Gate Decision: PASS — Candidate only
 - Stable status: no Stable Supported Profile
-- Local result: 41/41 tests PASS; regression across PR Review v0.1.0–v0.1.4: 182/182 PASS.
+- Local result: 49/49 tests PASS; PR Review v0.1.0–v0.1.5 regression: 231/231 PASS.
 
 ## Automated contract evidence
 
 Run from the repository root:
 
 ```bash
-node --test workflow-definitions/github-pr-review/v0.1.4/test/*.test.mjs
+node --test workflow-definitions/github-pr-review/v0.1.5/test/*.test.mjs
 ```
 
 The suite verifies these publication categories at the Workflow Instance boundary:
@@ -34,7 +34,9 @@ The gate also checks the complete copyable asset list, immutable maintained Acti
 
 ## Evidence boundary
 
-新增回归直接读取 Workflow 交给 Action 的 `review-result.schema.json`，检查保守 Structured Outputs 子集；并在生产 capture 映射处覆盖可空输出与语义错误组合。该 guard 是离线契约检查，不是 API acceptance emulator。Bundle 5 仍为 FAIL；[Bundle 6](../../../docs/evidence/github-pr-review-v0.1.4-consumer-validation.md) 已执行真实 Consumer Cases，但因同 SHA 重复逻辑 Check 判为 FAIL。Candidate 已发布，此处只更新生命周期事实，不改变冻结运行文件或静态 Gate 原有范围。
+Eight additional production publisher regressions cover history hidden from latest, cross-page identity, same-identity duplicates, malformed history/identity fields, bounded incomplete pagination and head changes before write. The visibility fixture is adversarial, not an asserted replay of the unlogged creation-time API response. These checks prove local safeguards only. Bundle 6 remains FAIL; new Bundle 7 is NOT_FROZEN / NOT_RUN. This Candidate is prepared locally, not published, and is not Stable.
+
+继承的回归直接读取 Workflow 交给 Action 的 `review-result.schema.json`，检查保守 Structured Outputs 子集；并在生产 capture 映射处覆盖可空输出与语义错误组合。该 guard 是离线契约检查，不是 API acceptance emulator。Bundle 5、Bundle 6 均保留 FAIL，新 Candidate 的真实 Consumer Cases 均为 NOT_RUN；当前仅 Draft PR 交付，尚未合并或发布。
 
 These are local automated contract and static template tests. The controlled Agent Action is a Fake Action substitute; it is not evidence of real `tutar/codex-action`, runner, credential, network or Consumer Project compatibility. Agent final text is diagnostic input and is not publication or compatibility evidence. Passing this gate authorizes Candidate publication only.
 

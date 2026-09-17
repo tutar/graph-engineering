@@ -5,7 +5,7 @@ import test from "node:test";
 const historicalManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.0-consumer-validation.md", import.meta.url), "utf8");
 const failedRunnerLoginManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.1-consumer-validation.md", import.meta.url), "utf8");
 const failedDraftProfileManifest = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.2-consumer-validation.md", import.meta.url), "utf8");
-const revisedManifest = new URL("../../../../docs/evidence/github-pr-review-v0.1.4-consumer-validation.md", import.meta.url);
+const revisedManifest = new URL("../../../../docs/evidence/github-pr-review-v0.1.5-consumer-validation.md", import.meta.url);
 
 test("the historical Consumer evidence manifest remains bound to the v0.1.0 combination", () => {
   for (const value of [
@@ -17,15 +17,12 @@ test("the historical Consumer evidence manifest remains bound to the v0.1.0 comb
   ]) assert.match(historicalManifest, new RegExp(value));
 });
 
-test("Bundle 6 records real failed idempotency without splicing evidence", () => {
-  assert.equal(existsSync(revisedManifest), true);
-  const revised = readFileSync(revisedManifest, "utf8");
-  for (const value of ["Gate Decision: FAIL", "github-pr-review/v0.1.4", "d41b988c5e93e2bb51a33b47d1f98a080af41edb", "35103826926", "35103892314", "35104286354", "35162476962", "35162988102", "105016714601", "105017484118", "filter=all", "usage limit", "trace-failure independence remains unverified"]) {
-    assert.ok(revised.includes(value), value);
-  }
-  assert.match(revised, /same-head logical Check uniqueness is contradicted/);
-  assert.match(revised, /must not be spliced/);
-  assert.match(revised, /no Stable Supported Profile/);
+test("the revised Candidate does not splice or invent Consumer evidence", () => {
+  assert.equal(existsSync(revisedManifest), false);
+  const bundle6 = readFileSync(new URL("../../../../docs/evidence/github-pr-review-v0.1.4-consumer-validation.md", import.meta.url), "utf8");
+  assert.match(bundle6, /Gate Decision:\s*FAIL/);
+  assert.match(bundle6, /105016714601/);
+  assert.match(bundle6, /105017484118/);
   assert.match(historicalManifest, /Draft PR routing[\s\S]*PASS/);
   assert.match(historicalManifest, /Ready review, new SHA, same-SHA rerun[\s\S]*NOT_RUN/);
   assert.match(historicalManifest, /without a Stable Supported Profile/);

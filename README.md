@@ -1,6 +1,8 @@
 # Loop Engineering
 
-本地下一 Candidate：[`github-pr-review/v0.1.4`](workflow-definitions/github-pr-review/v0.1.4/README.md)，计划随 Repository Release `v0.2.4` 交付。修复 Bundle 5 暴露的 Structured Outputs schema 不兼容；尚未公开发布、没有 Stable Supported Profile，不将本地测试视为 Consumer 通过证据。
+本地下一 Candidate：[`github-pr-review/v0.1.5`](workflow-definitions/github-pr-review/v0.1.5/README.md)，计划随 `v0.2.5` 交付；针对 Bundle 6 的重复逻辑 Check 补强完整历史查询与失败隔离。尚未公开发布，真实 Consumer Cases NOT_RUN。
+
+最新已发布 Candidate：[`github-pr-review/v0.1.4`](workflow-definitions/github-pr-review/v0.1.4/README.md)，由 [Repository Release `v0.2.4`](https://github.com/tutar/loop-engineering/releases/tag/v0.2.4) 交付。修复 Bundle 5 暴露的 Structured Outputs schema 不兼容；没有 Stable Supported Profile，不将本地测试视为 Consumer 通过证据。
 
 本仓库维护可整体复制到项目中的版本化 Workflow Definition（工作流定义），并明确区分 Candidate、Stable 与 Legacy Frozen 状态。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
 
@@ -22,11 +24,12 @@ Compatible Executor 是本项目维护的薄适配层，不是新的 Loop Runtim
 
 新架构以 Fresh Goal Run（全新目标运行）作为跨 GitHub Workflow Run 的正确性基线：每次运行重新读取 Issue、PR、branch、commit 与 Check 等 GitHub 持久事实，识别已经完成的效果并协调剩余工作，而不是重放上一次运行的步骤。Session、runner 工作区、日志和 artifact 只可用于执行或诊断，Workflow 不维护跨 Run 的 Agent 会话恢复状态。取消、异常退出或人工 rerun 后，也必须能够仅依据 GitHub 当前事实重新运行。
 
-下一 Repository Release `v0.2.3` 将发布 `github-pr-review/v0.1.3` 纠正版 Candidate，并保留所有旧 Release/Definition 的历史事实。`v0.1.1` 与 `v0.1.2` 的真实 Consumer 验证均已失败，不能作为兼容证据。Repository Release 与 Workflow Definition 各自版本化；Repository Release 版本不等于 Definition 版本，也不代表 Candidate 已经真实兼容或晋级 Stable。
+Repository Release `v0.2.4` 已发布 `github-pr-review/v0.1.4` 纠正版 Candidate，并保留所有旧 Release/Definition 的历史事实。`v0.1.1`–`v0.1.3` 的历史 Consumer 验证失败结果不能作为新版兼容证据。Repository Release 与 Workflow Definition 各自版本化；Repository Release 版本不等于 Definition 版本，也不代表 Candidate 已晋级 Stable。
 
 ## 定义状态
 
-- [`github-pr-review/v0.1.3`](workflow-definitions/github-pr-review/v0.1.3/README.md)：默认演进方向，当前为 Candidate；修正 Draft 人工路由与只读 Action 输入组合，尚无 Stable Supported Profile。
+- [`github-pr-review/v0.1.4`](workflow-definitions/github-pr-review/v0.1.4/README.md)：默认演进方向，当前为 Candidate；修正严格输出 schema，尚无 Stable Supported Profile。
+- [`github-pr-review/v0.1.3`](workflow-definitions/github-pr-review/v0.1.3/README.md)：历史 Candidate；修正 Draft 人工路由与只读 Action 输入组合，但 Bundle 5 暴露真实输出 schema 不兼容。
 - [`github-pr-review/v0.1.2`](workflow-definitions/github-pr-review/v0.1.2/README.md)：历史 Candidate；Consumer 验证发现 Draft 人工路由与只读 Profile 缺陷。
 - [`github-pr-review/v0.1.1`](workflow-definitions/github-pr-review/v0.1.1/README.md)：已发布的历史 Candidate；Consumer 验证已证明其冻结 Action revision 无法使用 runner 登录路径。
 - [`github-development-ticket/v0.1.x`](workflow-definitions/github-development-ticket/v0.1.2/README.md)：Legacy Frozen；此前已验证且继续可用，只接受严重安全修复和事实纠正。
@@ -48,9 +51,9 @@ Compatible Executor 是本项目维护的薄适配层，不是新的 Loop Runtim
 
 ## Candidate Quick Start（默认方向）
 
-将 [`github-pr-review/v0.1.3/files/.github/`](workflow-definitions/github-pr-review/v0.1.3/files/.github/) 整体复制到 Consumer Project 的 `.github/`，安装项目自己的 `code-review` Skill，并提供带 `[self-hosted, Linux, X64, codex]` labels 与既有 Codex 登录状态的专用 runner，再按 [Candidate 文档](workflow-definitions/github-pr-review/v0.1.3/README.md) 编辑唯一允许的 `pr-review-config.json`。该 Definition 不使用仓库 `OPENAI_API_KEY`，锁定维护版 `tutar/codex-action` 的不可变修补 SHA，只做只读 PR Review，并由独立可信 publish job 创建或更新 Check Run。
+将 [`github-pr-review/v0.1.4/files/.github/`](workflow-definitions/github-pr-review/v0.1.4/files/.github/) 整体复制到 Consumer Project 的 `.github/`，安装项目自己的 `code-review` Skill，并提供带 `[self-hosted, Linux, X64, codex]` labels 与既有 Codex 登录状态的专用 runner，再按 [Candidate 文档](workflow-definitions/github-pr-review/v0.1.4/README.md) 编辑唯一允许的 `pr-review-config.json`。该 Definition 不使用仓库 `OPENAI_API_KEY`，锁定维护版 `tutar/codex-action` 的不可变修补 SHA，只做只读 PR Review，并由独立可信 publish job 创建或更新 Check Run。
 
-这一路线当前是 Candidate，不应把本仓库的静态测试、Fake Action 或 Agent final text 当成真实 Consumer 兼容证据。Candidate Gate 详情见 [`CANDIDATE-GATE.md`](workflow-definitions/github-pr-review/v0.1.3/CANDIDATE-GATE.md)。
+这一路线当前是 Candidate，不应把本仓库的静态测试、Fake Action 或 Agent final text 当成真实 Consumer 兼容证据。Candidate Gate 详情见 [`CANDIDATE-GATE.md`](workflow-definitions/github-pr-review/v0.1.4/CANDIDATE-GATE.md)。
 
 ## Legacy Quick Start（已验证旧版）
 
@@ -126,7 +129,8 @@ npx skills add https://github.com/mattpocock/skills
 
 ## 已发布定义
 
-- [`github-pr-review` v0.1.3 Candidate](workflow-definitions/github-pr-review/v0.1.3/README.md)：计划由 Repository Release `v0.2.3` 发布的当前纠正版；没有 Stable Supported Profile。
+- [`github-pr-review` v0.1.4 Candidate](workflow-definitions/github-pr-review/v0.1.4/README.md)：Repository Release `v0.2.4` 发布的严格输出纠正版；没有 Stable Supported Profile。
+- [`github-pr-review` v0.1.3 Candidate](workflow-definitions/github-pr-review/v0.1.3/README.md)：Repository Release `v0.2.3` 发布的历史纠正版；没有 Stable Supported Profile。
 - [`github-pr-review` v0.1.2 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.2/README.md)：Repository Release `v0.2.2` 发布的历史 Candidate。
 - [`github-pr-review` v0.1.1 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.1/README.md)：Repository Release `v0.2.1` 发布的历史 Candidate；冻结组合的 runner-login 兼容性已被真实证据否定。
 - [`github-pr-review` v0.1.0 Candidate](workflow-definitions/github-pr-review/v0.1.0/README.md)：Repository Release `v0.2.0` 引入的 API-key 版本，保留为历史 Candidate。
@@ -134,4 +138,4 @@ npx skills add https://github.com/mattpocock/skills
 - [`github-development-ticket` v0.1.1 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.1/README.md)：增加基于证据的验收条件同步。
 - [`github-development-ticket` v0.1.0 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.0/README.md)：首个已验证版本。
 
-Workflow Definition 是普通文件模板，不是 Reusable Workflow，也不是中央 Runtime。Definition 版本只表示实例最后参考的定义版本；当前仓库发布说明见 [`v0.2.3`](docs/releases/v0.2.3.md)，历史版本见 [`v0.2.2`](docs/releases/v0.2.2.md)、[`v0.2.1`](docs/releases/v0.2.1.md) 与 [`v0.2.0`](docs/releases/v0.2.0.md)。
+Workflow Definition 是普通文件模板，不是 Reusable Workflow，也不是中央 Runtime。Definition 版本只表示实例最后参考的定义版本；当前仓库发布说明见 [`v0.2.4`](docs/releases/v0.2.4.md)，历史版本见 [`v0.2.3`](docs/releases/v0.2.3.md)、[`v0.2.2`](docs/releases/v0.2.2.md)、[`v0.2.1`](docs/releases/v0.2.1.md) 与 [`v0.2.0`](docs/releases/v0.2.0.md)。
