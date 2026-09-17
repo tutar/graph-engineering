@@ -56,4 +56,3 @@ Runs, jobs, Checks, freeze and Consumer are public; GitHub may require sign-in f
 Consumer Actions were disabled and the dedicated runner stopped after all runs terminated; PR #4 remains open and Ready on frozen second head. Repeated Checks are preserved, not deleted to manufacture a pass. No Consumer merge or Stable promotion occurred.
 
 Bundles 1–5 remain historical and must not be spliced into this result. Optional tracing was not enabled and has no asserted successful failure-injection result here; trace-failure independence remains unverified. Untested forks, other/shared runners, network combinations, credentials and revisions inherit no support claim. New publication logic requires a new Candidate/Release and new frozen evidence, not patching Bundle 6 in place.
-
