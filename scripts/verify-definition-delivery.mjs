@@ -95,9 +95,10 @@ export async function verifyDelivery(options) {
     if (!definition) fail(`current Definition ${key} lacks a published mapping`);
     if (currentNames.has(definition.name)) fail(`multiple current Definitions named ${definition.name}`);
     currentNames.add(definition.name);
-    await access(resolve(options.repository, definition.path, definition.installRoot));
+    requireString(definition.currentPath, `publishedDefinitions entry ${key}.currentPath`);
+    await access(resolve(options.repository, definition.currentPath, definition.installRoot));
     requireString(definition.testRoot, `publishedDefinitions entry ${key}.testRoot`);
-    await access(resolve(options.repository, definition.path, definition.testRoot));
+    await access(resolve(options.repository, definition.currentPath, definition.testRoot));
     git(options.repository, ["cat-file", "-e", `${definition.repositoryRelease.gitRef}:${definition.path}/${definition.testRoot}`]);
     currentDefinitions.push(definition);
   }
@@ -154,6 +155,7 @@ export async function verifyDelivery(options) {
     path: definition.path,
     installRoot: definition.installRoot,
     testRoot: definition.testRoot,
+    currentPath: definition.currentPath,
   }));
   return {
     currentDefinitions: currentOutput,

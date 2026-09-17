@@ -1,6 +1,6 @@
 # Loop Engineering
 
-当前 PR Review Task：[`workflow-tasks/pr-review`](workflow-tasks/pr-review/README.md)。它是主分支默认安装和持续演进入口，尚未冻结为新的 Candidate，也没有真实 Consumer 通过证据。最近的历史 Candidate `github-pr-review/v0.1.4` 已随 Repository Release `v0.2.4` 发布，Bundle 6 结论为 FAIL。Definition/Release 映射、历史取得方式与 Evidence 隔离规则见[交付契约](docs/definition-delivery.md)。
+当前任务入口是 [`workflow-tasks/development`](workflow-tasks/development/README.md) 与 [`workflow-tasks/pr-review`](workflow-tasks/pr-review/README.md)。两者都是 Consumer 可整体复制并自行拥有的普通文件集合，继续保留独立 workflow、权限和运行语义。它们尚未冻结为新的 Candidate；历史 Definition、Release 与 Evidence 的取得和隔离规则见[交付契约](docs/definition-delivery.md)。
 
 本仓库维护可整体复制到项目中的版本化 Workflow Definition（工作流定义），并明确区分 Candidate、Stable 与 Legacy Frozen 状态。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
 
@@ -26,12 +26,13 @@ Repository Release `v0.2.4` 发布 `github-pr-review/v0.1.4` Candidate，并保�
 
 ## 定义状态
 
+- [`workflow-tasks/development`](workflow-tasks/development/README.md)：当前 Development Task；保持已验证 `v0.1.2` 的行为边界，但迁移后的当前目录尚未重新冻结或验证新架构能力。
 - [`workflow-tasks/pr-review`](workflow-tasks/pr-review/README.md)：当前演进实现；尚未冻结为 Candidate，不继承历史 Evidence。
-- [`github-pr-review/v0.1.4`](workflow-definitions/github-pr-review/v0.1.4/README.md)：最近发布的历史 Candidate；Bundle 6 已真实运行并因重复 Check 判为 FAIL，尚无 Stable Supported Profile。
-- [`github-pr-review/v0.1.3`](workflow-definitions/github-pr-review/v0.1.3/README.md)：历史 Candidate；修正 Draft 人工路由与只读 Action 输入组合。
-- [`github-pr-review/v0.1.2`](workflow-definitions/github-pr-review/v0.1.2/README.md)：历史 Candidate；Consumer 验证发现 Draft 人工路由与只读 Profile 缺陷。
-- [`github-pr-review/v0.1.1`](workflow-definitions/github-pr-review/v0.1.1/README.md)：已发布的历史 Candidate；Consumer 验证已证明其冻结 Action revision 无法使用 runner 登录路径。
-- [`github-development-ticket/v0.1.x`](workflow-definitions/github-development-ticket/v0.1.2/README.md)：Legacy Frozen；此前已验证且继续可用，只接受严重安全修复和事实纠正。
+- [`github-pr-review/v0.1.4`](https://github.com/tutar/loop-engineering/tree/v0.2.4/workflow-definitions/github-pr-review/v0.1.4/README.md)：最近发布的历史 Candidate；Bundle 6 已真实运行并因重复 Check 判为 FAIL，尚无 Stable Supported Profile。
+- [`github-pr-review/v0.1.3`](https://github.com/tutar/loop-engineering/tree/v0.2.3/workflow-definitions/github-pr-review/v0.1.3/README.md)：历史 Candidate；修正 Draft 人工路由与只读 Action 输入组合。
+- [`github-pr-review/v0.1.2`](https://github.com/tutar/loop-engineering/tree/v0.2.2/workflow-definitions/github-pr-review/v0.1.2/README.md)：历史 Candidate；Consumer 验证发现 Draft 人工路由与只读 Profile 缺陷。
+- [`github-pr-review/v0.1.1`](https://github.com/tutar/loop-engineering/tree/v0.2.1/workflow-definitions/github-pr-review/v0.1.1/README.md)：已发布的历史 Candidate；Consumer 验证已证明其冻结 Action revision 无法使用 runner 登录路径。
+- [`github-development-ticket/v0.1.x`](https://github.com/tutar/loop-engineering/tree/0.1.2/workflow-definitions/github-development-ticket/v0.1.2/README.md)：Legacy Frozen；此前已验证且继续可用，只接受严重安全修复和事实纠正。
 
 两条 Definition 是可并存的独立产品，不是原地升级。采用 PR Review 不要求迁移旧版 Thread Record、标签、Controller 状态或 Workflow Instance，也没有自动迁移承诺。
 
@@ -85,12 +86,13 @@ npx skills add https://github.com/mattpocock/skills
 
 ### 3. 复制 Workflow Definition
 
-将 [`workflow-definitions/github-development-ticket/v0.1.2/files/.github/`](workflow-definitions/github-development-ticket/v0.1.2/files/.github/) 的内容复制到目标仓库的 `.github/`：
+将 [`workflow-tasks/development/files/.github/`](workflow-tasks/development/files/.github/) 的内容复制到目标仓库的 `.github/`：
 
 ```text
 .github/
 ├── loop-engineering/
 │   ├── github-development-ticket.mjs
+│   ├── development-worktree.sh
 │   ├── stop-hook-drain.mjs
 │   └── thread-record.mjs
 └── workflows/
@@ -114,7 +116,7 @@ npx skills add https://github.com/mattpocock/skills
 
 新增 `development-ticket` 会自动触发 Workflow。也可以在 Actions 页面手动运行 `github-development-ticket` 并输入 Issue number。第一次运行会创建 Codex Thread；后续对同一 Issue 的手动运行会恢复该 Thread，而其他 Issue 会创建自己的新 Thread。
 
-更完整的配置、停止与恢复语义见 [`github-development-ticket` v0.1.2 文档](workflow-definitions/github-development-ticket/v0.1.2/README.md)。
+更完整的配置、停止与恢复语义见[当前 Development Task 文档](workflow-tasks/development/README.md)。已发布 `v0.1.2` 的冻结内容仍从 Git tag `0.1.2` 与[历史文档](https://github.com/tutar/loop-engineering/tree/0.1.2/workflow-definitions/github-development-ticket/v0.1.2/README.md)取得。
 
 ## Optional Observability（可选可观测能力）
 
@@ -128,13 +130,13 @@ npx skills add https://github.com/mattpocock/skills
 
 ## 已发布定义
 
-- [`github-pr-review` v0.1.4 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.4/README.md)：Repository Release `v0.2.4` 发布的最近历史 Candidate；Bundle 6 因重复同身份 Check 判为 FAIL。
-- [`github-pr-review` v0.1.3 Candidate](workflow-definitions/github-pr-review/v0.1.3/README.md)：Repository Release `v0.2.3` 发布的历史 Candidate；没有 Stable Supported Profile。
-- [`github-pr-review` v0.1.2 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.2/README.md)：Repository Release `v0.2.2` 发布的历史 Candidate。
-- [`github-pr-review` v0.1.1 Candidate — Consumer validation failed](workflow-definitions/github-pr-review/v0.1.1/README.md)：Repository Release `v0.2.1` 发布的历史 Candidate；冻结组合的 runner-login 兼容性已被真实证据否定。
-- [`github-pr-review` v0.1.0 Candidate](workflow-definitions/github-pr-review/v0.1.0/README.md)：Repository Release `v0.2.0` 引入的 API-key 版本，保留为历史 Candidate。
-- [`github-development-ticket` v0.1.2 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.2/README.md)：增加中断工作恢复、可调累计预算、Stop hook 收尾、取消处理和交付标签清理。
-- [`github-development-ticket` v0.1.1 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.1/README.md)：增加基于证据的验收条件同步。
-- [`github-development-ticket` v0.1.0 — Legacy Frozen](workflow-definitions/github-development-ticket/v0.1.0/README.md)：首个已验证版本。
+- [`github-pr-review` v0.1.4 Candidate — Consumer validation failed](https://github.com/tutar/loop-engineering/tree/v0.2.4/workflow-definitions/github-pr-review/v0.1.4/README.md)：Repository Release `v0.2.4` 发布的最近历史 Candidate；Bundle 6 因重复同身份 Check 判为 FAIL。
+- [`github-pr-review` v0.1.3 Candidate](https://github.com/tutar/loop-engineering/tree/v0.2.3/workflow-definitions/github-pr-review/v0.1.3/README.md)：Repository Release `v0.2.3` 发布的历史 Candidate；没有 Stable Supported Profile。
+- [`github-pr-review` v0.1.2 Candidate — Consumer validation failed](https://github.com/tutar/loop-engineering/tree/v0.2.2/workflow-definitions/github-pr-review/v0.1.2/README.md)：Repository Release `v0.2.2` 发布的历史 Candidate。
+- [`github-pr-review` v0.1.1 Candidate — Consumer validation failed](https://github.com/tutar/loop-engineering/tree/v0.2.1/workflow-definitions/github-pr-review/v0.1.1/README.md)：Repository Release `v0.2.1` 发布的历史 Candidate；冻结组合的 runner-login 兼容性已被真实证据否定。
+- [`github-pr-review` v0.1.0 Candidate](https://github.com/tutar/loop-engineering/tree/v0.2.0/workflow-definitions/github-pr-review/v0.1.0/README.md)：Repository Release `v0.2.0` 引入的 API-key 版本，保留为历史 Candidate。
+- [`github-development-ticket` v0.1.2 — Legacy Frozen](https://github.com/tutar/loop-engineering/tree/0.1.2/workflow-definitions/github-development-ticket/v0.1.2/README.md)：增加中断工作恢复、可调累计预算、Stop hook 收尾、取消处理和交付标签清理。
+- [`github-development-ticket` v0.1.1 — Legacy Frozen](https://github.com/tutar/loop-engineering/tree/0.1.2/workflow-definitions/github-development-ticket/v0.1.1/README.md)：增加基于证据的验收条件同步。
+- [`github-development-ticket` v0.1.0 — Legacy Frozen](https://github.com/tutar/loop-engineering/tree/0.1.2/workflow-definitions/github-development-ticket/v0.1.0/README.md)：首个已验证版本。
 
 Workflow Definition 是普通文件模板，不是 Reusable Workflow，也不是中央 Runtime。Definition 版本只表示实例最后参考的定义版本；当前仓库发布说明见 [`v0.2.4`](docs/releases/v0.2.4.md)，历史版本见 [`v0.2.3`](docs/releases/v0.2.3.md)、[`v0.2.2`](docs/releases/v0.2.2.md)、[`v0.2.1`](docs/releases/v0.2.1.md) 与 [`v0.2.0`](docs/releases/v0.2.0.md)。

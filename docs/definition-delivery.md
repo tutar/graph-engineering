@@ -14,15 +14,14 @@ Legacy Development Definition 发布早于 GitHub Release 对象的使用；清�
 
 ## 获取与所有权
 
-- **当前实现**：主分支中正在演进的无版本任务源码。PR Review 的默认入口是 [`workflow-tasks/pr-review`](../workflow-tasks/pr-review/README.md)；它尚未冻结为新的 Candidate，不能从历史目录版本号或旧 Evidence 推导其交付身份。
+- **当前实现**：主分支中正在演进的无版本任务源码。Development 与 PR Review 的默认入口分别是 [`workflow-tasks/development`](../workflow-tasks/development/README.md) 和 [`workflow-tasks/pr-review`](../workflow-tasks/pr-review/README.md)；它们尚未冻结为新的 Candidate，不能从历史目录版本号或旧 Evidence 推导其交付身份。
 - **历史发布内容**：由交付清单中的完整 commit 与 Git tag 承载。维护者可以在已有 clone 中使用 `git archive <gitRef> <path>/files/.github` 导出；迁移完成后不要求主分支继续保存该源码副本。
 - **Consumer Workflow Instance（消费项目工作流实例）**：Consumer 把导出的 `.github/` 普通文件复制进自己的仓库后自行拥有；运行时不访问本仓库，也不是远程 Reusable Workflow。Consumer 的本地修改不改变来源 Definition 的身份或证据。
 
 当前默认安装入口与迁移期间保留的历史入口分别是：
 
 - `workflow-tasks/pr-review/files/.github/`（当前 PR Review Task）
-- `workflow-definitions/github-development-ticket/v0.1.2/files/.github/`
-- `workflow-definitions/github-pr-review/v0.1.4/files/.github/`（`v0.2.4` 历史 Release）
+- `workflow-tasks/development/files/.github/`（当前 Development Task）
 
 例如，从已发布 `v0.2.4` 取得 PR Review Definition：
 
