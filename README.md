@@ -1,6 +1,6 @@
 # Loop Engineering
 
-当前 PR Review Candidate：[`github-pr-review/v0.1.4`](workflow-definitions/github-pr-review/v0.1.4/README.md)，已随 Repository Release `v0.2.4` 发布；Bundle 6 的真实 Consumer 结论为 FAIL，没有 Stable Supported Profile。Definition/Release 映射、历史取得方式与 Evidence 隔离规则见[交付契约](docs/definition-delivery.md)。
+当前 PR Review Task：[`workflow-tasks/pr-review`](workflow-tasks/pr-review/README.md)。它是主分支默认安装和持续演进入口，尚未冻结为新的 Candidate，也没有真实 Consumer 通过证据。最近的历史 Candidate `github-pr-review/v0.1.4` 已随 Repository Release `v0.2.4` 发布，Bundle 6 结论为 FAIL。Definition/Release 映射、历史取得方式与 Evidence 隔离规则见[交付契约](docs/definition-delivery.md)。
 
 本仓库维护可整体复制到项目中的版本化 Workflow Definition（工作流定义），并明确区分 Candidate、Stable 与 Legacy Frozen 状态。项目复制后自行拥有 Workflow Instance（工作流实例），可以按项目需要修改，不依赖本仓库在线运行。
 
@@ -26,7 +26,8 @@ Repository Release `v0.2.4` 发布 `github-pr-review/v0.1.4` Candidate，并保�
 
 ## 定义状态
 
-- [`github-pr-review/v0.1.4`](workflow-definitions/github-pr-review/v0.1.4/README.md)：当前 Candidate；Bundle 6 已真实运行并因重复 Check 判为 FAIL，尚无 Stable Supported Profile。
+- [`workflow-tasks/pr-review`](workflow-tasks/pr-review/README.md)：当前演进实现；尚未冻结为 Candidate，不继承历史 Evidence。
+- [`github-pr-review/v0.1.4`](workflow-definitions/github-pr-review/v0.1.4/README.md)：最近发布的历史 Candidate；Bundle 6 已真实运行并因重复 Check 判为 FAIL，尚无 Stable Supported Profile。
 - [`github-pr-review/v0.1.3`](workflow-definitions/github-pr-review/v0.1.3/README.md)：历史 Candidate；修正 Draft 人工路由与只读 Action 输入组合。
 - [`github-pr-review/v0.1.2`](workflow-definitions/github-pr-review/v0.1.2/README.md)：历史 Candidate；Consumer 验证发现 Draft 人工路由与只读 Profile 缺陷。
 - [`github-pr-review/v0.1.1`](workflow-definitions/github-pr-review/v0.1.1/README.md)：已发布的历史 Candidate；Consumer 验证已证明其冻结 Action revision 无法使用 runner 登录路径。
@@ -49,9 +50,9 @@ Repository Release `v0.2.4` 发布 `github-pr-review/v0.1.4` Candidate，并保�
 
 ## Candidate Quick Start（默认方向）
 
-将 [`github-pr-review/v0.1.4/files/.github/`](workflow-definitions/github-pr-review/v0.1.4/files/.github/) 整体复制到 Consumer Project 的 `.github/`，安装项目自己的 `code-review` Skill，并提供带 `[self-hosted, Linux, X64, codex]` labels 与既有 Codex 登录状态的专用 runner，再按 [Candidate 文档](workflow-definitions/github-pr-review/v0.1.4/README.md) 编辑唯一允许的 `pr-review-config.json`。该 Definition 不使用仓库 `OPENAI_API_KEY`，锁定维护版 `tutar/codex-action` 的不可变修补 SHA，只做只读 PR Review，并由独立可信 publish job 创建或更新 Check Run。
+将 [`workflow-tasks/pr-review/files/.github/`](workflow-tasks/pr-review/files/.github/) 整体复制到 Consumer Project 的 `.github/`，安装项目自己的 `code-review` Skill，并提供带 `[self-hosted, Linux, X64, codex]` labels 与既有 Codex 登录状态的专用 runner，再按[当前任务文档](workflow-tasks/pr-review/README.md)编辑唯一允许的 `pr-review-config.json`。该任务不使用仓库 `OPENAI_API_KEY`，锁定维护版 `tutar/codex-action` 的不可变修补 SHA，只做只读 PR Review，并由独立可信 publish job创建或更新 Check Run。
 
-这一路线当前是 Candidate，不应把本仓库的静态测试、Fake Action 或 Agent final text 当成真实 Consumer 兼容证据。Candidate Gate 详情见 [`CANDIDATE-GATE.md`](workflow-definitions/github-pr-review/v0.1.4/CANDIDATE-GATE.md)。
+当前实现尚未冻结为新的 Candidate；不应把本仓库的静态测试、Fake Action、Agent final text 或历史 Evidence 当成真实 Consumer 兼容证据。静态发布门见 [`CANDIDATE-GATE.md`](workflow-tasks/pr-review/CANDIDATE-GATE.md)，历史 Release 的安装方式见[交付契约](docs/definition-delivery.md)。
 
 ## Legacy Quick Start（已验证旧版）
 
