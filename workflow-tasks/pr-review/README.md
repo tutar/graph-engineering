@@ -32,4 +32,4 @@ node --test --test-concurrency=1 workflow-tasks/pr-review/test/*.test.mjs
 
 测试从当前目录直接执行当前生产文件，不读取历史版本源码。它们覆盖事件路由、Draft、人工入口、Goal、双轴输出、权限、固定 Action/CLI、fail-closed、Fresh Goal Run、并发和 Check 历史协调。
 
-当前目录尚未形成新的冻结 Candidate 或真实 Consumer Evidence Bundle。历史 Release 与对应 Evidence 从 [`delivery/definitions.json`](../../delivery/definitions.json) 和 [Workflow Definition 交付契约](../../docs/definition-delivery.md) 定位；历史 FAIL 不能作为当前实现的通过证据。
+`v0.3.0` 的新组合冻结及实际 Case 见 [Bundle 8](../../docs/evidence/bundle-8-graph-engineering-v0.3.0-consumer-validation.md)。它不继承迁名前 Bundle 7 的结果，也不凭产品迁名获得 Stable 支持。历史 Release 与对应 Evidence 从 [`delivery/definitions.json`](../../delivery/definitions.json) 和 [Workflow Definition 交付契约](../../docs/definition-delivery.md) 定位；历史 FAIL 不能作为当前实现的通过证据。

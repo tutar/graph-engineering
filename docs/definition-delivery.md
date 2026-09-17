@@ -46,6 +46,8 @@ Development 与 PR Review 必须分别拥有权限和运行语义，不能用一
 
 ## Evidence 与修复来源边界
 
+`v0.3.0` 的迁名后真实验证组合由 [Bundle 8](evidence/bundle-8-graph-engineering-v0.3.0-consumer-validation.md) 单独冻结：Repository Release/tag、完整来源 commit、锁定 npm CLI、实际安装记录及 Consumer 控制树共同定位内容，运行时 Definition/Profile 保持 `github-pr-review/current` / `github-pr-review/codex/current`。这不是新增一个未经发布的独立 Definition version，不把 `current` 字符串当作不可变证据，也不覆盖历史交付清单。迁名前 Bundle 7 的 [固定 FAIL 清单](https://github.com/tutar/graph-engineering/blob/04afd6c2f594cfe60699c429b6799c3972fce833/docs/evidence/github-pr-review-v0.1.5-consumer-validation.md) 仍可独立取得，其 Case 不能补齐新组合。
+
 交付清单的 `evidenceBindings` 是历史 Bundle 的索引，不是当前实现的通过名单。每个 Bundle 继续绑定自己的冻结 Definition、Repository Release、Profile、Action revision 与 Consumer 输入；新路径或新实现必须重新冻结并运行，不能拼接旧结果。
 
 [PR #46](https://github.com/tutar/graph-engineering/pull/46) 是 Bundle 6 失败后形成的修复来源，不作为要合并的 `v0.1.5` 目录原形。其完整 Check history 分页、重复身份 fail-closed、目标 head 重读与发布审计行为已由[将 PR Review Task 迁入当前任务布局](https://github.com/tutar/graph-engineering/issues/49)在当前任务布局中重新实现并覆盖测试；PR #46 因而由[移除历史版本副本并完成当前布局切换](https://github.com/tutar/graph-engineering/issues/51)以“被当前实现取代”关闭，而不合并旧版目录形态，也不删除其 branch、讨论或证据链接。完整 Bundle 6 FAIL（包括相同 head 上两个同身份 Check）仍保存在 [Evidence Manifest](evidence/github-pr-review-v0.1.4-consumer-validation.md)，重复 Check 不删除、不改写；[Bundle 7 准备](evidence/bundle-7-preparation.md) 继续保持 `NOT_FROZEN / NOT_RUN`，没有虚构 Release、Consumer PR、SHA 或 Case Result。

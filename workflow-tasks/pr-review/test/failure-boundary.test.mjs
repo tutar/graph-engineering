@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 
-import { mapActionExecution } from "../files/.github/graph-engineering/pr-review-case.mjs";
+import { buildCheck, mapActionExecution } from "../files/.github/graph-engineering/pr-review-case.mjs";
 
 const execute = promisify(execFile);
 const scripts = new URL("../files/.github/graph-engineering/", import.meta.url);
@@ -26,6 +26,19 @@ const completedOutput = {
   spec: { verdict: "pass", findings: [] },
   handoff: null,
 };
+
+test("optional trace diagnostics neither flip passing axes nor mask failing axes", () => {
+  const { handoff, ...review } = completedOutput;
+  for (const verdict of ["pass", "fail"]) {
+    const checks = ["Trace upload completed", "Optional trace exporter failed"].map((summary) => buildCheck({
+      ...review,
+      spec: { verdict, findings: verdict === "fail" ? ["Missing requested behavior"] : [] },
+      runtime: { terminal: "completed", summary },
+    }, target));
+    assert.equal(checks[0].conclusion, verdict === "pass" ? "success" : "failure");
+    assert.equal(checks[1].conclusion, checks[0].conclusion);
+  }
+});
 
 test("Action and Goal outcomes have explicit terminal mappings", () => {
   assert.equal(mapActionExecution({
