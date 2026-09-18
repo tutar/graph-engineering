@@ -12,7 +12,9 @@ import {
 } from "../.github/graph-engineering/coding-task-control.mjs";
 
 test("result classifications keep machine, Agent and delivery conclusions distinct", () => {
-  assert.equal(classifyAgentResult("failure", ""), "unavailable");
+  assert.equal(classifyAgentResult("failure", "", "enforced"), "unavailable");
+  assert.equal(classifyAgentResult("failure", "", ""), "unavailable");
+  assert.equal(classifyAgentResult("failure", "", "exhausted"), "not-produced");
   assert.equal(classifyAgentResult("success", '{"status":"completed","summary":"done"}'), "completed");
   assert.equal(classifyAgentResult("success", '{"status":"blocked","summary":"wait"}'), "blocked");
   assert.throws(() => classifyAgentResult("success", '{"status":"other"}'), /completed or blocked/);

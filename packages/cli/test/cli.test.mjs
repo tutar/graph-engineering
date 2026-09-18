@@ -19,7 +19,7 @@ async function project(t) {
 test("init dry-run plans the whole delivery without writing", async (t) => {
   const directory = await project(t);
   const plan = await initWorkflow( { projectRoot: directory, dryRun: true });
-  assert.equal(plan.files.length, 4);
+  assert.equal(plan.files.length, 5);
   assert.equal(await exists(join(directory, ".github")), false);
 });
 

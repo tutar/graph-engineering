@@ -41,6 +41,7 @@ Repository Review Task（仓库审查任务）是后续独立范围，尚未实�
 - [本票验证报告](docs/verification/issue-59.md)
 - [恢复版 Action 接入验证报告](docs/verification/issue-66.md)
 - [Coding Task 验证报告](docs/verification/issue-70.md)
+- [Runtime Token Budget 验证报告](docs/verification/issue-69.md)
 - [Legacy Development Quick Start](docs/legacy-development-quick-start.md)
 
 项目采用 [MIT License](LICENSE)。

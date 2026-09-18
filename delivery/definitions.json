@@ -7,19 +7,20 @@
       "installRoot": ".github",
       "testRoot": "test",
       "workflow": "github-coding-task.yml",
-      "definitionVersion": "v0.1.0",
+      "definitionVersion": "v0.1.1",
       "compatibilityProfile": {
-        "id": "github-coding-task/codex/v0.1.0",
+        "id": "github-coding-task/codex/v0.1.1",
         "action": "tutar/codex-action",
-        "actionRevision": "393ad456e354dc9da7be630c09be243cc1d212af",
+        "actionRevision": "9405141578057eb1dca78f927b10f6c3cf3a79a4",
         "codexCli": "0.153.4",
-        "runner": "[self-hosted, Linux, X64]",
+        "runner": "[self-hosted, Linux, X64, graph-engineering-coding]",
         "authentication": "runner-backed-codex",
         "permissionProfile": ":workspace",
         "taskStateRoot": "${{ runner.tool_cache }}/graph-engineering/codex-task-state",
-        "inputs": "issue-number, base-branch, task identity, goal prompt, permission profile",
-        "outputs": "machine-execution-state, agent-result, delivery-state, token-budget-state",
-        "tokenBudget": "unsupported/unlimited"
+        "inputs": "issue-number, base-branch, task identity, goal prompt, permission profile, token-budget, run-specific Repository Variable",
+        "outputs": "machine-execution-state, agent-result, delivery-state, token-budget-capability, token-budget-state, token-budget-limit, token-budget-used, token-budget-exhausted",
+        "tokenBudget": "400000",
+        "tokenBudgetCapability": "app-server-goal"
       }
     },
     {
@@ -40,7 +41,8 @@
         "taskStateRoot": "${{ runner.tool_cache }}/graph-engineering/codex-task-state",
         "inputs": "issue-number, base-branch, task identity, goal prompt, permission profile",
         "outputs": "machine-execution-state, agent-result, delivery-state",
-        "tokenBudget": "not-requested"
+        "tokenBudget": "not-requested",
+        "tokenBudgetCapability": "not-requested"
       }
     }
   ],

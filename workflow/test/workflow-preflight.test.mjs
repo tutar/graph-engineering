@@ -15,7 +15,8 @@ test("the recovery Action preserves checkout and one Task Invocation across reru
   assert.deepEqual(calls.map((match) => match[1]), [compatibilityProfile.actionRevision, compatibilityProfile.actionRevision]);
   assert.match(workflow, /task-phase:\s*prepare/);
   assert.match(workflow, /task-id:\s*development/);
-  assert.match(workflow, /task-state-root:\s*\$\{\{ env\.TASK_STATE_ROOT \}\}/);
+  assert.equal([...workflow.matchAll(/task-state-root:\s*\$\{\{ runner\.tool_cache \}\}\/graph-engineering\/codex-task-state/g)].length, 2);
+  assert.doesNotMatch(workflow.match(/jobs:[\s\S]*?steps:/)?.[0] ?? "", /runner\.tool_cache/);
   assert.match(workflow, /if:\s*steps\.task\.outputs\.workspace-exists != 'true'/);
   assert.match(workflow, /working-directory:\s*\$\{\{ steps\.task\.outputs\.task-workspace \}\}/);
   assert.match(workflow, new RegExp(`codex-version:\\s*${compatibilityProfile.codexCli.replaceAll(".", "\\.")}`));

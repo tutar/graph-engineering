@@ -27,11 +27,21 @@ test("Codex Executor statically binds the public Compatibility Profile", () => {
   assert.deepEqual(calls.map((match) => match[1]), [profile.actionRevision, profile.actionRevision]);
   assert.match(workflow, new RegExp(`codex-version:\\s*${profile.codexCli.replaceAll(".", "\\.")}`));
   assert.match(workflow, new RegExp(`permission-profile:\\s*${profile.permissionProfile}`));
+  assert.match(workflow, /runs-on:\s*\[self-hosted, Linux, X64, graph-engineering-coding\]/);
+  assert.doesNotMatch(workflow, /safety-strategy:\s*unsafe/);
   assert.match(workflow, /task-id:\s*coding/);
   assert.match(workflow, /task-phase:\s*prepare/);
-  assert.match(workflow, /working-directory:\s*\$\{\{ steps\.task\.outputs\.task-workspace \}\}/);
+  assert.equal([...workflow.matchAll(/task-state-root:\s*\$\{\{ runner\.tool_cache \}\}\/graph-engineering\/codex-task-state/g)].length, 2);
+  assert.doesNotMatch(workflow.match(/jobs:[\s\S]*?steps:/)?.[0] ?? "", /runner\.tool_cache/);
+  const executor = workflow.match(/- name: Start or resume Codex Executor([\s\S]*?)(?=\n\s+- name: Classify structured Agent result)/)?.[1] ?? "";
+  assert.doesNotMatch(executor, /working-directory:/);
   assert.match(workflow, /output-schema:/);
   assert.match(workflow, /status.*completed.*blocked/s);
+  assert.match(workflow, /token_budget:[\s\S]*?default:\s*"400000"/);
+  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:\s*\$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.token_budget \|\| '400000' \}\}/);
+  assert.match(workflow, /token-budget:\s*\$\{\{ env\.TOKEN_BUDGET_REQUESTED \}\}/);
+  assert.match(workflow, /token-budget-capability:\s*app-server-goal/);
+  assert.match(workflow, /token-budget-override:\s*\$\{\{ vars\[format\('GE_CODING_BUDGET_RUN_\{0\}', github\.run_id\)\] \}\}/);
 });
 
 test("Agent result, machine execution and delivery facts stay separate", () => {
@@ -44,8 +54,12 @@ test("Agent result, machine execution and delivery facts stay separate", () => {
   assert.match(control, /return "not-run"/);
   assert.match(control, /return checksOutcome === "success" \? "passed" : "failed"/);
   assert.match(control, /Delivery facts:/);
-  assert.match(workflow, /unsupported\/unlimited/);
-  assert.doesNotMatch(workflow, /token-budget:\s*500000/);
+  for (const output of ["machine-execution-state", "final-message", "token-budget-capability", "token-budget-state", "token-budget-limit", "token-budget-used", "token-budget-exhausted"]) {
+    assert.match(workflow, new RegExp(`steps\\.codex\\.outputs\\['${output}'\\]`));
+  }
+  assert.doesNotMatch(workflow, /steps\.codex\.outputs\.[a-z]+-[a-z-]+/);
+  assert.equal(profile.tokenBudget, "400000");
+  assert.equal(profile.tokenBudgetCapability, "app-server-goal");
 });
 
 test("delivery checks are exactly the four deterministic invariants", () => {

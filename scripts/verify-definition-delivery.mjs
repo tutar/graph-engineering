@@ -72,10 +72,39 @@ function validateCurrentTaskShape(task, label) {
   requireString(task.definitionVersion, `${label}.definitionVersion`);
   const profile = task.compatibilityProfile;
   if (!profile || typeof profile !== "object" || Array.isArray(profile)) fail(`${label}.compatibilityProfile must be an object`);
-  for (const field of ["id", "action", "actionRevision", "codexCli", "runner", "authentication", "permissionProfile", "taskStateRoot", "inputs", "outputs", "tokenBudget"]) {
+  for (const field of ["id", "action", "actionRevision", "codexCli", "runner", "authentication", "permissionProfile", "taskStateRoot", "inputs", "outputs", "tokenBudget", "tokenBudgetCapability"]) {
     requireString(profile[field], `${label}.compatibilityProfile.${field}`);
   }
   if (!/^[0-9a-f]{40}$/.test(profile.actionRevision)) fail(`${label}.compatibilityProfile.actionRevision must be a full commit SHA`);
+}
+
+function verifyTokenBudgetBinding(workflow, profile, workflowPath) {
+  if (profile.tokenBudget === "not-requested") {
+    if (!workflow.includes("TOKEN_BUDGET_STATE: not-requested")) {
+      fail(`${workflowPath} does not declare the unsupported token budget state`);
+    }
+    if (workflow.includes("token-budget:")) fail(`${workflowPath} unexpectedly requests a token budget`);
+  } else {
+    const fixedBudget = workflow.includes(`TOKEN_BUDGET_REQUESTED: "${profile.tokenBudget}"`);
+    const dispatchBudget = workflow.includes(`default: "${profile.tokenBudget}"`)
+      && workflow.includes(
+        `TOKEN_BUDGET_REQUESTED: \${{ github.event_name == 'workflow_dispatch' && inputs.token_budget || '${profile.tokenBudget}' }}`,
+      );
+    if (!fixedBudget && !dispatchBudget) {
+      fail(`${workflowPath} does not configure token budget ${profile.tokenBudget}`);
+    }
+    if (!workflow.includes("token-budget: ${{ env.TOKEN_BUDGET_REQUESTED }}")) {
+      fail(`${workflowPath} does not bind the configured token budget to the Action input`);
+    }
+  }
+
+  if (profile.tokenBudgetCapability === "not-requested") {
+    if (workflow.includes("token-budget-capability:")) {
+      fail(`${workflowPath} unexpectedly requests a token budget capability`);
+    }
+  } else if (!workflow.includes(`token-budget-capability: ${profile.tokenBudgetCapability}`)) {
+    fail(`${workflowPath} does not bind token budget capability ${profile.tokenBudgetCapability}`);
+  }
 }
 
 async function requireMissing(path, label) {
@@ -123,9 +152,11 @@ export async function verifyDelivery(options) {
     await access(resolve(options.repository, task.path, task.testRoot));
     const workflow = await readFile(resolve(options.repository, task.path, task.installRoot, "workflows", task.workflow), "utf8");
     const profile = task.compatibilityProfile;
-    for (const value of [profile.action, profile.actionRevision, profile.codexCli, profile.runner, profile.permissionProfile, profile.taskStateRoot, profile.tokenBudget]) {
+    const workflowPath = `${task.path}/${task.installRoot}/workflows/${task.workflow}`;
+    for (const value of [profile.action, profile.actionRevision, profile.codexCli, profile.runner, profile.permissionProfile, profile.taskStateRoot]) {
       if (!workflow.includes(value)) fail(`${task.path}/${task.installRoot}/workflows/${task.workflow} does not bind ${value}`);
     }
+    verifyTokenBudgetBinding(workflow, profile, workflowPath);
   }
 
   for (const [index, path] of manifest.retiredSourceRoots.entries()) {

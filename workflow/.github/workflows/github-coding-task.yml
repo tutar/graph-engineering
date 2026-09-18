@@ -9,6 +9,11 @@ on:
         description: Issue number to start
         required: true
         type: number
+      token_budget:
+        description: Initial cumulative Runtime Token Budget (positive integer or unlimited)
+        required: false
+        default: "400000"
+        type: string
 
 permissions:
   contents: write
@@ -24,21 +29,23 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.action == 'labeled' && github.event.label.name == 'coding-ticket')
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, graph-engineering-coding]
     timeout-minutes: 120
     outputs:
-      machine-execution-state: ${{ steps.codex.outcome }}
+      machine-execution-state: ${{ steps.codex.outputs['machine-execution-state'] || steps.codex.outcome }}
       agent-result: ${{ steps.agent_result.outputs.status }}
       delivery-state: ${{ steps.delivery_result.outputs.state }}
-      token-budget-state: unsupported/unlimited
+      token-budget-capability: ${{ steps.codex.outputs['token-budget-capability'] }}
+      token-budget-state: ${{ steps.codex.outputs['token-budget-state'] }}
+      token-budget-limit: ${{ steps.codex.outputs['token-budget-limit'] }}
+      token-budget-used: ${{ steps.codex.outputs['token-budget-used'] }}
+      token-budget-exhausted: ${{ steps.codex.outputs['token-budget-exhausted'] }}
     env:
       GH_TOKEN: ${{ github.token }}
       ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
       BASE_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
       TARGET_BRANCH: agent/issue-${{ github.event.issue.number || inputs.issue_number }}
-      TASK_STATE_ROOT: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
-      TOKEN_BUDGET_REQUESTED: "500000"
-      TOKEN_BUDGET_STATE: unsupported/unlimited
+      TOKEN_BUDGET_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.token_budget || '400000' }}
     steps:
       - name: Validate Coding Ticket
         shell: bash
@@ -50,13 +57,23 @@ jobs:
           test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json labels \
             --jq 'any(.labels[]; .name == "coding-ticket")')" = true
 
+      - name: Validate Runtime Token Budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${TOKEN_BUDGET_REQUESTED}" != "unlimited" && ! "${TOKEN_BUDGET_REQUESTED}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "token_budget must be a positive integer or unlimited" >&2
+            exit 1
+          fi
+          printf 'Runtime Token Budget request: %s\n' "${TOKEN_BUDGET_REQUESTED}"
+
       - name: Prepare Coding Task Invocation
         id: task
-        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
+        uses: tutar/codex-action@9405141578057eb1dca78f927b10f6c3cf3a79a4
         with:
           task-phase: prepare
           task-id: coding
-          task-state-root: ${{ env.TASK_STATE_ROOT }}
+          task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
 
       - name: Check out default branch
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -83,13 +100,15 @@ jobs:
       - name: Start or resume Codex Executor
         id: codex
         continue-on-error: true
-        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
+        uses: tutar/codex-action@9405141578057eb1dca78f927b10f6c3cf3a79a4
         with:
           task-id: coding
-          task-state-root: ${{ env.TASK_STATE_ROOT }}
-          working-directory: ${{ steps.task.outputs.task-workspace }}
+          task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
           codex-version: 0.153.4
           permission-profile: :workspace
+          token-budget: ${{ env.TOKEN_BUDGET_REQUESTED }}
+          token-budget-capability: app-server-goal
+          token-budget-override: ${{ vars[format('GE_CODING_BUDGET_RUN_{0}', github.run_id)] }}
           output-schema: >-
             {"type":"object","additionalProperties":false,"required":["status","summary"],
             "properties":{"status":{"type":"string","enum":["completed","blocked"]},
@@ -109,7 +128,10 @@ jobs:
         shell: bash
         env:
           MACHINE_STATE: ${{ steps.codex.outcome }}
-          AGENT_RESULT: ${{ steps.codex.outputs.final-message }}
+          AGENT_RESULT: ${{ steps.codex.outputs['final-message'] }}
+          TOKEN_BUDGET_STATE: ${{ steps.codex.outputs['token-budget-state'] }}
+          TOKEN_BUDGET_LIMIT: ${{ steps.codex.outputs['token-budget-limit'] }}
+          TOKEN_BUDGET_USED: ${{ steps.codex.outputs['token-budget-used'] }}
         run: node .github/graph-engineering/coding-task-control.mjs classify-agent
 
       - name: Verify Coding Task delivery
@@ -146,6 +168,7 @@ jobs:
         if: steps.delivery_result.outputs.state == 'passed' && steps.label_cleanup.outcome == 'success'
         shell: bash
         env:
+          TASK_STATE_ROOT: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
           TASK_WORKSPACE: ${{ steps.task.outputs.task-workspace }}
         run: node .github/graph-engineering/coding-task-control.mjs delete-workspace
 
