@@ -8,9 +8,9 @@ graph-engineering check [--json] [--project /path/to/consumer]
 graph-engineering migrate [--apply] [--project /path/to/consumer]
 ```
 
-`init` 将唯一 `workflow/.github/` 交付源的打包资产整体复制到 Consumer 的 `.github/`。当前集合只含 Development；没有 PR Review 或未实现的 Repository Review workflow。目标文件或安装记录已存在时停止，不覆盖；`--dry-run` 不写入。
+`init` 将唯一 `workflow/.github/` 交付源的打包资产整体复制到 Consumer 的 `.github/`。当前集合包含独立的 Coding 与 Development Workflow；没有 PR Review 或未实现的 Repository Review workflow。目标文件或安装记录已存在时停止，不覆盖；`--dry-run` 不写入。
 
-安装记录为 `.github/graph-engineering/installation.json`：`schemaVersion: 2`，`product`、`productVersion`、`delivery: workflow`、整套 `files` 清单，以及 `installations.development` 中的 CLI 版本、来源 commit、Definition、Profile 和 namespace。记录来源不表示项目文件永远与模板相同。旧 schema 1 记录可以识别，但不会被整套检查误称为新安装记录。
+安装记录为 `.github/graph-engineering/installation.json`：`schemaVersion: 2`，`product`、`productVersion`、`delivery: workflow`、整套 `files` 清单，以及 `installations.coding`/`installations.development` 中的 CLI 版本、来源 commit、Definition、Profile 和 namespace。记录来源不表示项目文件永远与模板相同。旧 schema 1 记录可以识别，但不会被整套检查误称为新安装记录。
 
 `check` 只读检查文件、整套记录和本地/远程前置条件；项目自有修改标记 `UNVERIFIED`。`ready` 仅在所有检查均为 `PASS` 时为真；阻断项令命令非零退出，其他待配置或未验证项不表示安装失败。CLI 不替代真实 Consumer 运行验证。
 

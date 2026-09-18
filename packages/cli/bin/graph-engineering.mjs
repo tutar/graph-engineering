@@ -19,7 +19,7 @@ function parse(argv) {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "pr-review") throw new Error("PR Review is retired; existing Consumer instances are not automatically uninstalled.");
-    if (arg === "development") throw new Error("Task selection was removed; use init or check to manage the whole workflow set.");
+    if (arg === "development" || arg === "coding") throw new Error("Task selection was removed; use init or check to manage the whole workflow set.");
     if (arg === "--project") {
       if (!args[index + 1]) throw new Error("--project requires a path");
       options.projectRoot = resolve(args[++index]);

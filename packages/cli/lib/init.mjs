@@ -2,9 +2,10 @@ import { resolve } from "node:path";
 import { assertGitRoot, copyFiles, exists, within } from "./files.mjs";
 import { nextManifest, readManifest, replaceManifest } from "./manifest.mjs";
 import { installationRecord, releaseMetadata, workflowTemplateRoot, workflowFiles } from "./package-assets.mjs";
+import { TASKS } from "./constants.mjs";
 
 export async function initWorkflow({ projectRoot = process.cwd(), dryRun = false } = {}) {
-  const task = "development";
+  const task = "workflow";
   projectRoot = resolve(projectRoot);
   assertGitRoot(projectRoot);
   const sourceRoot = await workflowTemplateRoot();
@@ -15,7 +16,7 @@ export async function initWorkflow({ projectRoot = process.cwd(), dryRun = false
   if (existingManifest) conflicts.push(".github/graph-engineering/installation.json (installation already recorded)");
   if (conflicts.length > 0) throw new Error(`installation conflicts:\n${conflicts.map((item) => `- ${item}`).join("\n")}`);
   const metadata = await releaseMetadata();
-  const manifest = nextManifest(installationRecord(task, metadata), files);
+  const manifest = nextManifest(Object.keys(TASKS).map((name) => installationRecord(name, metadata)), files);
   if (!dryRun) {
     await copyFiles({ sourceRoot, projectRoot, files });
     try { await replaceManifest(projectRoot, manifest); }
