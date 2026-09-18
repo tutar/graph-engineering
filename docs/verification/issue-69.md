@@ -21,4 +21,6 @@
 
 ## 证据边界
 
+`graph-engineering-coding` 必须只分配给一台具有持久 `runner.tool_cache` 的 runner；同一 Task Invocation 的原生 rerun 才能回到拥有 Session、task record 与 workspace 的同一机器。Consumer 证据必须记录并检查这一单实例约束。
+
 上述证据证明 Action 行为、公共 seam 测试和 Coding Task/Profile 静态集成。#71 仍独占真实 Consumer Budget Case Results：默认 400,000 正常完成、低成本真实耗尽、原 Run UI override/rerun、实际 `tokensUsed`、crash/cancellation/network/quota 与冻结组合都必须由 #71 的同一 Evidence Bundle 证明。在这些结果存在前，本报告不声明对应真实 Consumer 验收项完成。
