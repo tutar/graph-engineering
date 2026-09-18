@@ -89,7 +89,6 @@ jobs:
         with:
           task-id: coding
           task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
-          working-directory: ${{ steps.task.outputs.task-workspace }}
           codex-version: 0.153.4
           permission-profile: :workspace
           token-budget: ${{ env.TOKEN_BUDGET_REQUESTED }}
