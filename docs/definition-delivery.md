@@ -14,7 +14,7 @@ Legacy Development Definition 发布早于 GitHub Release 对象的使用；清�
 
 ## 获取与所有权
 
-- **当前实现**：唯一交付源 [`workflow/.github/`](../workflow/.github/)，当前只交付 [Development](../workflow/README.md)。PR Review 已退役，Repository Review 尚未实施；目录调整不冻结 Candidate 或继承历史 Evidence。
+- **当前实现**：唯一交付源 [`workflow/.github/`](../workflow/.github/)，当前只交付 [Development](../workflow/README.md)。它固定恢复版 Action/CLI 组合并作为未完成真实 Consumer 验收的 Candidate 演进；PR Review 已退役，Repository Review 尚未实施，历史 Evidence 不自动继承。
 - **历史发布内容**：由交付清单中的完整 commit 与 Git tag 承载。维护者可以在已有 clone 中使用 `git archive <gitRef> <path>/files/.github` 导出；主分支不再保存这些源码副本。
 - **Consumer Workflow Instance（消费项目工作流实例）**：Consumer 把导出的 `.github/` 普通文件复制进自己的仓库后自行拥有；运行时不访问本仓库，也不是远程 Reusable Workflow。Consumer 的本地修改不改变来源 Definition 的身份或证据。
 
@@ -33,7 +33,7 @@ git archive v0.2.4 workflow-definitions/github-pr-review/v0.1.4/files/.github \
 
 现有 Consumer Workflow Instance 不会自动迁移。本分支 CLI 的 `graph-engineering migrate` 只识别已冻结的旧版文件组合，先展示删除与新增 diff；交互终端确认后执行，非交互环境必须显式传入 `--apply`。来源无法识别、项目文件已有不能安全转换的修改，或新旧安装同时存在时停止。CLI 不 commit、push 或修改 GitHub Settings。
 
-Development 保持现有权限、标签和人工事件、Goal Prompt、恢复协议、预算与 Stop hook 收尾行为。迁移只移除经过来源校验的旧文件，保留无关 Consumer 文件；旧 PR Review 明确报告退役并要求人工处理，不自动卸载、改写或接管。旧按任务安装/检查接口不静默路由到整套安装。
+Development 保持现有权限、标签、人工事件、checkout、并发与 Goal Prompt/交付责任，但把恢复实现替换为固定维护版 Agent Action 的公开 step 契约。旧 app-server Controller 的 Thread Record、预算与 Stop hook 协议属于 Legacy Frozen Definition，不迁移到新 Task Invocation；升级者应先结束旧运行。迁移只移除经过来源校验的旧文件，保留无关 Consumer 文件；旧 PR Review 明确报告退役并要求人工处理，不自动卸载、改写或接管。旧按任务安装/检查接口不静默路由到整套安装。
 
 升级者仍应审阅 runner labels、事件配置、Event Prompt 和项目策略；来源未知或项目自有修改无法安全转换时进行人工合并。当前目录未冻结，没有新增真实 Consumer Evidence 或 Stable 晋级结论。
 

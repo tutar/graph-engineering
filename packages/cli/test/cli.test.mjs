@@ -19,14 +19,14 @@ async function project(t) {
 test("init dry-run plans the whole delivery without writing", async (t) => {
   const directory = await project(t);
   const plan = await initWorkflow( { projectRoot: directory, dryRun: true });
-  assert.ok(plan.files.length === 5);
+  assert.equal(plan.files.length, 2);
   assert.equal(await exists(join(directory, ".github")), false);
 });
 
 test("init installs the whole project-owned delivery and records its source", async (t) => {
   const directory = await project(t);
   const installed = await initWorkflow( { projectRoot: directory });
-  assert.equal(await exists(join(directory, ".github", "graph-engineering", "github-development-ticket.mjs")), true);
+  assert.equal(await exists(join(directory, ".github", "graph-engineering", "development-worktree.sh")), true);
   const manifest = JSON.parse(await readFile(join(directory, ".github", "graph-engineering", "installation.json"), "utf8"));
   assert.equal(manifest.productVersion, "0.3.1");
   assert.equal(manifest.installations.development.task, "development");
@@ -54,7 +54,7 @@ test("migrate recognizes the frozen pre-v0.3 layout and replaces its namespace",
   const applied = await migrate({ projectRoot: directory, apply: true, interactive: false });
   assert.equal(applied.applied, true);
   assert.equal(await exists(join(directory, ".github", "loop-engineering", "github-development-ticket.mjs")), false);
-  assert.equal(await exists(join(directory, ".github", "graph-engineering", "github-development-ticket.mjs")), true);
+  assert.equal(await exists(join(directory, ".github", "graph-engineering", "development-worktree.sh")), true);
 });
 
 test("migrate refuses an installation whose provenance no longer matches", async (t) => {
@@ -174,7 +174,7 @@ test("Development migration conflicts leave the full Consumer unchanged", async 
   await cp(join(packageRoot, "migrations/loop-engineering-927bd961/development"), directory, { recursive: true });
   const { mkdir, writeFile } = await import("node:fs/promises");
   await mkdir(join(directory, ".github/graph-engineering"));
-  await writeFile(join(directory, ".github/graph-engineering/thread-record.mjs"), "Consumer implementation\n");
+  await writeFile(join(directory, ".github/graph-engineering/development-worktree.sh"), "Consumer implementation\n");
   const before = await githubContents(directory);
   const migrated = cli(directory, "migrate", "--apply");
   assert.equal(migrated.status, 1);

@@ -6,7 +6,17 @@
       "path": "workflow",
       "installRoot": ".github",
       "testRoot": "test",
-      "workflow": "github-development-ticket.yml"
+      "workflow": "github-development-ticket.yml",
+      "definitionVersion": "v0.2.0",
+      "compatibilityProfile": {
+        "id": "github-development-ticket/codex/v0.2.0",
+        "action": "tutar/codex-action",
+        "actionRevision": "393ad456e354dc9da7be630c09be243cc1d212af",
+        "codexCli": "0.153.4",
+        "runner": "[self-hosted, Linux, X64]",
+        "permissionProfile": ":workspace",
+        "taskStateRoot": "${{ runner.tool_cache }}/graph-engineering/codex-task-state"
+      }
     }
   ],
   "retiredSourceRoots": ["workflow-definitions", "workflow-tasks"],

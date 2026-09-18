@@ -132,10 +132,6 @@ test("npm pack delivers the unique source through CLI into a temporary Consumer"
     const source = await readFile(join(sourceRoot, file), "utf8");
     assert.equal(await readFile(join(directory, "package/templates/workflow/.github", file), "utf8"), source);
     assert.equal(await readFile(join(consumer, ".github", file), "utf8"), source);
-    // The issue permits layout/install changes only, not changes to Development behavior.
-    const previous = run("git", ["show", `d843f85:workflow-tasks/development/files/.github/${file}`], repository);
-    assert.equal(previous.status, 0, previous.stderr);
-    assert.equal(source, previous.stdout);
   }
   const before = await readFile(join(consumer, ".github/graph-engineering/installation.json"), "utf8");
   const manifest = JSON.parse(before);
