@@ -89,6 +89,27 @@ test("current Compatibility Profiles bind token budget fields at their workflow 
   );
 });
 
+test("Coding Task manual dispatch fixes the initial token budget before model work", async () => {
+  const workflow = await readFile(
+    join(repository, "workflow/.github/workflows/github-coding-task.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /token_budget:\n\s+description: Initial cumulative Runtime Token Budget/);
+  assert.match(workflow, /default: "400000"/);
+  assert.match(
+    workflow,
+    /TOKEN_BUDGET_REQUESTED: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.token_budget \|\| '400000' \}\}/,
+  );
+  const validation = workflow.indexOf("- name: Validate Runtime Token Budget");
+  const invocation = workflow.indexOf("- name: Start or resume Codex Executor");
+  assert.ok(validation >= 0 && validation < invocation, "budget validation must precede Runtime invocation");
+  assert.match(
+    workflow.slice(validation, invocation),
+    /Runtime Token Budget request: %s\\n.*TOKEN_BUDGET_REQUESTED/s,
+  );
+});
+
 test("mapped historical releases remain obtainable after their source copies leave HEAD", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "historical-definitions-"));
   t.after(() => rm(directory, { recursive: true, force: true }));

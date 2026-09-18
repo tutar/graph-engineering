@@ -85,7 +85,12 @@ function verifyTokenBudgetBinding(workflow, profile, workflowPath) {
     }
     if (workflow.includes("token-budget:")) fail(`${workflowPath} unexpectedly requests a token budget`);
   } else {
-    if (!workflow.includes(`TOKEN_BUDGET_REQUESTED: "${profile.tokenBudget}"`)) {
+    const fixedBudget = workflow.includes(`TOKEN_BUDGET_REQUESTED: "${profile.tokenBudget}"`);
+    const dispatchBudget = workflow.includes(`default: "${profile.tokenBudget}"`)
+      && workflow.includes(
+        `TOKEN_BUDGET_REQUESTED: \${{ github.event_name == 'workflow_dispatch' && inputs.token_budget || '${profile.tokenBudget}' }}`,
+      );
+    if (!fixedBudget && !dispatchBudget) {
       fail(`${workflowPath} does not configure token budget ${profile.tokenBudget}`);
     }
     if (!workflow.includes("token-budget: ${{ env.TOKEN_BUDGET_REQUESTED }}")) {

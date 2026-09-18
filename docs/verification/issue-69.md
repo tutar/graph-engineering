@@ -4,7 +4,7 @@
 
 ## 验收映射
 
-1. **公开预算契约**：Action 的 `token-budget` 默认值为 400,000，接受正安全整数或 `unlimited`；Profile 通过 `token-budget-capability: app-server-goal` 明确选择 Runtime 强制路径。
+1. **公开预算契约**：Action 的 `token-budget` 默认值为 400,000，接受正安全整数或 `unlimited`；Profile 通过 `token-budget-capability: app-server-goal` 明确选择 Runtime 强制路径。Coding Task 的手动启动 seam 暴露 `token_budget`，默认仍为 400,000，并在任何 Codex Action 调用前校验和打印本次初始请求值，使低成本耗尽 Case 不需要把 400,000 当作测试额度。
 2. **Runtime 权威状态**：同一 Task Invocation（任务调用）的 rerun 显式恢复 Session，先读取 Runtime Goal 的 `tokenBudget` 与 `tokensUsed`；没有 override 时沿用 Runtime 值，不从 Workflow 重建账本。
 3. **单调人工控制**：Action 从 `GE_CODING_BUDGET_RUN_<run_id>` 读取 Repository Variable（仓库变量）。相等、更大的有限值与 `unlimited` 合法；降低值及 `unlimited` 到有限值在 Goal 重新激活前失败。
 4. **耗尽与恢复**：`budgetLimited` 单独映射为 `budget-exhausted` / `not-produced` / `not-run` / `exhausted` / `required`。Action 抛出失败前已持久保存 Session 与 task record，Workflow 因而不会进入交付校验或成功清理。
@@ -16,7 +16,7 @@
 ## 本地验证
 
 - 维护版 Action：`tsc --noEmit`、bundle build、`git diff --check` 通过；完整测试 207 项中 202 通过、5 项因宿主环境前置条件跳过、0 失败。新增 composite Action invocation seam fixture 覆盖 fresh、same-Run resume、exhaustion、finite/equal increase、`unlimited`、invalid values、network、quota、crash、unsupported、结构化结果与 Job Summary。
-- Graph Engineering：Coding Task contract/control tests 覆盖 400,000 默认值、capability/profile 固定、耗尽时 `not-produced` 以及 Action 状态向 Workflow 输出的映射。
+- Graph Engineering：Coding Task contract/control tests 覆盖 400,000 默认值、手动启动的初始预算输入与模型前校验、capability/profile 固定、耗尽时 `not-produced` 以及 Action 状态向 Workflow 输出的映射。
 - Definition delivery verifier 固定 Definition `v0.1.1`、Compatibility Profile `github-coding-task/codex/v0.1.1`、Action revision、CLI、runner、认证、permission profile、输入输出与预算能力。
 
 ## 证据边界

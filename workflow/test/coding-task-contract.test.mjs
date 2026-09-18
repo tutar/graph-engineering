@@ -37,7 +37,8 @@ test("Codex Executor statically binds the public Compatibility Profile", () => {
   assert.doesNotMatch(executor, /working-directory:/);
   assert.match(workflow, /output-schema:/);
   assert.match(workflow, /status.*completed.*blocked/s);
-  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:\s*"400000"/);
+  assert.match(workflow, /token_budget:[\s\S]*?default:\s*"400000"/);
+  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:\s*\$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.token_budget \|\| '400000' \}\}/);
   assert.match(workflow, /token-budget:\s*\$\{\{ env\.TOKEN_BUDGET_REQUESTED \}\}/);
   assert.match(workflow, /token-budget-capability:\s*app-server-goal/);
   assert.match(workflow, /token-budget-override:\s*\$\{\{ vars\[format\('GE_CODING_BUDGET_RUN_\{0\}', github\.run_id\)\] \}\}/);
