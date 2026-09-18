@@ -8,7 +8,7 @@
 
 - Agent Action：`tutar/codex-action@9405141578057eb1dca78f927b10f6c3cf3a79a4`
 - Codex CLI：`0.153.4`
-- runner：持久化 self-hosted Linux X64
+- runner：带 `issue-67-bundle-8` 标签、已配置 `drop-sudo` 前置条件的持久化 self-hosted Linux X64；#71 使用全新 Run/Session/Task Repository，不继承旧 Bundle 结果
 - 认证：Runner-backed Codex Authentication（Runner 承载的 Codex 认证）
 - permission profile：`:workspace`
 - Runtime Token Budget：默认 `400000`，由 App Server Goal 强制并在同一 Run rerun 中累计；`GE_CODING_BUDGET_RUN_<run_id>` 只允许单调提高或改为 `unlimited`

@@ -13,7 +13,7 @@
         "action": "tutar/codex-action",
         "actionRevision": "9405141578057eb1dca78f927b10f6c3cf3a79a4",
         "codexCli": "0.153.4",
-        "runner": "[self-hosted, Linux, X64]",
+        "runner": "[self-hosted, Linux, X64, issue-67-bundle-8]",
         "authentication": "runner-backed-codex",
         "permissionProfile": ":workspace",
         "taskStateRoot": "${{ runner.tool_cache }}/graph-engineering/codex-task-state",

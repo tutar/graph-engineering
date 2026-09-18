@@ -27,6 +27,8 @@ test("Codex Executor statically binds the public Compatibility Profile", () => {
   assert.deepEqual(calls.map((match) => match[1]), [profile.actionRevision, profile.actionRevision]);
   assert.match(workflow, new RegExp(`codex-version:\\s*${profile.codexCli.replaceAll(".", "\\.")}`));
   assert.match(workflow, new RegExp(`permission-profile:\\s*${profile.permissionProfile}`));
+  assert.match(workflow, /runs-on:\s*\[self-hosted, Linux, X64, issue-67-bundle-8\]/);
+  assert.doesNotMatch(workflow, /safety-strategy:\s*unsafe/);
   assert.match(workflow, /task-id:\s*coding/);
   assert.match(workflow, /task-phase:\s*prepare/);
   assert.equal([...workflow.matchAll(/task-state-root:\s*\$\{\{ runner\.tool_cache \}\}\/graph-engineering\/codex-task-state/g)].length, 2);

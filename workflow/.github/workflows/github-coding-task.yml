@@ -24,7 +24,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.action == 'labeled' && github.event.label.name == 'coding-ticket')
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, issue-67-bundle-8]
     timeout-minutes: 120
     outputs:
       machine-execution-state: ${{ steps.codex.outputs['machine-execution-state'] || steps.codex.outcome }}
