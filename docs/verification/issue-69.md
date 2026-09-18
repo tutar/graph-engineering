@@ -19,6 +19,7 @@
 - Graph Engineering：Coding Task contract/control tests 覆盖 400,000 默认值、手动启动的初始预算输入与模型前校验、capability/profile 固定、耗尽时 `not-produced` 以及 Action 状态向 Workflow 输出的映射。
 - Definition delivery verifier 固定 Definition `v0.1.1`、Compatibility Profile `github-coding-task/codex/v0.1.1`、Action revision、CLI、runner、认证、permission profile、输入输出与预算能力。
 - 真实低成本耗尽 Run [35334612102](https://github.com/tutar/loop-engineering-consumer-validation/actions/runs/35334612102) 在模型启动前打印初始预算 `1000`，创建 Session `01a0b40d-0970-7d63-8038-11416701bcae` 与 Runtime Goal `tokenBudget=1000`；Runtime 在 `tokensUsed=5590` 时进入 `budgetLimited`，Action 报告 `exhausted`，Workflow 得到 `agent-result=not-produced`、`delivery-state=not-run` 并跳过成功清理。provider 事件的另一统计口径为 16,726 total tokens，因此没有继续执行会增加消费的 rerun。
+- 同一 Run 的 attempt 2 使用 run-specific 变量请求非法降低到 `500`；Action 在不启动模型的情况下恢复同一 Session，读取 `previous=1000`、`tokensUsed=5590` 与原 `budgetLimited` Goal，并在重新激活前拒绝请求。`runAttempt=2` 且累计用量未增加，直接证明 same-Run 恢复不重置 Session、有效上限或累计用量。
 
 ## 证据边界
 
