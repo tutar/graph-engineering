@@ -92,8 +92,9 @@ export async function migrate({ projectRoot = process.cwd(), apply = false, inte
       for (const file of plan.oldFiles) await rm(within(projectRoot, file), { force: true });
       await copyFiles({ sourceRoot: plan.currentRoot, projectRoot, files: plan.newFiles });
       installed.push(...plan.newFiles);
-      manifest = nextManifest(installationRecord(plan.task, metadata), plan.newFiles);
     }
+    const files = [...new Set(plans.flatMap(({ newFiles }) => newFiles))].sort();
+    manifest = nextManifest(Object.keys(TASKS).map((task) => installationRecord(task, metadata)), files);
     await replaceManifest(projectRoot, manifest);
     // Only recognized baseline files are removed; unrelated project files remain owned by the Consumer.
     await mkdir(within(projectRoot, ".github/graph-engineering"), { recursive: true });

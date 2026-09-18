@@ -32,6 +32,7 @@ jobs:
       BASE_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
       TARGET_BRANCH: agent/issue-${{ github.event.issue.number || inputs.issue_number }}
       TASK_STATE_ROOT: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
+      TOKEN_BUDGET_STATE: not-requested
     steps:
       - name: Validate Development Ticket
         shell: bash

@@ -24,6 +24,11 @@ test("the delivery manifest keeps one current delivery source", async () => {
     output.currentTasks.map(({ name, path, workflow }) => ({ name, path, workflow })),
     [
       {
+        name: "coding",
+        path: "workflow",
+        workflow: "github-coding-task.yml",
+      },
+      {
         name: "development",
         path: "workflow",
         workflow: "github-development-ticket.yml",
@@ -46,6 +51,19 @@ test("the whole current delivery remains copyable", async (t) => {
     const workflow = join(consumer, "workflows", task.workflow);
     assert.match(await readFile(workflow, "utf8"), /^name:/m);
   }
+});
+
+test("current Compatibility Profiles fail closed when a public contract field is missing", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "invalid-profile-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const manifest = JSON.parse(await readFile(join(repository, "delivery/definitions.json"), "utf8"));
+  delete manifest.currentTasks[0].compatibilityProfile.tokenBudget;
+  const path = join(directory, "definitions.json");
+  await writeFile(path, `${JSON.stringify(manifest)}\n`);
+  await assert.rejects(
+    verifyDelivery({ repository, manifest: path }),
+    /compatibilityProfile\.tokenBudget must be a non-empty string/,
+  );
 });
 
 test("mapped historical releases remain obtainable after their source copies leave HEAD", async (t) => {
@@ -136,6 +154,7 @@ test("npm pack delivers the unique source through CLI into a temporary Consumer"
   const before = await readFile(join(consumer, ".github/graph-engineering/installation.json"), "utf8");
   const manifest = JSON.parse(before);
   assert.equal(manifest.delivery, "workflow");
+  assert.deepEqual(Object.keys(manifest.installations).sort(), ["coding", "development"]);
   assert.deepEqual(manifest.files, sourceFiles.map((file) => `.github/${file}`));
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const checked = run(process.execPath, [cli, "check", "--json", "--project", consumer], directory);

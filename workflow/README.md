@@ -1,10 +1,31 @@
-# 当前 Development Task
+# 当前 Workflow Tasks
+
+本目录同时交付彼此独立的 Development Task（研发实现任务）与 Coding Task（编码任务）。CLI 将整套 `.github/` 文件复制给 Consumer Project（消费项目），但两个入口保留各自的标签、并发组和 Task Invocation（任务调用）身份。
+
+## Coding Task Candidate
+
+`github-coding-task/v0.1.0` 使用 `ready-for-agent` 与 `coding-ticket` 准入，也保留人工 Issue number 入口。它静态绑定 Compatibility Profile `github-coding-task/codex/v0.1.0`：
+
+- Agent Action：`tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af`
+- Codex CLI：`0.153.4`
+- runner：持久化 self-hosted Linux X64
+- 认证：Runner-backed Codex Authentication（Runner 承载的 Codex 认证）
+- permission profile：`:workspace`
+- Token Budget：请求默认 `500000`，但该 Profile 不支持 Runtime 强制，公开结果必须是 `unsupported/unlimited`
+
+Workflow 把 Issue Goal 交给 Action 原生执行，不实现 Goal 循环。Action 机器状态、Agent 的 `completed`/`blocked` 结构化结论和四项确定性交付事实分别记录。交付检查只验证干净任务仓库、base 之后存在提交、远端目标分支等于本地 HEAD，以及恰好一个匹配的 open Draft PR；不重新判断测试质量、review 或 Acceptance Criteria。
+
+同一 GitHub Run 的 rerun 使用 `task-id: coding` 恢复精确 Session、隔离 Codex home 和独立 Task Repository（任务仓库）；新 Run 由 Action identity 建立新材料。缺失本地材料时沿固定 Action 契约公开 Session Replacement（会话替换），不声称跨 runner 恢复。成功交付删除 Task Repository 并移除 `coding-ticket`/`in-progress`；失败、blocked 或交付校验失败保留恢复材料，仅移除 `in-progress`。
+
+该 Definition 只有本地 Candidate 证据。正常交付、同 Run 中断恢复、完成跳过、A/B 隔离、缺失本地状态替换和精确交付检查均须在同一冻结版本上取得新的真实 Consumer Evidence Bundle 后，才能讨论 Stable 晋级。
+
+## Development Task Candidate
 
 将同时带 `ready-for-agent` 与 `development-ticket` 标签的 Development Ticket（研发票据）交给 Codex，由 Matt `$implement` Skill 完成实现、自测、review、commit、push 与 Draft PR。
 
 这是主分支持续维护、可整体复制的 `github-development-ticket/v0.2.0` Candidate Definition（候选工作流定义），其 Compatibility Profile（兼容配置）身份为 `github-development-ticket/codex/v0.2.0`。权威绑定记录位于 `delivery/definitions.json`。它尚未经过真实 Consumer Project（消费项目）的完整运行验收，不是 Stable Definition（稳定工作流定义）。已发布且验证过的 `github-development-ticket/v0.1.2` 继续作为 Legacy Frozen Definition（旧版冻结定义）从 Git tag `0.1.2` 取得；本目录不会回写其内容或继承其证据。
 
-## 精确兼容组合
+### 精确兼容组合
 
 - Agent Action（智能体 Action）：`tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af`
 - Codex CLI：`0.153.4`
@@ -24,9 +45,9 @@ graph-engineering init
 graph-engineering check
 ```
 
-创建包含业务目标与 Acceptance Criteria（验收条件）的 open Issue，先添加 `ready-for-agent`，确认可直接实现后再添加 `development-ticket`。也可以从 Actions 页面输入 Issue number 手动启动。现有 Issue 事件订阅、人工入口、checkout、标签与并发组保持不变；`in-progress` 仅是 Operational Label（运行态标签），不是锁或队列。
+创建包含业务目标与 Acceptance Criteria（验收条件）的 open Issue，先添加 `ready-for-agent`，再按所需任务添加 `coding-ticket` 或 `development-ticket`。也可以从对应 Actions 页面输入 Issue number 手动启动。`in-progress` 仅是 Operational Label（运行态标签），不是锁或队列。
 
-## Task Invocation 与恢复
+### Development Task Invocation 与恢复
 
 Workflow 用同一个公开 Action step 契约完成准备和执行：
 

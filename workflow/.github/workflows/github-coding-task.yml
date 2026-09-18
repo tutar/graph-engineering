@@ -1,0 +1,171 @@
+name: Graph Engineering - GitHub Coding Task
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to start
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: github-coding-task-${{ github.repository }}-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  coding:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'coding-ticket')
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 120
+    outputs:
+      machine-execution-state: ${{ steps.codex.outcome }}
+      agent-result: ${{ steps.agent_result.outputs.status }}
+      delivery-state: ${{ steps.delivery_result.outputs.state }}
+      token-budget-state: unsupported/unlimited
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+      BASE_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
+      TARGET_BRANCH: agent/issue-${{ github.event.issue.number || inputs.issue_number }}
+      TASK_STATE_ROOT: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
+      TOKEN_BUDGET_REQUESTED: "500000"
+      TOKEN_BUDGET_STATE: unsupported/unlimited
+    steps:
+      - name: Validate Coding Ticket
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json state --jq .state)" = "OPEN"
+          test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json labels \
+            --jq 'any(.labels[]; .name == "ready-for-agent")')" = true
+          test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json labels \
+            --jq 'any(.labels[]; .name == "coding-ticket")')" = true
+
+      - name: Prepare Coding Task Invocation
+        id: task
+        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
+        with:
+          task-phase: prepare
+          task-id: coding
+          task-state-root: ${{ env.TASK_STATE_ROOT }}
+
+      - name: Check out default branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Prepare coding branch
+        if: steps.task.outputs.workspace-exists != 'true'
+        run: bash .github/graph-engineering/coding-task-repository.sh prepare
+
+      - name: Configure Git identity
+        if: steps.task.outputs.workspace-exists != 'true'
+        shell: bash
+        run: |
+          git config user.name "codex[bot]"
+          git config user.email "codex[bot]@users.noreply.github.com"
+
+      - name: Mark Ticket in progress
+        id: claim
+        shell: bash
+        run: gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --add-label in-progress
+
+      - name: Start or resume Codex Executor
+        id: codex
+        continue-on-error: true
+        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
+        with:
+          task-id: coding
+          task-state-root: ${{ env.TASK_STATE_ROOT }}
+          working-directory: ${{ steps.task.outputs.task-workspace }}
+          codex-version: 0.153.4
+          permission-profile: :workspace
+          output-schema: >-
+            {"type":"object","additionalProperties":false,"required":["status","summary"],
+            "properties":{"status":{"type":"string","enum":["completed","blocked"]},
+            "summary":{"type":"string"}}}
+          prompt: >-
+            使用项目 Skill $implement 完成
+            https://github.com/${{ github.repository }}/issues/${{ env.ISSUE_NUMBER }}；
+            若 Issue 含 Acceptance Criteria，逐项依据实际验证结果，只将已满足项的复选框更新为已勾选；
+            完成后将提交 push 到当前开发分支；如果不存在关联 PR，创建或更新指向 ${{ env.BASE_BRANCH }} 的 Draft PR。
+            只有实现、自测、review、commit、push、Draft PR，以及适用时的验收条件状态同步都完成后才能返回
+            {"status":"completed","summary":"..."}；无法继续时返回 {"status":"blocked","summary":"..."}。
+            不得执行或输出认证状态、token、credential 或其他秘密。
+
+      - name: Classify structured Agent result
+        id: agent_result
+        if: always()
+        shell: bash
+        env:
+          MACHINE_STATE: ${{ steps.codex.outcome }}
+          AGENT_RESULT: ${{ steps.codex.outputs.final-message }}
+        run: node .github/graph-engineering/coding-task-control.mjs classify-agent
+
+      - name: Verify Coding Task delivery
+        id: delivery_checks
+        continue-on-error: true
+        if: steps.codex.outcome == 'success' && steps.agent_result.outputs.status == 'completed'
+        working-directory: ${{ steps.task.outputs.task-workspace }}
+        shell: bash
+        run: node "${GITHUB_WORKSPACE}/.github/graph-engineering/coding-task-control.mjs" verify-delivery
+
+      - name: Classify deterministic delivery facts
+        id: delivery_result
+        if: always()
+        shell: bash
+        env:
+          AGENT_STATUS: ${{ steps.agent_result.outputs.status }}
+          CHECKS_OUTCOME: ${{ steps.delivery_checks.outcome }}
+        run: node .github/graph-engineering/coding-task-control.mjs classify-delivery
+
+      - name: Mark Coding Ticket delivery complete
+        id: label_cleanup
+        continue-on-error: true
+        if: steps.delivery_result.outputs.state == 'passed'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" \
+            --remove-label coding-ticket \
+            --remove-label in-progress
+
+      - name: Delete successful Task Repository
+        id: repository_cleanup
+        continue-on-error: true
+        if: steps.delivery_result.outputs.state == 'passed' && steps.label_cleanup.outcome == 'success'
+        shell: bash
+        env:
+          TASK_WORKSPACE: ${{ steps.task.outputs.task-workspace }}
+        run: node .github/graph-engineering/coding-task-control.mjs delete-workspace
+
+      - name: Reconcile Ticket labels
+        if: always()
+        shell: bash
+        env:
+          CLAIM_OUTCOME: ${{ steps.claim.outcome }}
+          DELIVERY_STATE: ${{ steps.delivery_result.outputs.state }}
+          LABEL_OUTCOME: ${{ steps.label_cleanup.outcome }}
+          REPOSITORY_OUTCOME: ${{ steps.repository_cleanup.outcome }}
+        run: node .github/graph-engineering/coding-task-control.mjs reconcile-labels
+
+      - name: Conclude Coding Task
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.codex.outcome }}" = success
+          test "${{ steps.agent_result.outputs.status }}" = completed
+          test "${{ steps.delivery_result.outputs.state }}" = passed
+          test "${{ steps.label_cleanup.outcome }}" = success
+          test "${{ steps.repository_cleanup.outcome }}" = success

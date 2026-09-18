@@ -19,7 +19,7 @@ async function project(t) {
 test("init dry-run plans the whole delivery without writing", async (t) => {
   const directory = await project(t);
   const plan = await initWorkflow( { projectRoot: directory, dryRun: true });
-  assert.equal(plan.files.length, 2);
+  assert.equal(plan.files.length, 4);
   assert.equal(await exists(join(directory, ".github")), false);
 });
 
@@ -30,6 +30,7 @@ test("init installs the whole project-owned delivery and records its source", as
   const manifest = JSON.parse(await readFile(join(directory, ".github", "graph-engineering", "installation.json"), "utf8"));
   assert.equal(manifest.productVersion, "0.3.1");
   assert.equal(manifest.installations.development.task, "development");
+  assert.equal(manifest.installations.coding.task, "coding");
   assert.equal(installed.files.length, (await listFiles(join(packageRoot, "templates", "workflow"))).length);
   const report = await checkWorkflow( { projectRoot: directory });
   assert.equal(report.results.find(({ check }) => check === "workflow-files").status, "PASS");
@@ -41,7 +42,7 @@ test("init fails before writing when any target file conflicts", async (t) => {
   await initWorkflow( { projectRoot: directory });
   await assert.rejects(initWorkflow( { projectRoot: directory }), /installation conflicts/);
   const manifest = JSON.parse(await readFile(join(directory, ".github", "graph-engineering", "installation.json"), "utf8"));
-  assert.deepEqual(Object.keys(manifest.installations), ["development"]);
+  assert.deepEqual(Object.keys(manifest.installations).sort(), ["coding", "development"]);
 });
 
 test("migrate recognizes the frozen pre-v0.3 layout and replaces its namespace", async (t) => {
@@ -73,6 +74,7 @@ test("CLI installs the whole current workflow without choosing a task", async (t
   const result = spawnSync(process.execPath, [join(packageRoot, "bin/graph-engineering.mjs"), "init", "--project", directory], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(await exists(join(directory, ".github/workflows/github-development-ticket.yml")), true);
+  assert.equal(await exists(join(directory, ".github/workflows/github-coding-task.yml")), true);
   assert.equal(await exists(join(directory, ".github/workflows/github-pr-review.yml")), false);
 });
 
@@ -130,6 +132,9 @@ test("retired and task-selected CLI interfaces fail explicitly without changing 
     const selected = cli(directory, command, "development");
     assert.equal(selected.status, 1);
     assert.match(selected.stderr, /Task selection was removed/);
+    const coding = cli(directory, command, "coding");
+    assert.equal(coding.status, 1);
+    assert.match(coding.stderr, /Task selection was removed/);
   }
   const migrated = cli(directory, "migrate", "--apply");
   assert.equal(migrated.status, 1);

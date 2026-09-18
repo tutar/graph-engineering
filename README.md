@@ -4,7 +4,7 @@ Graph Engineering（图工程）以 GitHub 持久事实连接 Workflow Task（�
 
 ## 接入
 
-当前唯一交付源是 [`workflow/.github/`](workflow/.github/)，CLI 一次安装整套文件。当前只交付 [Development Task（研发实现任务）](workflow/README.md)：保留票据标签、人工入口、checkout、并发与 Draft PR 交付核对，并通过固定 `tutar/codex-action` revision 提供同一 Task Invocation 的 runner-local rerun 恢复。
+当前唯一交付源是 [`workflow/.github/`](workflow/.github/)，CLI 一次安装整套文件。当前交付 [Development Task（研发实现任务）与 Coding Task（编码任务）](workflow/README.md)。两者使用不同标签与独立 Workflow 入口；Coding Task 是新的 Candidate Definition（候选工作流定义），Development 的历史 `v0.1.2` 仍只从固定 tag 取得。
 
 本分支 CLI `0.3.1` 尚未发布；不要用已发布的 `0.3.0` 命令验证新接口。在源码仓库打包后安装本地产物：
 
@@ -29,7 +29,7 @@ Repository Review Task（仓库审查任务）是后续独立范围，尚未实�
 
 ## 交付与证据
 
-已发布 Repository Release `v0.3.0` 与 CLI `0.3.0` 保留原有内容；当前恢复版 Workflow 是尚未发布、尚未经过真实 Consumer 验收的 Candidate Definition（候选工作流定义），不承诺新的 Stable Definition（稳定工作流定义）。本地回归、静态交付核验与真实 Consumer 运行是不同证据。
+已发布 Repository Release `v0.3.0` 与 CLI `0.3.0` 保留原有内容；当前 Workflow 是尚未发布、尚未经过真实 Consumer 验收的 Candidate Definition（候选工作流定义），不承诺新的 Stable Definition（稳定工作流定义）。本地回归、静态交付核验与真实 Consumer 运行是不同证据；Coding Task 必须形成自己的 Consumer Evidence Bundle，不能继承 Development 或 #67 的证据。
 
 历史 `github-development-ticket/v0.1.2` 仍为 Legacy Frozen Definition（旧版冻结定义）。历史 PR Review tag、Release、ADR 与 Evidence（证据）可追溯；`v0.1.1`、`v0.1.2`、`v0.1.4` 的失败事实保留，Bundle 7 仍未冻结、未运行。
 
@@ -40,6 +40,7 @@ Repository Review Task（仓库审查任务）是后续独立范围，尚未实�
 - [会话恢复归属决策](docs/adr/0007-keep-session-recovery-local-to-agent-action.md)
 - [本票验证报告](docs/verification/issue-59.md)
 - [恢复版 Action 接入验证报告](docs/verification/issue-66.md)
+- [Coding Task 验证报告](docs/verification/issue-70.md)
 - [Legacy Development Quick Start](docs/legacy-development-quick-start.md)
 
 项目采用 [MIT License](LICENSE)。

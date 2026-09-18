@@ -2,6 +2,27 @@
   "schemaVersion": 2,
   "currentTasks": [
     {
+      "name": "coding",
+      "path": "workflow",
+      "installRoot": ".github",
+      "testRoot": "test",
+      "workflow": "github-coding-task.yml",
+      "definitionVersion": "v0.1.0",
+      "compatibilityProfile": {
+        "id": "github-coding-task/codex/v0.1.0",
+        "action": "tutar/codex-action",
+        "actionRevision": "393ad456e354dc9da7be630c09be243cc1d212af",
+        "codexCli": "0.153.4",
+        "runner": "[self-hosted, Linux, X64]",
+        "authentication": "runner-backed-codex",
+        "permissionProfile": ":workspace",
+        "taskStateRoot": "${{ runner.tool_cache }}/graph-engineering/codex-task-state",
+        "inputs": "issue-number, base-branch, task identity, goal prompt, permission profile",
+        "outputs": "machine-execution-state, agent-result, delivery-state, token-budget-state",
+        "tokenBudget": "unsupported/unlimited"
+      }
+    },
+    {
       "name": "development",
       "path": "workflow",
       "installRoot": ".github",
@@ -14,8 +35,12 @@
         "actionRevision": "393ad456e354dc9da7be630c09be243cc1d212af",
         "codexCli": "0.153.4",
         "runner": "[self-hosted, Linux, X64]",
+        "authentication": "runner-backed-codex",
         "permissionProfile": ":workspace",
-        "taskStateRoot": "${{ runner.tool_cache }}/graph-engineering/codex-task-state"
+        "taskStateRoot": "${{ runner.tool_cache }}/graph-engineering/codex-task-state",
+        "inputs": "issue-number, base-branch, task identity, goal prompt, permission profile",
+        "outputs": "machine-execution-state, agent-result, delivery-state",
+        "tokenBudget": "not-requested"
       }
     }
   ],

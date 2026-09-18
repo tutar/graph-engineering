@@ -10,7 +10,14 @@ test("the current Development Task is a complete copy-owned file set", async () 
   assert.match(workflow, /^name: Graph Engineering - GitHub Development Ticket$/m);
 
   const supportFiles = (await readdir(new URL("graph-engineering/", installRoot))).sort();
-  assert.deepEqual(supportFiles, ["development-worktree.sh"]);
+  assert.deepEqual(supportFiles, ["coding-task-control.mjs", "coding-task-repository.sh", "development-worktree.sh"]);
+});
+
+test("the current Coding Task is a separate copy-owned Candidate", async () => {
+  const workflow = await readFile(new URL("workflows/github-coding-task.yml", installRoot), "utf8");
+  assert.match(workflow, /^name: Graph Engineering - GitHub Coding Task$/m);
+  assert.match(workflow, /coding-ticket/);
+  assert.doesNotMatch(workflow, /development-ticket/);
 });
 
 test("current behavior tests import production files from the current task", async () => {

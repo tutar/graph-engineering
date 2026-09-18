@@ -36,6 +36,10 @@ _Avoid_: Workflow Task、Issue、GitHub Event 类型、执行尝试
 以 Development Ticket 的目标和 Acceptance Criteria 为依据，实现、验证代码并交付 Draft PR 的 Workflow Task；不包含自动批准、合并或发布。
 _Avoid_: Development Ticket、PR Review Task、完整 CI/Review Graph
 
+**Coding Task（编码任务）**:
+由 Agent Runtime 经静态安装的 Compatible Executor 独立实现、验证并交付 Draft PR 的 Workflow Task，是 Agent Action 路径的新任务身份；Executor 只负责映射调用，它可以处理 Development Ticket，但不继承 Development Task 的 Definition、Session 或证据。
+_Avoid_: Development Task、Development Ticket、Agent Action
+
 **PR Review Task（PR 审查任务）**:
 已退役的历史任务：针对具体 PR 的代码变更，分别检查 Standards（规范）与 Spec（规格），并交付绑定目标提交的审查结果的 Workflow Task；Agent 分析不拥有结果发布的写权限，也不负责实现修复或合并。
 _Avoid_: Development Task、Repository Review Task、自动批准

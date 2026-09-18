@@ -13,14 +13,14 @@ export async function readManifest(projectRoot) {
   return value;
 }
 
-export function nextManifest(record, files) {
+export function nextManifest(records, files) {
   return {
     schemaVersion: 2,
     product: "@tutar/graph-engineering",
     productVersion: PRODUCT_VERSION,
     delivery: "workflow",
     files,
-    installations: { [record.task]: record },
+    installations: Object.fromEntries(records.map((record) => [record.task, record])),
   };
 }
 

@@ -72,7 +72,7 @@ function validateCurrentTaskShape(task, label) {
   requireString(task.definitionVersion, `${label}.definitionVersion`);
   const profile = task.compatibilityProfile;
   if (!profile || typeof profile !== "object" || Array.isArray(profile)) fail(`${label}.compatibilityProfile must be an object`);
-  for (const field of ["id", "action", "actionRevision", "codexCli", "runner", "permissionProfile", "taskStateRoot"]) {
+  for (const field of ["id", "action", "actionRevision", "codexCli", "runner", "authentication", "permissionProfile", "taskStateRoot", "inputs", "outputs", "tokenBudget"]) {
     requireString(profile[field], `${label}.compatibilityProfile.${field}`);
   }
   if (!/^[0-9a-f]{40}$/.test(profile.actionRevision)) fail(`${label}.compatibilityProfile.actionRevision must be a full commit SHA`);
@@ -123,7 +123,7 @@ export async function verifyDelivery(options) {
     await access(resolve(options.repository, task.path, task.testRoot));
     const workflow = await readFile(resolve(options.repository, task.path, task.installRoot, "workflows", task.workflow), "utf8");
     const profile = task.compatibilityProfile;
-    for (const value of [profile.action, profile.actionRevision, profile.codexCli, profile.runner, profile.permissionProfile, profile.taskStateRoot]) {
+    for (const value of [profile.action, profile.actionRevision, profile.codexCli, profile.runner, profile.permissionProfile, profile.taskStateRoot, profile.tokenBudget]) {
       if (!workflow.includes(value)) fail(`${task.path}/${task.installRoot}/workflows/${task.workflow} does not bind ${value}`);
     }
   }

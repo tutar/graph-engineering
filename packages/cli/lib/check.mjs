@@ -9,7 +9,7 @@ function result(status, check, detail, blocking = false) { return { status, chec
 function command(name, args = [], cwd) { return spawnSync(name, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }); }
 
 export async function checkWorkflow({ projectRoot = process.cwd() } = {}) {
-  const task = "development";
+  const task = "workflow";
   projectRoot = resolve(projectRoot);
   const results = [];
   const git = command("git", ["rev-parse", "--show-toplevel"], projectRoot);
@@ -35,17 +35,18 @@ export async function checkWorkflow({ projectRoot = process.cwd() } = {}) {
 
   try {
     const manifest = await readManifest(projectRoot);
-    const record = manifest?.installations?.[task];
+    const recordsMatch = Object.entries(TASKS).every(([name, definition]) => {
+      const record = manifest?.installations?.[name];
+      return record?.task === name && record.profile === definition.profile && Boolean(record.sourceCommit && record.cliVersion);
+    });
     const consistent = manifest?.schemaVersion === 2
       && manifest.product === "@tutar/graph-engineering"
       && manifest.delivery === "workflow"
       && JSON.stringify(manifest.files) === JSON.stringify(files)
       && JSON.stringify(Object.keys(manifest.installations)) === JSON.stringify(Object.keys(TASKS))
-      && record?.task === task
-      && record.profile === TASKS[task].profile
-      && Boolean(record.sourceCommit && record.cliVersion);
+      && recordsMatch;
     if (!consistent) results.push(result("ACTION REQUIRED", "installation-manifest", "Whole-workflow installation source or file list is missing or inconsistent."));
-    else results.push(result("PASS", "installation-manifest", `${manifest.installations[task].cliVersion} ${manifest.installations[task].sourceCommit}`));
+    else results.push(result("PASS", "installation-manifest", `${Object.keys(TASKS).length} tasks from ${manifest.productVersion}`));
   } catch (error) {
     results.push(result("ACTION REQUIRED", "installation-manifest", error.message, true));
   }
@@ -63,12 +64,13 @@ export async function checkWorkflow({ projectRoot = process.cwd() } = {}) {
   } else {
     const nameWithOwner = JSON.parse(gh.stdout).nameWithOwner;
     results.push(result("PASS", "github-repository", nameWithOwner));
-    if (TASKS[task].requiredLabels.length > 0) {
+    const requiredLabels = [...new Set(Object.values(TASKS).flatMap(({ requiredLabels }) => requiredLabels))];
+    if (requiredLabels.length > 0) {
       const labels = command("gh", ["label", "list", "--limit", "200", "--json", "name"], projectRoot);
       if (labels.status !== 0) results.push(result("UNVERIFIED", "github-labels", "Unable to read repository labels."));
       else {
         const names = new Set(JSON.parse(labels.stdout).map(({ name }) => name));
-        const missing = TASKS[task].requiredLabels.filter((name) => !names.has(name));
+        const missing = requiredLabels.filter((name) => !names.has(name));
         results.push(missing.length === 0
           ? result("PASS", "github-labels", "Required labels exist.")
           : result("ACTION REQUIRED", "github-labels", `Create: ${missing.join(", ")}`));
@@ -88,7 +90,7 @@ export async function checkWorkflow({ projectRoot = process.cwd() } = {}) {
         : result("ACTION REQUIRED", "runner-labels", "Register a dedicated runner with [self-hosted, Linux, X64, codex]."));
     }
     results.push(result("UNVERIFIED", "codex-runner-login", "Confirm that the Actions service user is logged in to Codex on the selected runner."));
-    if (task === "development") {
+    if (Object.keys(TASKS).length > 0) {
       const permissions = command("gh", ["api", `repos/${nameWithOwner}/actions/permissions/workflow`], projectRoot);
       if (permissions.status !== 0) results.push(result("UNVERIFIED", "actions-write-policy", "Unable to inspect the repository Actions workflow permission policy."));
       else {
