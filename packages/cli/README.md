@@ -14,6 +14,8 @@ graph-engineering migrate [--apply] [--project /path/to/consumer]
 
 `check` 只读检查文件、整套记录和本地/远程前置条件；项目自有修改标记 `UNVERIFIED`。`ready` 仅在所有检查均为 `PASS` 时为真；阻断项令命令非零退出，其他待配置或未验证项不表示安装失败。CLI 不替代真实 Consumer 运行验证。
 
+当前 Development 模板锁定 `tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af` 与 Codex CLI `0.153.4`，使用 checkout 外的 runner-local task state root 支持同一 GitHub run 的显式 rerun。安装和静态 `check` 不证明 runner 认证、隔离、恢复或真实 Consumer 交付已经验收；完整运行前提及操作边界见仓库的 Development Workflow 说明。
+
 `migrate` 仅处理固定来源 `927bd96156f750546019581b653b7601db9c71c8` 的旧 Development 文件。默认显示计划；交互确认或非交互显式 `--apply` 后才改写。未知或修改过的来源、目标冲突、既有新安装记录均停止；保留无关项目文件。旧 PR Review 安装须人工决定如何处理，CLI 不自动卸载或接管。
 
 `init/check pr-review` 明确报告退役；`init/check development` 明确报告任务选择接口已取消，不静默执行其他任务。
