@@ -27,14 +27,14 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 120
     outputs:
-      machine-execution-state: ${{ steps.codex.outputs.machine-execution-state || steps.codex.outcome }}
+      machine-execution-state: ${{ steps.codex.outputs['machine-execution-state'] || steps.codex.outcome }}
       agent-result: ${{ steps.agent_result.outputs.status }}
       delivery-state: ${{ steps.delivery_result.outputs.state }}
-      token-budget-capability: ${{ steps.codex.outputs.token-budget-capability }}
-      token-budget-state: ${{ steps.codex.outputs.token-budget-state }}
-      token-budget-limit: ${{ steps.codex.outputs.token-budget-limit }}
-      token-budget-used: ${{ steps.codex.outputs.token-budget-used }}
-      token-budget-exhausted: ${{ steps.codex.outputs.token-budget-exhausted }}
+      token-budget-capability: ${{ steps.codex.outputs['token-budget-capability'] }}
+      token-budget-state: ${{ steps.codex.outputs['token-budget-state'] }}
+      token-budget-limit: ${{ steps.codex.outputs['token-budget-limit'] }}
+      token-budget-used: ${{ steps.codex.outputs['token-budget-used'] }}
+      token-budget-exhausted: ${{ steps.codex.outputs['token-budget-exhausted'] }}
     env:
       GH_TOKEN: ${{ github.token }}
       ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
@@ -114,10 +114,10 @@ jobs:
         shell: bash
         env:
           MACHINE_STATE: ${{ steps.codex.outcome }}
-          AGENT_RESULT: ${{ steps.codex.outputs.final-message }}
-          TOKEN_BUDGET_STATE: ${{ steps.codex.outputs.token-budget-state }}
-          TOKEN_BUDGET_LIMIT: ${{ steps.codex.outputs.token-budget-limit }}
-          TOKEN_BUDGET_USED: ${{ steps.codex.outputs.token-budget-used }}
+          AGENT_RESULT: ${{ steps.codex.outputs['final-message'] }}
+          TOKEN_BUDGET_STATE: ${{ steps.codex.outputs['token-budget-state'] }}
+          TOKEN_BUDGET_LIMIT: ${{ steps.codex.outputs['token-budget-limit'] }}
+          TOKEN_BUDGET_USED: ${{ steps.codex.outputs['token-budget-used'] }}
         run: node .github/graph-engineering/coding-task-control.mjs classify-agent
 
       - name: Verify Coding Task delivery

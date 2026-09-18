@@ -47,13 +47,10 @@ test("Agent result, machine execution and delivery facts stay separate", () => {
   assert.match(control, /return "not-run"/);
   assert.match(control, /return checksOutcome === "success" \? "passed" : "failed"/);
   assert.match(control, /Delivery facts:/);
-  assert.match(workflow, /steps\.codex\.outputs\.token-budget-state/);
-  assert.match(workflow, /token-budget-capability:\s*\$\{\{ steps\.codex\.outputs\.token-budget-capability \}\}/);
-  assert.match(workflow, /token-budget-limit:\s*\$\{\{ steps\.codex\.outputs\.token-budget-limit \}\}/);
-  assert.match(workflow, /token-budget-used:\s*\$\{\{ steps\.codex\.outputs\.token-budget-used \}\}/);
-  assert.match(workflow, /token-budget-exhausted:\s*\$\{\{ steps\.codex\.outputs\.token-budget-exhausted \}\}/);
-  assert.match(workflow, /steps\.codex\.outputs\.machine-execution-state/);
-  assert.match(workflow, /TOKEN_BUDGET_STATE:\s*\$\{\{ steps\.codex\.outputs\.token-budget-state \}\}/);
+  for (const output of ["machine-execution-state", "final-message", "token-budget-capability", "token-budget-state", "token-budget-limit", "token-budget-used", "token-budget-exhausted"]) {
+    assert.match(workflow, new RegExp(`steps\\.codex\\.outputs\\['${output}'\\]`));
+  }
+  assert.doesNotMatch(workflow, /steps\.codex\.outputs\.[a-z]+-[a-z-]+/);
   assert.equal(profile.tokenBudget, "400000");
   assert.equal(profile.tokenBudgetCapability, "app-server-goal");
 });
