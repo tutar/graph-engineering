@@ -32,6 +32,10 @@ _Avoid_: GitHub Event、单个 Job、Workflow Definition
 某个 Workflow Task 被一次已接纳事件启动的独立执行身份；不同事件及不同 Agent Action 调用各自独立，同一次调用的失败重试延续该身份。
 _Avoid_: Workflow Task、Issue、GitHub Event 类型、执行尝试
 
+**Runtime Token Budget（运行时 Token 预算）**:
+Agent Runtime 对一个 Task Invocation 强制执行的累计模型消费上限；同一 GitHub Run 的失败重试共享其累计值，新 Task Invocation 独立拥有预算。它不是 provider 账单或成本核算，Runtime 是有效上限与累计用量的权威来源。
+_Avoid_: Action 日志统计、单次 Agent Turn 限额、费用预算
+
 **Development Task（研发实现任务）**:
 以 Development Ticket 的目标和 Acceptance Criteria 为依据，实现、验证代码并交付 Draft PR 的 Workflow Task；不包含自动批准、合并或发布。
 _Avoid_: Development Ticket、PR Review Task、完整 CI/Review Graph
