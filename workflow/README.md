@@ -4,14 +4,14 @@
 
 ## Coding Task Candidate
 
-`github-coding-task/v0.1.0` 使用 `ready-for-agent` 与 `coding-ticket` 准入，也保留人工 Issue number 入口。它静态绑定 Compatibility Profile `github-coding-task/codex/v0.1.0`：
+`github-coding-task/v0.1.1` 使用 `ready-for-agent` 与 `coding-ticket` 准入，也保留人工 Issue number 入口。它静态绑定 Compatibility Profile `github-coding-task/codex/v0.1.1`：
 
-- Agent Action：`tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af`
+- Agent Action：`tutar/codex-action@0eb4ac73c375efc0a079f6ca5439e6b1c74157df`
 - Codex CLI：`0.153.4`
 - runner：持久化 self-hosted Linux X64
 - 认证：Runner-backed Codex Authentication（Runner 承载的 Codex 认证）
 - permission profile：`:workspace`
-- Token Budget：请求默认 `500000`，但该 Profile 不支持 Runtime 强制，公开结果必须是 `unsupported/unlimited`
+- Runtime Token Budget：默认 `400000`，由 App Server Goal 强制并在同一 Run rerun 中累计；`GE_CODING_BUDGET_RUN_<run_id>` 只允许单调提高或改为 `unlimited`
 
 Workflow 把 Issue Goal 交给 Action 原生执行，不实现 Goal 循环。Action 机器状态、Agent 的 `completed`/`blocked` 结构化结论和四项确定性交付事实分别记录。交付检查只验证干净任务仓库、base 之后存在提交、远端目标分支等于本地 HEAD，以及恰好一个匹配的 open Draft PR；不重新判断测试质量、review 或 Acceptance Criteria。
 

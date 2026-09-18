@@ -32,6 +32,9 @@ test("Codex Executor statically binds the public Compatibility Profile", () => {
   assert.match(workflow, /working-directory:\s*\$\{\{ steps\.task\.outputs\.task-workspace \}\}/);
   assert.match(workflow, /output-schema:/);
   assert.match(workflow, /status.*completed.*blocked/s);
+  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:\s*"400000"/);
+  assert.match(workflow, /token-budget:\s*\$\{\{ env\.TOKEN_BUDGET_REQUESTED \}\}/);
+  assert.match(workflow, /token-budget-capability:\s*app-server-goal/);
 });
 
 test("Agent result, machine execution and delivery facts stay separate", () => {
@@ -44,8 +47,15 @@ test("Agent result, machine execution and delivery facts stay separate", () => {
   assert.match(control, /return "not-run"/);
   assert.match(control, /return checksOutcome === "success" \? "passed" : "failed"/);
   assert.match(control, /Delivery facts:/);
-  assert.match(workflow, /unsupported\/unlimited/);
-  assert.doesNotMatch(workflow, /token-budget:\s*500000/);
+  assert.match(workflow, /steps\.codex\.outputs\.token-budget-state/);
+  assert.match(workflow, /token-budget-capability:\s*\$\{\{ steps\.codex\.outputs\.token-budget-capability \}\}/);
+  assert.match(workflow, /token-budget-limit:\s*\$\{\{ steps\.codex\.outputs\.token-budget-limit \}\}/);
+  assert.match(workflow, /token-budget-used:\s*\$\{\{ steps\.codex\.outputs\.token-budget-used \}\}/);
+  assert.match(workflow, /token-budget-exhausted:\s*\$\{\{ steps\.codex\.outputs\.token-budget-exhausted \}\}/);
+  assert.match(workflow, /steps\.codex\.outputs\.machine-execution-state/);
+  assert.match(workflow, /TOKEN_BUDGET_STATE:\s*\$\{\{ steps\.codex\.outputs\.token-budget-state \}\}/);
+  assert.equal(profile.tokenBudget, "400000");
+  assert.equal(profile.tokenBudgetCapability, "app-server-goal");
 });
 
 test("delivery checks are exactly the four deterministic invariants", () => {

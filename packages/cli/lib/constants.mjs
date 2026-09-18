@@ -2,7 +2,7 @@ export const PRODUCT_VERSION = "0.3.1";
 export const TASKS = Object.freeze({
   coding: {
     workflow: "github-coding-task.yml",
-    profile: "github-coding-task/codex/v0.1.0",
+    profile: "github-coding-task/codex/v0.1.1",
     requiredLabels: ["ready-for-agent", "coding-ticket", "in-progress"],
   },
   development: {

@@ -4,7 +4,8 @@ import { appendFileSync, realpathSync, rmSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { execFileSync } from "node:child_process";
 
-export function classifyAgentResult(machineState, text) {
+export function classifyAgentResult(machineState, text, tokenBudgetState = "") {
+  if (tokenBudgetState === "exhausted") return "not-produced";
   if (machineState !== "success") return "unavailable";
   const result = JSON.parse(text);
   if (!result || !["completed", "blocked"].includes(result.status)) {
@@ -67,12 +68,15 @@ function summary(line) {
 
 const command = process.argv[2];
 if (command === "classify-agent") {
-  const status = classifyAgentResult(required("MACHINE_STATE"), process.env.AGENT_RESULT ?? "");
+  const tokenBudgetState = process.env.TOKEN_BUDGET_STATE || "unknown";
+  const tokenBudgetLimit = process.env.TOKEN_BUDGET_LIMIT || "unknown";
+  const tokenBudgetUsed = process.env.TOKEN_BUDGET_USED || "unknown";
+  const status = classifyAgentResult(required("MACHINE_STATE"), process.env.AGENT_RESULT ?? "", tokenBudgetState);
   output("status", status);
   summary("### Coding Task result");
   summary(`- Machine execution: ${process.env.MACHINE_STATE}`);
   summary(`- Agent result: ${status}`);
-  summary(`- Token Budget: ${required("TOKEN_BUDGET_STATE")} (requested ${required("TOKEN_BUDGET_REQUESTED")}; not enforced)`);
+  summary(`- Token Budget: ${tokenBudgetState} (configured ${required("TOKEN_BUDGET_REQUESTED")}; effective ${tokenBudgetLimit}; Runtime usage ${tokenBudgetUsed})`);
 } else if (command === "verify-delivery") {
   verifyDeliveryFacts({
     cwd: process.cwd(),

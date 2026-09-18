@@ -66,6 +66,29 @@ test("current Compatibility Profiles fail closed when a public contract field is
   );
 });
 
+test("current Compatibility Profiles require an explicit token budget capability", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "invalid-budget-capability-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const manifest = JSON.parse(await readFile(join(repository, "delivery/definitions.json"), "utf8"));
+  delete manifest.currentTasks[0].compatibilityProfile.tokenBudgetCapability;
+  const file = join(directory, "definitions.json");
+  await writeFile(file, JSON.stringify(manifest));
+  await assert.rejects(verifyDelivery({ repository, manifest: file }), /compatibilityProfile\.tokenBudgetCapability must be a non-empty string/);
+});
+
+test("current Compatibility Profiles bind token budget fields at their workflow seams", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "mismatched-budget-profile-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const manifest = JSON.parse(await readFile(join(repository, "delivery/definitions.json"), "utf8"));
+  manifest.currentTasks[0].compatibilityProfile.tokenBudgetCapability = "unsupported";
+  const file = join(directory, "definitions.json");
+  await writeFile(file, JSON.stringify(manifest));
+  await assert.rejects(
+    verifyDelivery({ repository, manifest: file }),
+    /does not bind token budget capability unsupported/,
+  );
+});
+
 test("mapped historical releases remain obtainable after their source copies leave HEAD", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "historical-definitions-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
