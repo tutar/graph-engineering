@@ -69,6 +69,13 @@ function validateCurrentTaskShape(task, label) {
   for (const field of ["path", "installRoot", "testRoot"]) requireRepositoryPath(task[field], `${label}.${field}`);
   requireString(task.workflow, `${label}.workflow`);
   if (basename(task.workflow) !== task.workflow) fail(`${label}.workflow must be a filename`);
+  requireString(task.definitionVersion, `${label}.definitionVersion`);
+  const profile = task.compatibilityProfile;
+  if (!profile || typeof profile !== "object" || Array.isArray(profile)) fail(`${label}.compatibilityProfile must be an object`);
+  for (const field of ["id", "action", "actionRevision", "codexCli", "runner", "permissionProfile", "taskStateRoot"]) {
+    requireString(profile[field], `${label}.compatibilityProfile.${field}`);
+  }
+  if (!/^[0-9a-f]{40}$/.test(profile.actionRevision)) fail(`${label}.compatibilityProfile.actionRevision must be a full commit SHA`);
 }
 
 async function requireMissing(path, label) {
@@ -114,6 +121,11 @@ export async function verifyDelivery(options) {
     currentPaths.add(task.path);
     await access(resolve(options.repository, task.path, task.installRoot, "workflows", task.workflow));
     await access(resolve(options.repository, task.path, task.testRoot));
+    const workflow = await readFile(resolve(options.repository, task.path, task.installRoot, "workflows", task.workflow), "utf8");
+    const profile = task.compatibilityProfile;
+    for (const value of [profile.action, profile.actionRevision, profile.codexCli, profile.runner, profile.permissionProfile, profile.taskStateRoot]) {
+      if (!workflow.includes(value)) fail(`${task.path}/${task.installRoot}/workflows/${task.workflow} does not bind ${value}`);
+    }
   }
 
   for (const [index, path] of manifest.retiredSourceRoots.entries()) {

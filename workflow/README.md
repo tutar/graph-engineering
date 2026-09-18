@@ -2,7 +2,7 @@
 
 将同时带 `ready-for-agent` 与 `development-ticket` 标签的 Development Ticket（研发票据）交给 Codex，由 Matt `$implement` Skill 完成实现、自测、review、commit、push 与 Draft PR。
 
-这是主分支持续维护、可整体复制的 Candidate Definition（候选工作流定义）。它尚未经过真实 Consumer Project（消费项目）的完整运行验收，不是 Stable Definition（稳定工作流定义）。已发布且验证过的 `github-development-ticket/v0.1.2` 继续作为 Legacy Frozen Definition（旧版冻结定义）从 Git tag `0.1.2` 取得；本目录不会回写其内容或继承其证据。
+这是主分支持续维护、可整体复制的 `github-development-ticket/v0.2.0` Candidate Definition（候选工作流定义），其 Compatibility Profile（兼容配置）身份为 `github-development-ticket/codex/v0.2.0`。权威绑定记录位于 `delivery/definitions.json`。它尚未经过真实 Consumer Project（消费项目）的完整运行验收，不是 Stable Definition（稳定工作流定义）。已发布且验证过的 `github-development-ticket/v0.1.2` 继续作为 Legacy Frozen Definition（旧版冻结定义）从 Git tag `0.1.2` 取得；本目录不会回写其内容或继承其证据。
 
 ## 精确兼容组合
 
