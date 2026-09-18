@@ -11,7 +11,7 @@
       "compatibilityProfile": {
         "id": "github-coding-task/codex/v0.1.1",
         "action": "tutar/codex-action",
-        "actionRevision": "5143f3bf87aeef1734b68b6c03870742490fe2ec",
+        "actionRevision": "9405141578057eb1dca78f927b10f6c3cf3a79a4",
         "codexCli": "0.153.4",
         "runner": "[self-hosted, Linux, X64]",
         "authentication": "runner-backed-codex",

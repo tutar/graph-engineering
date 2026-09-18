@@ -54,7 +54,7 @@ jobs:
 
       - name: Prepare Coding Task Invocation
         id: task
-        uses: tutar/codex-action@5143f3bf87aeef1734b68b6c03870742490fe2ec
+        uses: tutar/codex-action@9405141578057eb1dca78f927b10f6c3cf3a79a4
         with:
           task-phase: prepare
           task-id: coding
@@ -85,7 +85,7 @@ jobs:
       - name: Start or resume Codex Executor
         id: codex
         continue-on-error: true
-        uses: tutar/codex-action@5143f3bf87aeef1734b68b6c03870742490fe2ec
+        uses: tutar/codex-action@9405141578057eb1dca78f927b10f6c3cf3a79a4
         with:
           task-id: coding
           task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
