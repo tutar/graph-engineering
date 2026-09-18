@@ -6,7 +6,7 @@
 
 `github-coding-task/v0.1.1` 使用 `ready-for-agent` 与 `coding-ticket` 准入，也保留人工 Issue number 入口。它静态绑定 Compatibility Profile `github-coding-task/codex/v0.1.1`：
 
-- Agent Action：`tutar/codex-action@0eb4ac73c375efc0a079f6ca5439e6b1c74157df`
+- Agent Action：`tutar/codex-action@5390270e2881db324f7536cc65e322f602dc5133`
 - Codex CLI：`0.153.4`
 - runner：持久化 self-hosted Linux X64
 - 认证：Runner-backed Codex Authentication（Runner 承载的 Codex 认证）

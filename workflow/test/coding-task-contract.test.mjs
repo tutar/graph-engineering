@@ -37,6 +37,7 @@ test("Codex Executor statically binds the public Compatibility Profile", () => {
   assert.match(workflow, /TOKEN_BUDGET_REQUESTED:\s*"400000"/);
   assert.match(workflow, /token-budget:\s*\$\{\{ env\.TOKEN_BUDGET_REQUESTED \}\}/);
   assert.match(workflow, /token-budget-capability:\s*app-server-goal/);
+  assert.match(workflow, /token-budget-override:\s*\$\{\{ vars\[format\('GE_CODING_BUDGET_RUN_\{0\}', github\.run_id\)\] \}\}/);
 });
 
 test("Agent result, machine execution and delivery facts stay separate", () => {

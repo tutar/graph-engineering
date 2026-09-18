@@ -54,7 +54,7 @@ jobs:
 
       - name: Prepare Coding Task Invocation
         id: task
-        uses: tutar/codex-action@0eb4ac73c375efc0a079f6ca5439e6b1c74157df
+        uses: tutar/codex-action@5390270e2881db324f7536cc65e322f602dc5133
         with:
           task-phase: prepare
           task-id: coding
@@ -85,7 +85,7 @@ jobs:
       - name: Start or resume Codex Executor
         id: codex
         continue-on-error: true
-        uses: tutar/codex-action@0eb4ac73c375efc0a079f6ca5439e6b1c74157df
+        uses: tutar/codex-action@5390270e2881db324f7536cc65e322f602dc5133
         with:
           task-id: coding
           task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
@@ -94,6 +94,7 @@ jobs:
           permission-profile: :workspace
           token-budget: ${{ env.TOKEN_BUDGET_REQUESTED }}
           token-budget-capability: app-server-goal
+          token-budget-override: ${{ vars[format('GE_CODING_BUDGET_RUN_{0}', github.run_id)] }}
           output-schema: >-
             {"type":"object","additionalProperties":false,"required":["status","summary"],
             "properties":{"status":{"type":"string","enum":["completed","blocked"]},
