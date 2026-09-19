@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dogfoot Snake</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: #10150f;
+        color: #f4f7ee;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at top, #293824 0, transparent 42%),
+          #10150f;
+      }
+
+      main {
+        width: min(100%, 480px);
+        padding: 28px;
+        border: 1px solid #455540;
+        border-radius: 20px;
+        background: #182016;
+        box-shadow: 0 24px 70px #0008;
+      }
+
+      header,
+      .controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.7rem, 7vw, 2.4rem);
+        letter-spacing: -0.04em;
+      }
+
+      .scoreboard {
+        min-width: 90px;
+        padding: 9px 12px;
+        border-radius: 12px;
+        background: #263322;
+        text-align: center;
+        font-weight: 700;
+      }
+
+      #score {
+        display: block;
+        color: #d9f99d;
+        font-size: 1.4rem;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin: 24px 0 18px;
+        border: 2px solid #4d6145;
+        border-radius: 12px;
+        background: #0d120c;
+        image-rendering: pixelated;
+      }
+
+      #status {
+        margin: 0;
+        color: #cbd5c0;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 16px;
+        background: #bef264;
+        color: #17200f;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #d9f99d;
+      }
+
+      button:focus-visible {
+        outline: 3px solid #fff;
+        outline-offset: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Dogfoot Snake</h1>
+        <div class="scoreboard">Score <span id="score">0</span></div>
+      </header>
+
+      <canvas
+        id="game"
+        width="400"
+        height="400"
+        role="img"
+        aria-label="Snake game board"
+      ></canvas>
+
+      <div class="controls">
+        <p id="status" aria-live="polite">Use the arrow keys to move</p>
+        <button id="restart" type="button">Restart</button>
+      </div>
+    </main>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const canvas = document.getElementById("game");
+        const context = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const statusElement = document.getElementById("status");
+        const restartButton = document.getElementById("restart");
+        const cellSize = 20;
+        const columns = canvas.width / cellSize;
+        const rows = canvas.height / cellSize;
+        const tickDuration = 120;
+        const directions = {
+          ArrowUp: { x: 0, y: -1 },
+          ArrowDown: { x: 0, y: 1 },
+          ArrowLeft: { x: -1, y: 0 },
+          ArrowRight: { x: 1, y: 0 },
+        };
+
+        let snake;
+        let direction;
+        let nextDirection;
+        let food;
+        let score;
+        let gameOver;
+
+        function samePosition(left, right) {
+          return left.x === right.x && left.y === right.y;
+        }
+
+        function placeFood() {
+          const availableCells = [];
+          for (let y = 0; y < rows; y += 1) {
+            for (let x = 0; x < columns; x += 1) {
+              const cell = { x, y };
+              if (!snake.some((segment) => samePosition(segment, cell))) {
+                availableCells.push(cell);
+              }
+            }
+          }
+          food = availableCells[Math.floor(Math.random() * availableCells.length)];
+        }
+
+        function drawCell(position, color) {
+          context.fillStyle = color;
+          context.fillRect(
+            position.x * cellSize,
+            position.y * cellSize,
+            cellSize,
+            cellSize,
+          );
+        }
+
+        function draw() {
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          drawCell(food, "#fb7185");
+          snake.forEach((segment, index) => {
+            drawCell(segment, index === 0 ? "#d9f99d" : "#84cc16");
+          });
+        }
+
+        function endGame() {
+          gameOver = true;
+          statusElement.textContent = "Game over — press Restart to play again";
+        }
+
+        function tick() {
+          if (gameOver) return;
+
+          direction = nextDirection;
+          const head = {
+            x: snake[0].x + direction.x,
+            y: snake[0].y + direction.y,
+          };
+          const hitWall =
+            head.x < 0 || head.x >= columns || head.y < 0 || head.y >= rows;
+          const hitSnake = snake.some((segment) => samePosition(segment, head));
+
+          if (hitWall || hitSnake) {
+            endGame();
+            return;
+          }
+
+          snake.unshift(head);
+          if (samePosition(head, food)) {
+            score += 10;
+            scoreElement.textContent = String(score);
+            placeFood();
+          } else {
+            snake.pop();
+          }
+          draw();
+        }
+
+        function restart() {
+          snake = [{ x: 10, y: 10 }];
+          direction = directions.ArrowRight;
+          nextDirection = direction;
+          score = 0;
+          gameOver = false;
+          scoreElement.textContent = "0";
+          statusElement.textContent = "Use the arrow keys to move";
+          placeFood();
+          draw();
+        }
+
+        window.addEventListener("keydown", (event) => {
+          const requestedDirection = directions[event.key];
+          if (!requestedDirection) return;
+
+          event.preventDefault();
+          const reversesDirection =
+            requestedDirection.x + direction.x === 0 &&
+            requestedDirection.y + direction.y === 0;
+          if (!reversesDirection) nextDirection = requestedDirection;
+        });
+        restartButton.addEventListener("click", restart);
+
+        restart();
+        setInterval(tick, tickDuration);
+      })();
+    </script>
+  </body>
+</html>
