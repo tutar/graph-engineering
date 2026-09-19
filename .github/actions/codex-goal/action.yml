@@ -9,7 +9,7 @@ inputs:
     description: Objective for the Work Goal.
     required: true
   token-budget:
-    description: Total finite budget or unlimited; finite totals reserve 20,000 tokens for Handoff.
+    description: Total finite cumulative budget or unlimited; finite totals reserve the final 20,000 tokens for Handoff.
     required: false
     default: "400000"
   handoff-prompt:
