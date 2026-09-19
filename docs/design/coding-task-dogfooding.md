@@ -93,7 +93,7 @@ with:
   token-budget: 30000 # 或 unlimited
   handoff-prompt: <handoff goal objective>
   codex-version: <固定版本>
-  permission-profile: :workspace
+  permission-profile: graph-engineering-delivery
 ```
 
 `handoff-token-budget` 是 Action 内部固定常量 20,000，不作为公开配置。`OPENAI_API_KEY` 是可选环境变量；未提供时使用 runner 已准备的 Codex 登录状态。`GH_TOKEN` 由 Workflow 注入给 Coding Agent，Action 不读取或解释它。

@@ -12,7 +12,7 @@
 - Codex CLI：`0.153.4`
 - runner：self-hosted Linux X64，并提供固定 CLI 或允许 Action 写入版本化 tool cache
 - 认证：配置 `OPENAI_API_KEY` 时使用本次 Action 隔离的 API key 材料；未配置时使用 Runner-backed Codex Authentication（Runner 承载的 Codex 认证）
-- permission profile：`:workspace`
+- permission profile：`graph-engineering-delivery`，继承 `:workspace`，仅额外允许写入 workspace 的 `.git` 并启用命令网络，以完成分支、commit 与 push
 - Runtime Token Budget：默认总预算 `30000`，其中固定预留 `20000` 给一次 Handoff；人工入口可传大于 `20000` 的整数或 `unlimited`
 
 Workflow checkout 默认分支、配置 Git identity、添加 `in-progress`，再把调用者 workspace、Work Goal 和 Handoff Goal 交给项目 Action。每个 job attempt 创建全新的 App Server、Codex Session 与 Work Goal；Workflow 不准备开发分支，也不实现 Goal 循环或独立核对交付事实。
