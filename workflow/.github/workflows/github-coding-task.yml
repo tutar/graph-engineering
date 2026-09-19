@@ -10,7 +10,7 @@ on:
         required: true
         type: number
       token_budget:
-        description: Total Runtime Token Budget (positive integer or unlimited)
+        description: Total Runtime Token Budget (integer greater than 20000 or unlimited)
         required: false
         default: "400000"
         type: string
@@ -40,8 +40,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${TOKEN_BUDGET_REQUESTED}" != "unlimited" && ! "${TOKEN_BUDGET_REQUESTED}" =~ ^[1-9][0-9]*$ ]]; then
-            echo "token_budget must be a positive integer or unlimited" >&2
+          if ! node -e '
+            const value = process.env.TOKEN_BUDGET_REQUESTED;
+            const total = Number(value);
+            const valid = value === "unlimited" ||
+              (/^[1-9][0-9]*$/.test(value) && Number.isSafeInteger(total) && total > 20000);
+            if (!valid) process.exit(1);
+          '; then
+            echo "token_budget must be an integer greater than 20000 or unlimited" >&2
             exit 1
           fi
 
@@ -105,7 +111,8 @@ jobs:
             停止继续实现。
             检查当前 workspace、分支和未提交修改。
             提交适合保存的未完成代码并 push。
-            不得创建完成用 Draft PR，不得把未完成验收项勾选为完成。
+            不得更新 Issue 进展或评论，不得创建完成用 Draft PR，
+            不得把未完成验收项勾选为完成。
 
       - name: Mark Coding Ticket complete
         id: complete_labels

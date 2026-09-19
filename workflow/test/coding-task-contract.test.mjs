@@ -6,6 +6,10 @@ const workflow = readFileSync(
   new URL("../.github/workflows/github-coding-task.yml", import.meta.url),
   "utf8",
 );
+const actionEntrypoint = readFileSync(
+  new URL("../.github/actions/codex-goal/index.mjs", import.meta.url),
+  "utf8",
+);
 
 test("Coding Task admits labeled and manual Issue invocations with Issue concurrency", () => {
   assert.match(workflow, /issues:\n\s+types: \[labeled\]/);
@@ -17,7 +21,7 @@ test("Coding Task admits labeled and manual Issue invocations with Issue concurr
   assert.match(workflow, /group: github-coding-task-/);
   assert.match(workflow, /cancel-in-progress: false/);
   assert.match(workflow, /token_budget:[\s\S]*?default:\s*"400000"/);
-  assert.match(workflow, /positive integer or unlimited/);
+  assert.match(workflow, /integer greater than 20000 or unlimited/);
 });
 
 test("Workflow prepares only the caller workspace and invokes the project-owned Action", () => {
@@ -45,6 +49,7 @@ test("Work and Handoff prompts assign delivery and preservation responsibilities
   assert.match(workflow, /检查当前 workspace、分支和未提交修改/);
   assert.match(workflow, /不得创建完成用 Draft PR/);
   assert.match(workflow, /不得把未完成验收项勾选为完成/);
+  assert.match(workflow, /不得更新 Issue 进展或评论/);
 });
 
 test("Goal terminal state alone maps the Job and label lifecycle", () => {
@@ -68,6 +73,8 @@ test("a queued duplicate skips Codex when admission is no longer current", () =>
 });
 
 test("blocked, budget-limited and execution failures preserve coding-ticket and fail the Job", () => {
+  assert.match(actionEntrypoint, /success:\s*result\.workGoalStatus === "complete"/);
+  assert.match(actionEntrypoint, /if \(!success\)[\s\S]*?process\.exitCode = 1/);
   assert.match(workflow, /id:\s*codex[\s\S]*?continue-on-error:\s*true/);
   const release = workflow.match(/- name: Release incomplete Coding Ticket([\s\S]*?)(?=\n\s+- name:)/)?.[1] ?? "";
   assert.match(release, /always\(\)/);
@@ -78,6 +85,16 @@ test("blocked, budget-limited and execution failures preserve coding-ticket and 
   assert.match(conclusion, /steps\.codex\.outcome/);
   assert.match(conclusion, /work-goal-status/);
   assert.match(conclusion, /complete_labels\.outcome/);
+});
+
+test("finite and unlimited total budgets are validated and forwarded to the Action", () => {
+  const validation = workflow.match(/- name: Validate Runtime Token Budget([\s\S]*?)(?=\n\s+- name:)/)?.[1] ?? "";
+  assert.match(validation, /value === "unlimited"/);
+  assert.match(validation, /\^\[1-9\]\[0-9\]\*\$/);
+  assert.match(validation, /Number\.isSafeInteger\(total\)/);
+  assert.match(validation, /total > 20000/);
+  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:.*inputs\.token_budget.*'400000'/);
+  assert.match(workflow, /token-budget:\s*\$\{\{ env\.TOKEN_BUDGET_REQUESTED \}\}/);
 });
 
 test("permissions are explicit and external Actions use immutable revisions", () => {
