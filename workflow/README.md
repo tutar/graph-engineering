@@ -1,25 +1,25 @@
 # 当前 Workflow Tasks
 
-> 实现状态：本文件描述当前尚未迁移的实现。Coding Task 的已接受目标设计见 [`docs/design/coding-task-dogfooding.md`](../docs/design/coding-task-dogfooding.md)；它将移除外部 `codex-action`、本地 Session recovery、独立交付核验以及 Candidate/Stable/Evidence 晋级模型。Development Task 不在该迁移范围内。
+> 实现状态：Coding Task 已按 [`docs/design/coding-task-dogfooding.md`](../docs/design/coding-task-dogfooding.md) 迁移到项目自有 Codex Goal Action；Development Task 保持原有恢复与交付行为。
 
 本目录同时交付彼此独立的 Development Task（研发实现任务）与 Coding Task（编码任务）。CLI 将整套 `.github/` 文件复制给目标项目，但两个入口保留各自的标签、并发组和 Task Invocation（任务调用）身份。
 
 ## 当前 Coding Task
 
-当前实现使用 `ready-for-agent` 与 `coding-ticket` 准入，也保留人工 Issue number 入口。它在迁移到项目自有 Codex Goal Action 前固定以下执行组合：
+当前实现使用 open Issue 上的 `ready-for-agent` 与 `coding-ticket` 准入，也保留人工 Issue number 与总 Runtime Token Budget 入口。它固定以下执行组合：
 
-- Agent Action：`tutar/codex-action@9405141578057eb1dca78f927b10f6c3cf3a79a4`
+- Agent Action：随 Workflow Definition 交付的 `.github/actions/codex-goal`
 - Codex CLI：`0.153.4`
-- runner：唯一一台带 `graph-engineering-coding` 标签、已配置 `drop-sudo` 前置条件且保留 `runner.tool_cache` 的 self-hosted Linux X64；[历史验证票据](https://github.com/tutar/graph-engineering/issues/71) 使用全新 Run/Session/Task Repository，不继承旧验证结果
-- 认证：Runner-backed Codex Authentication（Runner 承载的 Codex 认证）
+- runner：带 `graph-engineering-coding` 标签的 self-hosted Linux X64，并提供固定 CLI 或允许 Action 写入版本化 tool cache
+- 认证：配置 `OPENAI_API_KEY` 时使用本次 Action 隔离的 API key 材料；未配置时使用 Runner-backed Codex Authentication（Runner 承载的 Codex 认证）
 - permission profile：`:workspace`
-- Runtime Token Budget：默认 `400000`，由 App Server Goal 强制并在同一 Run rerun 中累计；`GE_CODING_BUDGET_RUN_<run_id>` 只允许单调提高或改为 `unlimited`
+- Runtime Token Budget：默认总预算 `400000`，其中固定预留 `20000` 给一次 Handoff；人工入口可传大于 `20000` 的整数或 `unlimited`
 
-Workflow 把 Issue Goal 交给 Action 原生执行，不实现 Goal 循环。Action 机器状态、Agent 的 `completed`/`blocked` 结构化结论和四项确定性交付事实分别记录。交付检查只验证干净任务仓库、base 之后存在提交、远端目标分支等于本地 HEAD，以及恰好一个匹配的 open Draft PR；不重新判断测试质量、review 或 Acceptance Criteria。
+Workflow checkout 默认分支、配置 Git identity、添加 `in-progress`，再把调用者 workspace、Work Goal 和 Handoff Goal 交给项目 Action。每个 job attempt 创建全新的 App Server、Codex Session 与 Work Goal；Workflow 不准备开发分支，也不实现 Goal 循环或独立核对交付事实。
 
-同一 GitHub Run 的 rerun 使用 `task-id: coding` 恢复精确 Session、隔离 Codex home 和独立 Task Repository（任务仓库）；新 Run 由 Action identity 建立新材料。缺失本地材料时沿固定 Action 契约公开 Session Replacement（会话替换），不声称跨 runner 恢复。成功交付删除 Task Repository 并移除 `coding-ticket`/`in-progress`；失败、blocked 或交付校验失败保留恢复材料，仅移除 `in-progress`。
+Work Goal `complete` 令 Workflow 移除 `coding-ticket` 与 `in-progress` 并成功结束。`blocked` 或 `budgetLimited` 由 Action 在同一 Session 和 workspace 中启动唯一一次固定预算 Handoff；无论 Handoff 结果如何，Workflow 都失败、尽力移除 `in-progress` 并保留 `coding-ticket`。初始化、认证、App Server 或普通执行失败遵循相同失败标签语义。遗留 `in-progress` 不参与准入；排队中的重复 Run 若发现 `coding-ticket` 已被前序成功 Run 移除，则跳过 Codex。
 
-这些说明只描述当前尚未迁移的实现，不构成新 Coding Task 的目标契约；迁移后的边界以设计文档和 ADR-0008、ADR-0009 为准。
+Coding Agent 通过 `$implement` 读取 GitHub 当前事实、选择或创建分支、实现与验证、只勾选有直接证据的验收项、commit、push，并创建或更新 Draft PR。Workflow 信任 Action 返回的 Work Goal 终态，不验证 clean worktree、远端 branch HEAD、PR 数量或 base/head。
 
 ## 当前 Development Task
 
