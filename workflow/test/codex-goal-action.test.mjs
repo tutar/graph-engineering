@@ -180,7 +180,7 @@ for (const workStatus of ["blocked", "budgetLimited"]) {
       handoffGoalStatus: "complete",
       tokenBudgetState: "finite",
       workTokensUsed: 2500,
-      handoffTokensUsed: 500,
+      handoffTokensUsed: 3000,
       finalMessage: "handoff finished",
     });
     const starts = messages.filter(({ method }) => method === "thread/start");
@@ -192,10 +192,18 @@ for (const workStatus of ["blocked", "budgetLimited"]) {
       threadId: "thread-1",
       objective: "save suitable progress once",
       status: "active",
-      tokenBudget: 400_000,
+      tokenBudget: 22_500,
     });
   });
 }
+
+test("finite Handoff allowance is capped by the configured total budget", async (t) => {
+  const { messages } = await runScenario(t, "budgetLimited-handoff-complete", {
+    env: { FAKE_WORK_TOKENS_USED: "390000" },
+  });
+  const goals = messages.filter(({ method }) => method === "thread/goal/set");
+  assert.equal(goals[1].params.tokenBudget, 400_000);
+});
 
 test("unlimited Work Goal adds the fixed Handoff allowance to cumulative usage", async (t) => {
   const { result, messages } = await runScenario(t, "blocked-handoff-complete", {
