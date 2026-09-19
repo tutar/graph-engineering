@@ -173,7 +173,7 @@ test("Work Goal complete returns structured success without starting Handoff", a
 });
 
 for (const workStatus of ["blocked", "budgetLimited"]) {
-  test(`${workStatus} starts one Handoff in the same Session with a fixed budget`, async (t) => {
+  test(`${workStatus} starts one Handoff in the same Session within the finite total budget`, async (t) => {
     const { result, messages, root } = await runScenario(t, `${workStatus}-handoff-complete`);
     assert.deepEqual(result, {
       workGoalStatus: workStatus,
@@ -192,19 +192,19 @@ for (const workStatus of ["blocked", "budgetLimited"]) {
       threadId: "thread-1",
       objective: "save suitable progress once",
       status: "active",
-      tokenBudget: 20_000,
+      tokenBudget: 400_000,
     });
   });
 }
 
-test("unlimited Work Goal keeps the fixed finite Handoff budget", async (t) => {
+test("unlimited Work Goal adds the fixed Handoff allowance to cumulative usage", async (t) => {
   const { result, messages } = await runScenario(t, "blocked-handoff-complete", {
     tokenBudget: "unlimited",
   });
   assert.equal(result.tokenBudgetState, "unlimited");
   const goals = messages.filter(({ method }) => method === "thread/goal/set");
   assert.equal("tokenBudget" in goals[0].params, false);
-  assert.equal(goals[1].params.tokenBudget, 20_000);
+  assert.equal(goals[1].params.tokenBudget, 22_500);
 });
 
 for (const terminal of ["blocked", "budgetLimited"]) {
