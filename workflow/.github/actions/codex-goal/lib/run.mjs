@@ -98,7 +98,11 @@ export async function runAgentAction({
         tokenBudget: handoffTokenCeiling,
       });
       result.handoffGoalStatus = handoff.status;
-      result.handoffTokensUsed = handoff.tokensUsed;
+      const handoffTokensUsed = handoff.tokensUsed - work.tokensUsed;
+      if (!Number.isSafeInteger(handoffTokensUsed) || handoffTokensUsed < 0) {
+        throw new Error("Runtime-reported cumulative token usage moved backwards during Handoff");
+      }
+      result.handoffTokensUsed = handoffTokensUsed;
       result.finalMessage = redact(handoff.finalMessage);
     } catch (error) {
       result.handoffGoalStatus = "failed";

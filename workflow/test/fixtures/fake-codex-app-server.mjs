@@ -79,7 +79,7 @@ lines.on("line", (line) => {
       else if (scenario.startsWith("budgetLimited-")) terminalGoal("budgetLimited", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
       else terminalGoal("blocked", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
     } else if (scenario.endsWith("handoff-complete")) {
-      terminalGoal("complete", 3000, "handoff finished");
+      terminalGoal("complete", Number(process.env.FAKE_HANDOFF_TOKENS_USED || 3000), "handoff finished");
     } else if (scenario.endsWith("handoff-blocked")) {
       terminalGoal("blocked", 3000, "handoff blocked");
     } else if (scenario.endsWith("handoff-budgetLimited")) {

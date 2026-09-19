@@ -180,7 +180,7 @@ for (const workStatus of ["blocked", "budgetLimited"]) {
       handoffGoalStatus: "complete",
       tokenBudgetState: "finite",
       workTokensUsed: 2500,
-      handoffTokensUsed: 3000,
+      handoffTokensUsed: 500,
       finalMessage: "handoff finished",
     });
     const starts = messages.filter(({ method }) => method === "thread/start");
@@ -203,6 +203,15 @@ test("finite Handoff allowance is capped by the configured total budget", async 
   });
   const goals = messages.filter(({ method }) => method === "thread/goal/set");
   assert.equal(goals[1].params.tokenBudget, 400_000);
+});
+
+test("Handoff usage fails closed when Runtime cumulative usage moves backwards", async (t) => {
+  const { result } = await runScenario(t, "blocked-handoff-complete", {
+    env: { FAKE_HANDOFF_TOKENS_USED: "2000" },
+  });
+  assert.equal(result.handoffGoalStatus, "failed");
+  assert.equal(result.handoffTokensUsed, 0);
+  assert.match(result.finalMessage, /moved backwards/);
 });
 
 test("unlimited Work Goal adds the fixed Handoff allowance to cumulative usage", async (t) => {
