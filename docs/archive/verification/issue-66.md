@@ -1,5 +1,7 @@
 # [项目 Workflow 接入恢复版 Agent Action](https://github.com/tutar/graph-engineering/issues/66) 验证报告
 
+> 归档：此报告只描述当时实现与验证结果，不属于当前 Coding Task 的活动验收流程。
+
 范围：[项目 Workflow 接入恢复版 Agent Action](https://github.com/tutar/graph-engineering/issues/66)。本报告记录 Candidate Definition（候选工作流定义）的本地与静态证据，不声明真实 Consumer Project（消费项目）已经验收或 Definition 已晋级 Stable。
 
 ## 当前 Workflow 盘点

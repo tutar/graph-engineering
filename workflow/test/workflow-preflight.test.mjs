@@ -6,20 +6,20 @@ const workflow = readFileSync(
   new URL("../.github/workflows/github-development-ticket.yml", import.meta.url),
   "utf8",
 );
-const delivery = JSON.parse(readFileSync(new URL("../../delivery/definitions.json", import.meta.url), "utf8"));
-const { compatibilityProfile } = delivery.currentTasks.find(({ name }) => name === "development");
+const actionRevision = "393ad456e354dc9da7be630c09be243cc1d212af";
+const codexCli = "0.153.4";
 
 test("the recovery Action preserves checkout and one Task Invocation across reruns", () => {
   const calls = [...workflow.matchAll(/uses:\s+tutar\/codex-action@([^\s#]+)/g)];
   assert.equal(calls.length, 2);
-  assert.deepEqual(calls.map((match) => match[1]), [compatibilityProfile.actionRevision, compatibilityProfile.actionRevision]);
+  assert.deepEqual(calls.map((match) => match[1]), [actionRevision, actionRevision]);
   assert.match(workflow, /task-phase:\s*prepare/);
   assert.match(workflow, /task-id:\s*development/);
   assert.equal([...workflow.matchAll(/task-state-root:\s*\$\{\{ runner\.tool_cache \}\}\/graph-engineering\/codex-task-state/g)].length, 2);
   assert.doesNotMatch(workflow.match(/jobs:[\s\S]*?steps:/)?.[0] ?? "", /runner\.tool_cache/);
   assert.match(workflow, /if:\s*steps\.task\.outputs\.workspace-exists != 'true'/);
   assert.match(workflow, /working-directory:\s*\$\{\{ steps\.task\.outputs\.task-workspace \}\}/);
-  assert.match(workflow, new RegExp(`codex-version:\\s*${compatibilityProfile.codexCli.replaceAll(".", "\\.")}`));
+  assert.match(workflow, new RegExp(`codex-version:\\s*${codexCli.replaceAll(".", "\\.")}`));
   assert.doesNotMatch(workflow, /task-id:.*issue/i);
   assert.doesNotMatch(workflow, /github-development-ticket\.mjs/);
 });

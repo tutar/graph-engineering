@@ -1,7 +1,9 @@
 # github-coding-task v0.1.1 Consumer Evidence Bundle 9
 
+> 归档：此文件只保留历史事实，不属于当前工作流的发布或验收流程。
+
 - Evaluated: 2026-09-18 (Asia/Shanghai).
-- Gate Decision: IN_PROGRESS — bounded exhaustion and zero-model same-Run recovery pass; completion cases remain `NOT_RUN`.
+- Gate Decision: COMPLETE for Qualification Evidence only — bounded exhaustion and zero-model same-Run recovery pass; completion cases remain `NOT_RUN`.
 - Definition remains Candidate; no Stable Supported Profile.
 - Owner: [验证 Coding Task Consumer 交付、同 Run 恢复与任务隔离](https://github.com/tutar/graph-engineering/issues/71).
 
@@ -33,6 +35,18 @@ The two attempts below use one unchanged Workflow Instance, Action revision, CLI
 
 The Runtime budget counter and provider event use different semantics: attempt 1 also emitted provider `totalTokens=16726`. No further model attempt was started after that exceeded the user's 15,000-token test ceiling. This manifest does not reinterpret either number as provider billing.
 
+## Scope Decision
+
+Bundle 9 is retained as Qualification Evidence for the frozen Runtime budget enforcement and same-Run state-recovery mechanisms. Its `NOT_RUN` cases remain historical facts and are not reinterpreted as passes.
+
+Production qualification is owned by [#71](https://github.com/tutar/graph-engineering/issues/71) and requires a separate frozen Bundle from a real Coding Task: operator cancellation after Session record, active Goal and actual Agent work are established, followed by a native rerun of the original Run, same-Session recovery and complete delivery. Extended fault injection and Session Replacement boundaries are tracked separately by [#74](https://github.com/tutar/graph-engineering/issues/74) and do not block #71's minimum Stable gate.
+
 ## Lifecycle
 
-This Bundle is `IN_PROGRESS`. It may be extended only with the frozen inputs above. Any changed Definition, Action, CLI, Consumer Workflow blob, runner or permission contract requires a new Bundle. `NOT_RUN` cases are not passes and do not authorize Stable promotion.
+This Bundle is `COMPLETE` for Qualification Evidence only.
+
+It proves the frozen Runtime budget enforcement and same-Run state-recovery mechanisms represented by B1 and B2. It does not authorize Stable promotion and does not prove production Coding Task delivery.
+
+Production qualification is owned by #71 and requires a separate frozen Bundle from a real Coding Task: operator cancellation after Session and active Goal establishment, followed by native rerun of the original Run, same-Session recovery and complete delivery.
+
+The two Bundles remain separate evidence layers; their Case Results are not one combined run sequence. Any changed Definition, Action, CLI, Consumer Workflow blob, runner or permission contract requires a new Bundle.

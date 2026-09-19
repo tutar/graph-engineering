@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
-import { CURRENT_NAMESPACE, PRODUCT_VERSION, TASKS } from "./constants.mjs";
+import { PRODUCT_VERSION } from "./constants.mjs";
 import { exists, listFiles, packageRoot, readJson } from "./files.mjs";
 
 export async function workflowTemplateRoot() {
@@ -29,15 +29,4 @@ export async function releaseMetadata() {
     sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: resolve(packageRoot, "../.."), encoding: "utf8" }).trim();
   } catch {}
   return { productVersion: PRODUCT_VERSION, sourceCommit };
-}
-
-export function installationRecord(task, metadata) {
-  return {
-    cliVersion: PRODUCT_VERSION,
-    sourceCommit: metadata.sourceCommit,
-    task,
-    definition: TASKS[task].profile.split("/codex/")[0],
-    profile: TASKS[task].profile,
-    namespace: CURRENT_NAMESPACE,
-  };
 }

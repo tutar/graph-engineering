@@ -7,7 +7,7 @@ import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { MANIFEST_PATH, TASKS } from "./constants.mjs";
 import { assertGitRoot, copyFiles, exists, listFiles, sha256, within } from "./files.mjs";
 import { nextManifest, replaceManifest } from "./manifest.mjs";
-import { installationRecord, legacyTemplateRoot, releaseMetadata, workflowTemplateRoot, workflowFiles } from "./package-assets.mjs";
+import { legacyTemplateRoot, releaseMetadata, workflowTemplateRoot, workflowFiles } from "./package-assets.mjs";
 
 async function detect(projectRoot) {
   const found = [];
@@ -94,7 +94,7 @@ export async function migrate({ projectRoot = process.cwd(), apply = false, inte
       installed.push(...plan.newFiles);
     }
     const files = [...new Set(plans.flatMap(({ newFiles }) => newFiles))].sort();
-    manifest = nextManifest(Object.keys(TASKS).map((task) => installationRecord(task, metadata)), files);
+    manifest = nextManifest(metadata, files, Object.keys(TASKS));
     await replaceManifest(projectRoot, manifest);
     // Only recognized baseline files are removed; unrelated project files remain owned by the Consumer.
     await mkdir(within(projectRoot, ".github/graph-engineering"), { recursive: true });

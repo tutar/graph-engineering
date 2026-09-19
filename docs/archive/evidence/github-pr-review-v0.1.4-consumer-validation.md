@@ -1,5 +1,7 @@
 # github-pr-review v0.1.4 Consumer Evidence Bundle 6
 
+> 归档：此文件只保留历史事实，不属于当前工作流的发布或验收流程。
+
 - Evaluated: 2026-09-17 (Asia/Shanghai); runs span 2026-09-16–17.
 - Gate Decision: FAIL — same-head logical Check uniqueness is contradicted.
 - Definition remains Candidate; no Stable Supported Profile.

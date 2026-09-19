@@ -1,5 +1,7 @@
 # Legacy Development Quick Start
 
+> 归档：此文档只用于取得历史 Development 版本，不属于当前安装或 Coding Task 路径。
+
 本文仅适用于已发布并验证的 `github-development-ticket/v0.1.2` Legacy Frozen Definition（旧版冻结定义）。它从历史 Git tag [`0.1.2`](https://github.com/tutar/loop-engineering/tree/0.1.2/workflow-definitions/github-development-ticket/v0.1.2) 取得，不属于 `v0.3.0` 的默认安装路径，也不会自动迁移 Thread Record、runner 工作区或项目配置。
 
 ## 1. 准备项目

@@ -1,8 +1,10 @@
 # Workflow Definition 交付契约
 
-仓库用 [`delivery/definitions.json`](../delivery/definitions.json) 记录 Workflow Definition（工作流定义）的交付身份。每条记录分别声明 Definition 名称与版本、来源 commit、Repository Release 版本、不可变 Git tag、发布时路径和可复制安装根目录；这两个版本字段是独立事实，不能靠相同字符串或目录名互相推导。
+> 归档：ADR-0008 已终止 Candidate、Stable、Consumer Validation 与 Evidence Bundle 晋级模型。本文件只保留历史交付事实；当前设计见 [Coding Task 直接 dogfooding](../design/coding-task-dogfooding.md)。
 
-运行以下命令可核验当前映射、全部已发布路径和 Evidence 绑定：
+仓库曾用 `delivery/definitions.json` 记录 Workflow Definition（工作流定义）的交付身份。该清单已随旧交付模型删除；每条历史记录分别声明 Definition 名称与版本、来源 commit、Repository Release 版本、不可变 Git tag、发布时路径和可复制安装根目录。
+
+旧模型曾使用以下命令核验映射、已发布路径和 Evidence 绑定；验证器现已删除：
 
 ```bash
 node scripts/verify-definition-delivery.mjs
@@ -14,11 +16,11 @@ Legacy Development Definition 发布早于 GitHub Release 对象的使用；清�
 
 ## 获取与所有权
 
-- **当前实现**：唯一交付源 [`workflow/.github/`](../workflow/.github/)，当前只交付 [Development](../workflow/README.md)。它固定恢复版 Action/CLI 组合并作为未完成真实 Consumer 验收的 Candidate 演进；PR Review 已退役，Repository Review 尚未实施，历史 Evidence 不自动继承。
+- **当时的实现**：唯一交付源 [`workflow/.github/`](../../workflow/.github/)，当时只交付 [Development](../../workflow/README.md)。它固定恢复版 Action/CLI 组合并作为未完成真实 Consumer 验收的 Candidate 演进；PR Review 已退役，Repository Review 尚未实施，历史 Evidence 不自动继承。
 - **历史发布内容**：由交付清单中的完整 commit 与 Git tag 承载。维护者可以在已有 clone 中使用 `git archive <gitRef> <path>/files/.github` 导出；主分支不再保存这些源码副本。
 - **Consumer Workflow Instance（消费项目工作流实例）**：Consumer 把导出的 `.github/` 普通文件复制进自己的仓库后自行拥有；运行时不访问本仓库，也不是远程 Reusable Workflow。Consumer 的本地修改不改变来源 Definition 的身份或证据。
 
-本分支未发布 CLI `0.3.1` 使用整套 `init` 与 `check`，打包资产从唯一交付源生成，不维护人工模板副本。安装与接口细节见 [CLI 说明](../packages/cli/README.md)，本地打包接入见 [README](../README.md#接入)。已发布 `v0.3.0` 和 CLI `0.3.0` 保留原契约，不因本分支更改而被回写。
+当时未发布的 CLI `0.3.1` 使用整套 `init` 与 `check`。安装与接口细节见 [CLI 说明](../../packages/cli/README.md)，本地打包接入见 [README](../../README.md#接入)。已发布 `v0.3.0` 和 CLI `0.3.0` 保留原契约，不因后续更改而被回写。
 
 例如，从已发布 `v0.2.4` 取得 PR Review Definition：
 
@@ -41,4 +43,4 @@ Development 保持现有权限、标签、人工事件、checkout、并发与 Go
 
 交付清单的 `evidenceBindings` 是历史 Bundle 的索引，不是当前实现的通过名单。每个 Bundle 继续绑定自己的冻结 Definition、Repository Release、Profile、Action revision 与 Consumer 输入；新路径或新实现必须重新冻结并运行，不能拼接旧结果。
 
-[PR #46](https://github.com/tutar/graph-engineering/pull/46) 是 Bundle 6 失败后形成的修复来源，不作为要合并的 `v0.1.5` 目录原形。其完整 Check history 分页、重复身份 fail-closed、目标 head 重读与发布审计行为已由[将 PR Review Task 迁入当前任务布局](https://github.com/tutar/graph-engineering/issues/49)在当时的任务布局中重新实现并覆盖测试，随后按 [ADR-0006](adr/0006-retire-pr-review-and-unify-workflow-delivery.md) 退出当前产品；PR #46 因而由[移除历史版本副本并完成当前布局切换](https://github.com/tutar/graph-engineering/issues/51)以“被当前实现取代”关闭，而不合并旧版目录形态，也不删除其 branch、讨论或证据链接。完整 Bundle 6 FAIL（包括相同 head 上两个同身份 Check）仍保存在 [Evidence Manifest](evidence/github-pr-review-v0.1.4-consumer-validation.md)，重复 Check 不删除、不改写；[Bundle 7 准备](evidence/bundle-7-preparation.md) 继续保持 `NOT_FROZEN / NOT_RUN`，没有虚构 Release、Consumer PR、SHA 或 Case Result。
+[PR #46](https://github.com/tutar/graph-engineering/pull/46) 是 Bundle 6 失败后形成的修复来源，不作为要合并的 `v0.1.5` 目录原形。其完整 Check history 分页、重复身份 fail-closed、目标 head 重读与发布审计行为已由[将 PR Review Task 迁入当前任务布局](https://github.com/tutar/graph-engineering/issues/49)在当时的任务布局中重新实现并覆盖测试，随后按 [ADR-0006](../adr/0006-retire-pr-review-and-unify-workflow-delivery.md) 退出当前产品；PR #46 因而由[移除历史版本副本并完成当前布局切换](https://github.com/tutar/graph-engineering/issues/51)以“被当前实现取代”关闭，而不合并旧版目录形态，也不删除其 branch、讨论或证据链接。完整 Bundle 6 FAIL（包括相同 head 上两个同身份 Check）仍保存在归档的 [Evidence Manifest](evidence/github-pr-review-v0.1.4-consumer-validation.md)，重复 Check 不删除、不改写；归档的 [Bundle 7 准备](evidence/bundle-7-preparation.md) 继续保持 `NOT_FROZEN / NOT_RUN`，没有虚构 Release、Consumer PR、SHA 或 Case Result。

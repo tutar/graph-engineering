@@ -1,5 +1,7 @@
 # [新增 Coding Task：静态 Compatible Executor、同 Run 恢复与最小交付校验](https://github.com/tutar/graph-engineering/issues/70) 验证报告
 
+> 归档：此报告只描述当时实现与验证结果，不属于当前 Coding Task 的活动验收流程。
+
 本报告记录 `github-coding-task/v0.1.0` 的本地 Candidate Publication Gate（候选发布门）证据。它不声明真实 Consumer Project（消费项目）已经验收，也不把 Development、#67 或固定 Action 自身的历史证据当作 Coding Task 的 Stable 证据。
 
 ## 验收映射

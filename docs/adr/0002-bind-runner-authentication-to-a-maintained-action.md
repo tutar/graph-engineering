@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0008
 ---
 
 # Bind runner authentication to a maintained Agent Action
