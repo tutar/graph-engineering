@@ -1,5 +1,7 @@
 # Bundle 7 本地准备（NOT_FROZEN / NOT_RUN）
 
+> 归档：此文件只保留历史事实，不属于当前工作流的发布或验收流程。
+
 针对 Bundle 6 实际两个同身份 Check 的失败证据，记录后续修复与重新验证所需工作。新的 Definition、Profile、Repository Release、Consumer PR、commit/head SHA 与 Case Result 均未分配或冻结；PR #46 只是修复来源，不是待发布 Candidate。不得改变已冻结 Bundle 6 或删除重复 Check 来制造通过。
 
 ## 已完成的本地保障

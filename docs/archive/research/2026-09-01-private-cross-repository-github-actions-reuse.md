@@ -1,5 +1,7 @@
 # 私有跨仓库 Loop Engineering 复用机制调研
 
+> 归档：此调研服务于已放弃的跨 Consumer Workflow 交付方向，不描述当前直接 dogfooding 设计。
+
 > **后续决策状态（2026-09-02）**：本文关于 GitHub 跨私有仓库 Reusable Workflow 的官方能力与约束仍作为机制证据保留，但项目没有采用本文的首版推荐。经 [确定版本化 Workflow Definition 的部署与演进方式](https://github.com/tutar/loop-engineering/issues/7) 与 [以 Codex Goal Runtime 收缩 Loop Engineering 边界](https://github.com/tutar/loop-engineering/issues/8) 决定：中央只维护带版本、可复制的 Workflow Definition；Consumer Project 自行拥有并修改 Workflow Instance，运行时不远程调用中央 Workflow。Definition 内容进一步收缩为事件路由、Skill 与业务对象引用、Codex Goal Runtime 调用及必要硬停止边界。
 
 ## 问题与研究时结论（后续未采用）

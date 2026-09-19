@@ -1,5 +1,7 @@
 # [为维护版 codex-action 增加跨 rerun 的 Runtime Token Budget](https://github.com/tutar/graph-engineering/issues/69) 验证报告
 
+> 归档：此报告只描述当时实现与验证结果，不属于当前 Coding Task 的活动验收流程。
+
 本报告记录 `github-coding-task/v0.1.1` 的本地 Candidate Publication Gate（候选发布门）证据。它冻结维护版 Action `9405141578057eb1dca78f927b10f6c3cf3a79a4` 与 Codex CLI `0.153.4`，不把本地测试当作 [验证 Coding Task Consumer 交付、同 Run 恢复与任务隔离](https://github.com/tutar/graph-engineering/issues/71) 拥有的真实 Consumer Evidence Bundle（消费项目证据包）。
 
 ## 验收映射

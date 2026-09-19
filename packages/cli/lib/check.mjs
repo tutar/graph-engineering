@@ -35,18 +35,15 @@ export async function checkWorkflow({ projectRoot = process.cwd() } = {}) {
 
   try {
     const manifest = await readManifest(projectRoot);
-    const recordsMatch = Object.entries(TASKS).every(([name, definition]) => {
-      const record = manifest?.installations?.[name];
-      return record?.task === name && record.profile === definition.profile && Boolean(record.sourceCommit && record.cliVersion);
-    });
-    const consistent = manifest?.schemaVersion === 2
+    const consistent = manifest?.schemaVersion === 3
       && manifest.product === "@tutar/graph-engineering"
       && manifest.delivery === "workflow"
+      && typeof manifest.sourceCommit === "string"
+      && manifest.sourceCommit.length > 0
       && JSON.stringify(manifest.files) === JSON.stringify(files)
-      && JSON.stringify(Object.keys(manifest.installations)) === JSON.stringify(Object.keys(TASKS))
-      && recordsMatch;
+      && JSON.stringify(manifest.tasks) === JSON.stringify(Object.keys(TASKS));
     if (!consistent) results.push(result("ACTION REQUIRED", "installation-manifest", "Whole-workflow installation source or file list is missing or inconsistent."));
-    else results.push(result("PASS", "installation-manifest", `${Object.keys(TASKS).length} tasks from ${manifest.productVersion}`));
+    else results.push(result("PASS", "installation-manifest", `${manifest.tasks.length} tasks from ${manifest.productVersion}`));
   } catch (error) {
     results.push(result("ACTION REQUIRED", "installation-manifest", error.message, true));
   }

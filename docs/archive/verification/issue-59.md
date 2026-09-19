@@ -1,5 +1,7 @@
 # Issue 59 验证报告
 
+> 归档：此报告只描述当时实现与验证结果，不属于当前 Coding Task 的活动验收流程。
+
 范围：[退役 PR Review，统一 Workflow 交付与整套安装](https://github.com/tutar/graph-engineering/issues/59)。本报告区分 Local Regression（本地回归）、Static Delivery Verification（静态交付核验）与 Real Consumer Validation（真实消费项目验证）。
 
 ## 本地回归

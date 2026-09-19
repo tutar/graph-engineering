@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { cp, mkdtemp, readFile, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -29,8 +29,9 @@ test("init installs the whole project-owned delivery and records its source", as
   assert.equal(await exists(join(directory, ".github", "graph-engineering", "development-worktree.sh")), true);
   const manifest = JSON.parse(await readFile(join(directory, ".github", "graph-engineering", "installation.json"), "utf8"));
   assert.equal(manifest.productVersion, "0.3.1");
-  assert.equal(manifest.installations.development.task, "development");
-  assert.equal(manifest.installations.coding.task, "coding");
+  assert.equal(manifest.schemaVersion, 3);
+  assert.equal(typeof manifest.sourceCommit, "string");
+  assert.deepEqual(manifest.tasks, ["coding", "development"]);
   assert.equal(installed.files.length, (await listFiles(join(packageRoot, "templates", "workflow"))).length);
   const report = await checkWorkflow( { projectRoot: directory });
   assert.equal(report.results.find(({ check }) => check === "workflow-files").status, "PASS");
@@ -42,7 +43,7 @@ test("init fails before writing when any target file conflicts", async (t) => {
   await initWorkflow( { projectRoot: directory });
   await assert.rejects(initWorkflow( { projectRoot: directory }), /installation conflicts/);
   const manifest = JSON.parse(await readFile(join(directory, ".github", "graph-engineering", "installation.json"), "utf8"));
-  assert.deepEqual(Object.keys(manifest.installations).sort(), ["coding", "development"]);
+  assert.deepEqual(manifest.tasks, ["coding", "development"]);
 });
 
 test("migrate recognizes the frozen pre-v0.3 layout and replaces its namespace", async (t) => {
@@ -159,7 +160,7 @@ test("Development migration is previewed and preserves unrelated Consumer files"
   assert.equal(JSON.parse(cli(directory, "check", "--json").stdout).results.find(({ check }) => check === "workflow-files").status, "PASS");
 });
 
-test("whole-workflow check rejects stale per-task records and inconsistent file lists without writing", async (t) => {
+test("whole-workflow check rejects stale manifests and inconsistent file lists without writing", async (t) => {
   const directory = await project(t);
   assert.equal(cli(directory, "init").status, 0);
   const path = join(directory, ".github/graph-engineering/installation.json");
@@ -172,6 +173,35 @@ test("whole-workflow check rejects stale per-task records and inconsistent file 
     assert.equal(JSON.parse(checked.stdout).results.find(({ check }) => check === "installation-manifest").status, "ACTION REQUIRED");
     assert.equal(await readFile(path, "utf8"), text);
   }
+});
+
+test("npm pack carries the complete workflow source into a temporary install", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "packed-graph-engineering-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const repositoryCopy = join(directory, "repository");
+  await mkdir(join(repositoryCopy, "packages"), { recursive: true });
+  await Promise.all([
+    cp(resolve(packageRoot, "../../.git"), join(repositoryCopy, ".git"), { recursive: true }),
+    cp(resolve(packageRoot, "../../workflow"), join(repositoryCopy, "workflow"), { recursive: true }),
+    cp(packageRoot, join(repositoryCopy, "packages/cli"), { recursive: true }),
+  ]);
+  const packageCopy = join(repositoryCopy, "packages/cli");
+  const packed = spawnSync("npm", ["pack", "--json", "--pack-destination", directory, "--cache", join(directory, "npm-cache")], {
+    cwd: packageCopy,
+    encoding: "utf8",
+  });
+  assert.equal(packed.status, 0, packed.stderr);
+  const metadata = JSON.parse(packed.stdout)[0];
+  const extracted = spawnSync("tar", ["-xf", join(directory, metadata.filename), "-C", directory], { encoding: "utf8" });
+  assert.equal(extracted.status, 0, extracted.stderr);
+  const consumer = join(directory, "consumer");
+  await mkdir(consumer);
+  execFileSync("git", ["init", "-q"], { cwd: consumer });
+  const installed = spawnSync(process.execPath, [join(directory, "package/bin/graph-engineering.mjs"), "init", "--project", consumer], { encoding: "utf8" });
+  assert.equal(installed.status, 0, installed.stderr);
+  const sourceFiles = await listFiles(resolve(packageRoot, "../../workflow/.github"));
+  assert.deepEqual(await listFiles(join(directory, "package/templates/workflow/.github")), sourceFiles);
+  assert.deepEqual(await listFiles(join(consumer, ".github")), [...sourceFiles, "graph-engineering/installation.json"].sort());
 });
 
 test("Development migration conflicts leave the full Consumer unchanged", async (t) => {

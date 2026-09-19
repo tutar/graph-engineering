@@ -1,5 +1,7 @@
 # github-pr-review v0.1.1 Consumer validation
 
+> 归档：此文件只保留历史事实，不属于当前工作流的发布或验收流程。
+
 ## Frozen combination
 
 | Field | Value |

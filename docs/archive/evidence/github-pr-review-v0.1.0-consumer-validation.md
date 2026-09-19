@@ -1,5 +1,7 @@
 # github-pr-review v0.1.0 Consumer Validation Evidence Manifest
 
+> 归档：此文件只保留历史事实，不属于当前工作流的发布或验收流程。
+
 - Status: in progress; Candidate remains without a Stable Supported Profile.
 - Consumer Project: [`nian1123/loop-engineering-consumer-validation`](https://github.com/nian1123/loop-engineering-consumer-validation)
 - Consumer baseline: [`5234bc345ac76077ea3b21141f21a3d29e445ed4`](https://github.com/nian1123/loop-engineering-consumer-validation/commit/5234bc345ac76077ea3b21141f21a3d29e445ed4)

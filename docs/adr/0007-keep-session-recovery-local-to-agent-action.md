@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0009
 ---
 
 # 将会话恢复限定为 Agent Action 的本地执行能力

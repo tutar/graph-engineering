@@ -1,5 +1,7 @@
 # github-coding-task v0.1.1 Consumer Evidence Bundle 9
 
+> 归档：此文件只保留历史事实，不属于当前工作流的发布或验收流程。
+
 - Evaluated: 2026-09-18 (Asia/Shanghai).
 - Gate Decision: COMPLETE for Qualification Evidence only — bounded exhaustion and zero-model same-Run recovery pass; completion cases remain `NOT_RUN`.
 - Definition remains Candidate; no Stable Supported Profile.

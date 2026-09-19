@@ -6,10 +6,9 @@ const workflow = readFileSync(
   new URL("../.github/workflows/github-coding-task.yml", import.meta.url),
   "utf8",
 );
-const delivery = JSON.parse(readFileSync(new URL("../../delivery/definitions.json", import.meta.url), "utf8"));
 const control = readFileSync(new URL("../.github/graph-engineering/coding-task-control.mjs", import.meta.url), "utf8");
-const task = delivery.currentTasks.find(({ name }) => name === "coding");
-const profile = task.compatibilityProfile;
+const actionRevision = "9405141578057eb1dca78f927b10f6c3cf3a79a4";
+const codexCli = "0.153.4";
 
 test("Coding Task has distinct label admission, manual input and Issue concurrency", () => {
   assert.match(workflow, /issues:\n\s+types: \[labeled\]/);
@@ -21,12 +20,12 @@ test("Coding Task has distinct label admission, manual input and Issue concurren
   assert.match(workflow, /cancel-in-progress: false/);
 });
 
-test("Codex Executor statically binds the public Compatibility Profile", () => {
+test("current Codex Executor remains pinned until the Coding Task migration", () => {
   const calls = [...workflow.matchAll(/uses:\s+tutar\/codex-action@([^\s#]+)/g)];
   assert.equal(calls.length, 2);
-  assert.deepEqual(calls.map((match) => match[1]), [profile.actionRevision, profile.actionRevision]);
-  assert.match(workflow, new RegExp(`codex-version:\\s*${profile.codexCli.replaceAll(".", "\\.")}`));
-  assert.match(workflow, new RegExp(`permission-profile:\\s*${profile.permissionProfile}`));
+  assert.deepEqual(calls.map((match) => match[1]), [actionRevision, actionRevision]);
+  assert.match(workflow, new RegExp(`codex-version:\\s*${codexCli.replaceAll(".", "\\.")}`));
+  assert.match(workflow, /permission-profile:\s*:workspace/);
   assert.match(workflow, /runs-on:\s*\[self-hosted, Linux, X64, graph-engineering-coding\]/);
   assert.doesNotMatch(workflow, /safety-strategy:\s*unsafe/);
   assert.match(workflow, /task-id:\s*coding/);
@@ -58,8 +57,8 @@ test("Agent result, machine execution and delivery facts stay separate", () => {
     assert.match(workflow, new RegExp(`steps\\.codex\\.outputs\\['${output}'\\]`));
   }
   assert.doesNotMatch(workflow, /steps\.codex\.outputs\.[a-z]+-[a-z-]+/);
-  assert.equal(profile.tokenBudget, "400000");
-  assert.equal(profile.tokenBudgetCapability, "app-server-goal");
+  assert.match(workflow, /default:\s*"400000"/);
+  assert.match(workflow, /token-budget-capability:\s*app-server-goal/);
 });
 
 test("delivery checks are exactly the four deterministic invariants", () => {
