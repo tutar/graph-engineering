@@ -65,6 +65,7 @@ lines.on("line", (line) => {
   } else if (message.method === "account/login/start") {
     send({ id: message.id, result: { type: "apiKey" } });
   } else if (message.method === "thread/start") {
+    if (scenario === "clean-exit") process.exit(0);
     send({ id: message.id, result: { thread: { id: "thread-1", sessionId: "thread-1" } } });
   } else if (message.method === "thread/goal/set") {
     goalCount += 1;

@@ -28,9 +28,7 @@ export class AppServerClient {
     stderr.on("line", (line) => this.#diagnostic(line));
     this.#child.once("error", (error) => this.#rejectAll(error));
     this.#child.once("exit", (code, signal) => {
-      if (code !== 0 || signal) {
-        this.#rejectAll(new Error(`Codex App Server exited (${signal ?? code})`));
-      }
+      this.#rejectAll(new Error(`Codex App Server exited (${signal ?? code})`));
     });
   }
 

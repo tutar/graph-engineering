@@ -344,6 +344,13 @@ test("App Server exceptions produce explicit structured failure outputs", async 
   assert.match(outputs["final-message"], /fixture App Server failure/);
 });
 
+test("clean App Server exit while a request is pending cannot deadlock", async (t) => {
+  const { process: failed, outputs } = await invokeAction(t, "clean-exit");
+  assert.equal(failed.status, 1);
+  assert.equal(outputs["work-goal-status"], "failed");
+  assert.match(outputs["final-message"], /Codex App Server exited \(0\)/);
+});
+
 test("invalid public inputs fail closed before App Server startup", async (t) => {
   for (const overrides of [
     { prompt: "" },
