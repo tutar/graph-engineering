@@ -85,7 +85,10 @@ export async function runAgentAction({
     if (!new Set(["blocked", "budgetLimited"]).has(work.status)) return result;
 
     try {
-      const handoffTokenCeiling = budget.total ?? work.tokensUsed + budget.handoff;
+      const requestedHandoffCeiling = work.tokensUsed + budget.handoff;
+      const handoffTokenCeiling = budget.total === null
+        ? requestedHandoffCeiling
+        : Math.min(budget.total, requestedHandoffCeiling);
       if (!Number.isSafeInteger(handoffTokenCeiling) || handoffTokenCeiling <= work.tokensUsed) {
         throw new Error("Runtime-reported token usage cannot form a safe Handoff budget ceiling");
       }
