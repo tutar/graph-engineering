@@ -22,7 +22,7 @@ test("Coding Task admits labeled and manual Issue invocations with Issue concurr
   assert.match(workflow, /state.*== "OPEN"/);
   assert.match(workflow, /group: github-coding-task-/);
   assert.match(workflow, /cancel-in-progress: false/);
-  assert.match(workflow, /token_budget:[\s\S]*?default:\s*"30000"/);
+  assert.match(workflow, /token_budget:[\s\S]*?default:\s*"100000"/);
   assert.match(workflow, /integer greater than 20000 or unlimited/);
 });
 
@@ -107,7 +107,7 @@ test("finite and unlimited total budgets are validated and forwarded to the Acti
   assert.match(validation, /\^\[1-9\]\[0-9\]\*\$/);
   assert.match(validation, /Number\.isSafeInteger\(total\)/);
   assert.match(validation, /total > 20000/);
-  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:.*inputs\.token_budget.*'30000'/);
+  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:.*inputs\.token_budget.*'100000'/);
   assert.match(workflow, /token-budget:\s*\$\{\{ env\.TOKEN_BUDGET_REQUESTED \}\}/);
 });
 
