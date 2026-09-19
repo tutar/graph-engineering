@@ -6,90 +6,84 @@ const workflow = readFileSync(
   new URL("../.github/workflows/github-coding-task.yml", import.meta.url),
   "utf8",
 );
-const control = readFileSync(new URL("../.github/graph-engineering/coding-task-control.mjs", import.meta.url), "utf8");
-const actionRevision = "9405141578057eb1dca78f927b10f6c3cf3a79a4";
-const codexCli = "0.153.4";
 
-test("Coding Task has distinct label admission, manual input and Issue concurrency", () => {
+test("Coding Task admits labeled and manual Issue invocations with Issue concurrency", () => {
   assert.match(workflow, /issues:\n\s+types: \[labeled\]/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /github\.event\.label\.name == 'coding-ticket'/);
   assert.match(workflow, /any\(\.labels\[\]; \.name == "ready-for-agent"\)/);
   assert.match(workflow, /any\(\.labels\[\]; \.name == "coding-ticket"\)/);
+  assert.match(workflow, /state.*== "OPEN"/);
   assert.match(workflow, /group: github-coding-task-/);
   assert.match(workflow, /cancel-in-progress: false/);
-});
-
-test("current Codex Executor remains pinned until the Coding Task migration", () => {
-  const calls = [...workflow.matchAll(/uses:\s+tutar\/codex-action@([^\s#]+)/g)];
-  assert.equal(calls.length, 2);
-  assert.deepEqual(calls.map((match) => match[1]), [actionRevision, actionRevision]);
-  assert.match(workflow, new RegExp(`codex-version:\\s*${codexCli.replaceAll(".", "\\.")}`));
-  assert.match(workflow, /permission-profile:\s*:workspace/);
-  assert.match(workflow, /runs-on:\s*\[self-hosted, Linux, X64, graph-engineering-coding\]/);
-  assert.doesNotMatch(workflow, /safety-strategy:\s*unsafe/);
-  assert.match(workflow, /task-id:\s*coding/);
-  assert.match(workflow, /task-phase:\s*prepare/);
-  assert.equal([...workflow.matchAll(/task-state-root:\s*\$\{\{ runner\.tool_cache \}\}\/graph-engineering\/codex-task-state/g)].length, 2);
-  assert.doesNotMatch(workflow.match(/jobs:[\s\S]*?steps:/)?.[0] ?? "", /runner\.tool_cache/);
-  const executor = workflow.match(/- name: Start or resume Codex Executor([\s\S]*?)(?=\n\s+- name: Classify structured Agent result)/)?.[1] ?? "";
-  assert.doesNotMatch(executor, /working-directory:/);
-  assert.match(workflow, /output-schema:/);
-  assert.match(workflow, /status.*completed.*blocked/s);
   assert.match(workflow, /token_budget:[\s\S]*?default:\s*"400000"/);
-  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:\s*\$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.token_budget \|\| '400000' \}\}/);
-  assert.match(workflow, /token-budget:\s*\$\{\{ env\.TOKEN_BUDGET_REQUESTED \}\}/);
-  assert.match(workflow, /token-budget-capability:\s*app-server-goal/);
-  assert.match(workflow, /token-budget-override:\s*\$\{\{ vars\[format\('GE_CODING_BUDGET_RUN_\{0\}', github\.run_id\)\] \}\}/);
+  assert.match(workflow, /positive integer or unlimited/);
 });
 
-test("Agent result, machine execution and delivery facts stay separate", () => {
-  assert.match(workflow, /id:\s*codex/);
-  assert.match(workflow, /id:\s*agent_result/);
-  assert.match(workflow, /id:\s*delivery_result/);
-  assert.match(workflow, /steps\.codex\.outcome/);
-  assert.match(workflow, /steps\.agent_result\.outputs\.status/);
-  assert.match(workflow, /steps\.delivery_result\.outputs\.state/);
-  assert.match(control, /return "not-run"/);
-  assert.match(control, /return checksOutcome === "success" \? "passed" : "failed"/);
-  assert.match(control, /Delivery facts:/);
-  for (const output of ["machine-execution-state", "final-message", "token-budget-capability", "token-budget-state", "token-budget-limit", "token-budget-used", "token-budget-exhausted"]) {
-    assert.match(workflow, new RegExp(`steps\\.codex\\.outputs\\['${output}'\\]`));
-  }
-  assert.doesNotMatch(workflow, /steps\.codex\.outputs\.[a-z]+-[a-z-]+/);
-  assert.match(workflow, /default:\s*"400000"/);
-  assert.match(workflow, /token-budget-capability:\s*app-server-goal/);
+test("Workflow prepares only the caller workspace and invokes the project-owned Action", () => {
+  assert.match(workflow, /actions\/checkout@11d5960a326750d5838078e36cf38b85af677262/);
+  assert.match(workflow, /ref:\s*\$\{\{ env\.BASE_BRANCH \}\}/);
+  assert.match(workflow, /fetch-depth:\s*0/);
+  assert.match(workflow, /git config user\.name/);
+  assert.match(workflow, /git config user\.email/);
+  assert.match(workflow, /uses:\s*\.\/\.github\/actions\/codex-goal/);
+  assert.match(workflow, /working-directory:\s*\$\{\{ github\.workspace \}\}/);
+  assert.match(workflow, /codex-version:\s*0\.153\.4/);
+  assert.match(workflow, /permission-profile:\s*:workspace/);
+  assert.doesNotMatch(workflow, /tutar\/codex-action/);
+  assert.doesNotMatch(workflow, /task-state-root|task-workspace|task-id|task-phase/);
+  assert.doesNotMatch(workflow, /Prepare coding branch|TARGET_BRANCH|runner\.tool_cache/);
 });
 
-test("delivery checks are exactly the four deterministic invariants", () => {
-  const section = workflow.match(/- name: Verify Coding Task delivery([\s\S]*?)(?=\n\s+- name:)/)?.[1] ?? "";
-  assert.match(section, /coding-task-control\.mjs" verify-delivery/);
-  assert.match(control, /\["status", "--porcelain"\]/);
-  assert.match(control, /\["rev-list", "--count"/);
-  assert.match(control, /\["ls-remote", "origin"/);
-  assert.match(control, /"pr", "list"/);
-  assert.match(control, /pulls\[0\]\.isDraft/);
+test("Work and Handoff prompts assign delivery and preservation responsibilities", () => {
+  assert.match(workflow, /使用 \$implement 完成 Issue/);
+  assert.match(workflow, /读取 Issue、评论、远端分支和现有 PR/);
+  assert.match(workflow, /仅勾选已有证据证明满足的项目/);
+  assert.match(workflow, /提交并 push 代码/);
+  assert.match(workflow, /创建或更新 Draft PR/);
+  assert.match(workflow, /停止继续实现/);
+  assert.match(workflow, /检查当前 workspace、分支和未提交修改/);
+  assert.match(workflow, /不得创建完成用 Draft PR/);
+  assert.match(workflow, /不得把未完成验收项勾选为完成/);
 });
 
-test("success deletes the task repository and labels; non-success preserves it and releases in-progress", () => {
-  assert.match(workflow, /Delete successful Task Repository/);
+test("Goal terminal state alone maps the Job and label lifecycle", () => {
+  assert.match(workflow, /--add-label in-progress/);
+  assert.match(workflow, /steps\.codex\.outputs\['work-goal-status'\] == 'complete'/);
   assert.match(workflow, /--remove-label coding-ticket/);
-  assert.match(workflow, /if:\s*always\(\)/);
-  assert.match(control, /"--add-label", "coding-ticket"/);
   assert.match(workflow, /--remove-label in-progress/);
+  assert.match(workflow, /if:\s*always\(\)/);
   assert.doesNotMatch(workflow, /--remove-label ready-for-agent/);
+  assert.doesNotMatch(workflow, /verify-delivery|delivery_result|Delete successful Task Repository/);
+  assert.doesNotMatch(workflow, /git status --porcelain|git ls-remote|gh pr list/);
+  assert.doesNotMatch(workflow, /timeout-minutes|soft.deadline/i);
 });
 
-test("permissions and fail-closed cleanup are explicit", () => {
+test("a queued duplicate skips Codex when admission is no longer current", () => {
+  assert.match(workflow, /id:\s*admission/);
+  assert.match(workflow, /eligible=false/);
+  assert.match(workflow, /if:\s*steps\.admission\.outputs\.eligible == 'true'/);
+  const admission = workflow.match(/- name: Check current Coding Ticket admission([\s\S]*?)(?=\n\s+- name:)/)?.[1] ?? "";
+  assert.doesNotMatch(admission, /in-progress/);
+});
+
+test("blocked, budget-limited and execution failures preserve coding-ticket and fail the Job", () => {
+  assert.match(workflow, /id:\s*codex[\s\S]*?continue-on-error:\s*true/);
+  const release = workflow.match(/- name: Release incomplete Coding Ticket([\s\S]*?)(?=\n\s+- name:)/)?.[1] ?? "";
+  assert.match(release, /always\(\)/);
+  assert.match(release, /steps\.claim\.outcome == 'success'/);
+  assert.match(release, /--remove-label in-progress/);
+  assert.doesNotMatch(release, /--remove-label coding-ticket/);
+  const conclusion = workflow.match(/- name: Conclude Coding Task([\s\S]*)/)?.[1] ?? "";
+  assert.match(conclusion, /steps\.codex\.outcome/);
+  assert.match(conclusion, /work-goal-status/);
+  assert.match(conclusion, /complete_labels\.outcome/);
+});
+
+test("permissions are explicit and external Actions use immutable revisions", () => {
   assert.match(workflow, /permissions:\n\s+contents: write\n\s+issues: write\n\s+pull-requests: write/);
-  assert.match(workflow, /id:\s*label_cleanup\n\s+continue-on-error: true/);
-  assert.match(workflow, /id:\s*repository_cleanup\n\s+continue-on-error: true/);
-  assert.match(workflow, /steps\.label_cleanup\.outcome/);
-  assert.match(workflow, /steps\.repository_cleanup\.outcome/);
-});
-
-test("all third-party Actions use immutable revisions", () => {
   for (const reference of workflow.matchAll(/uses:\s+([^\s#]+)/g)) {
+    if (reference[1].startsWith("./")) continue;
     assert.match(reference[1], /@[0-9a-f]{40}$/);
   }
 });

@@ -1,6 +1,6 @@
 # Coding Task 直接 dogfooding 设计
 
-状态：设计已确认，尚未实现。
+状态：已确认并由 Issue #80 实现。
 
 ## 目标
 
