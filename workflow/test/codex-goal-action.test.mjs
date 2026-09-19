@@ -73,11 +73,13 @@ async function invokeAction(t, scenario, overrides = {}) {
   const bin = join(root, "bin");
   await mkdir(bin);
   const codex = join(bin, "codex");
+  const argsFile = join(root, "codex-args.txt");
   await writeFile(codex, `#!/bin/sh
 if [ "$1" = "--version" ]; then
   printf 'codex-cli 0.153.4\\n'
   exit 0
 fi
+printf '%s\\n' "$@" > "$FAKE_CODEX_ARGS"
 exec "${process.execPath}" "${fakeAppServer}"
 `);
   await chmod(codex, 0o755);
@@ -95,13 +97,18 @@ exec "${process.execPath}" "${fakeAppServer}"
       "INPUT_TOKEN-BUDGET": overrides.tokenBudget ?? "400000",
       "INPUT_HANDOFF-PROMPT": overrides.handoffPrompt ?? "handoff objective",
       "INPUT_CODEX-VERSION": overrides.codexVersion ?? "0.153.4",
-      "INPUT_PERMISSION-PROFILE": overrides.permissionProfile ?? ":workspace",
+      "INPUT_PERMISSION-PROFILE": overrides.permissionProfile ?? "graph-engineering-delivery",
+      FAKE_CODEX_ARGS: argsFile,
       FAKE_SCENARIO: scenario,
       FAKE_TRANSCRIPT: join(root, "transcript.jsonl"),
       FAKE_CLEANUP: join(root, "cleanup.txt"),
     },
   });
-  return { process: result, outputs: actionOutputs(await readFile(output, "utf8")) };
+  return {
+    process: result,
+    outputs: actionOutputs(await readFile(output, "utf8")),
+    codexArgs: await readFile(argsFile, "utf8").catch(() => ""),
+  };
 }
 
 test("finite token budgets reserve exactly 20,000 tokens for Handoff", () => {
@@ -322,9 +329,14 @@ test("cleanup escalates from graceful close to SIGKILL for a stubborn App Server
   assert.ok(Date.now() - started < 4_000);
 });
 
-test("public Action entrypoint succeeds only for Work complete", async (t) => {
-  const { process: completed, outputs } = await invokeAction(t, "work-complete");
+test("public Action entrypoint configures bounded Git delivery and succeeds only for Work complete", async (t) => {
+  const { process: completed, outputs, codexArgs } = await invokeAction(t, "work-complete");
   assert.equal(completed.status, 0, completed.stderr);
+  assert.match(codexArgs, /permissions\.graph-engineering-delivery=/);
+  assert.match(codexArgs, /":workspace_roots"/);
+  assert.match(codexArgs, /"\.git" = "write"/);
+  assert.match(codexArgs, /network = \{ enabled = true \}/);
+  assert.match(codexArgs, /default_permissions="graph-engineering-delivery"/);
   assert.equal(outputs["work-goal-status"], "complete");
   assert.equal(outputs["handoff-goal-status"], "not-started");
   assert.equal(outputs["final-message"], "work finished");

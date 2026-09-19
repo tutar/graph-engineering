@@ -14,6 +14,9 @@ const OUTPUT_NAMES = {
   finalMessage: "final-message",
 };
 
+const DELIVERY_PERMISSION_PROFILE = "graph-engineering-delivery";
+const DELIVERY_PERMISSION_CONFIG = `permissions.${DELIVERY_PERMISSION_PROFILE}={ extends = ":workspace", filesystem = { ":workspace_roots" = { ".git" = "write" } }, network = { enabled = true } }`;
+
 function input(env, name) {
   return env[`INPUT_${name.toUpperCase()}`] ?? "";
 }
@@ -54,6 +57,15 @@ async function writeOutputs(path, result) {
   await appendFile(path, text, { encoding: "utf8", mode: 0o600 });
 }
 
+function appServerArgs(permissionProfile) {
+  const args = ["app-server", "--stdio"];
+  if (permissionProfile === DELIVERY_PERMISSION_PROFILE) {
+    args.push("-c", DELIVERY_PERMISSION_CONFIG);
+  }
+  args.push("-c", `default_permissions=${JSON.stringify(permissionProfile)}`);
+  return args;
+}
+
 export async function executeAction(env = process.env) {
   let tokenBudgetState = "invalid";
   try {
@@ -66,12 +78,7 @@ export async function executeAction(env = process.env) {
     });
     const result = await runAgentAction({
       command: codex,
-      args: [
-        "app-server",
-        "--stdio",
-        "-c",
-        `default_permissions=${JSON.stringify(configuration.permissionProfile)}`,
-      ],
+      args: appServerArgs(configuration.permissionProfile),
       env,
       workingDirectory: configuration.workingDirectory,
       prompt: configuration.prompt,

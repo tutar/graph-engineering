@@ -37,7 +37,7 @@ test("Workflow prepares only the caller workspace and invokes the project-owned 
   assert.match(workflow, /uses:\s*\.\/\.github\/actions\/codex-goal/);
   assert.match(workflow, /working-directory:\s*\$\{\{ github\.workspace \}\}/);
   assert.match(workflow, /codex-version:\s*0\.153\.4/);
-  assert.match(workflow, /permission-profile:\s*:workspace/);
+  assert.match(workflow, /permission-profile:\s*graph-engineering-delivery/);
   assert.doesNotMatch(workflow, /tutar\/codex-action/);
   assert.doesNotMatch(workflow, /task-state-root|task-workspace|task-id|task-phase/);
   assert.doesNotMatch(workflow, /Prepare coding branch|TARGET_BRANCH|runner\.tool_cache/);
