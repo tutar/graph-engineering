@@ -65,7 +65,7 @@ Handoff 不扩大实现范围，也不触发第二次 Handoff。它保存所有�
 
 ## Budget 与终态
 
-- 默认总预算为 400,000 tokens。
+- 默认总预算为 30,000 tokens。
 - 固定 Handoff 预算为 20,000 tokens，不允许调用者修改。
 - 有限总预算必须大于 20,000；Work Goal 使用 `total - 20,000`。
 - `unlimited` 只让 Work Goal 不受有限预算约束；Work Goal blocked 后的 Handoff 仍固定为 20,000。
@@ -90,7 +90,7 @@ Action 不从 final message 解析关键字，也不因 Handoff 启动成功而�
 with:
   working-directory: ${{ github.workspace }}
   prompt: <work goal objective>
-  token-budget: 400000 # 或 unlimited
+  token-budget: 30000 # 或 unlimited
   handoff-prompt: <handoff goal objective>
   codex-version: <固定版本>
   permission-profile: :workspace
