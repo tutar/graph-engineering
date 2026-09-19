@@ -75,16 +75,16 @@ export async function checkWorkflow({ projectRoot = process.cwd() } = {}) {
     }
     const runners = command("gh", ["api", `repos/${nameWithOwner}/actions/runners`, "--paginate", "--slurp"], projectRoot);
     if (runners.status !== 0) {
-      results.push(result("UNVERIFIED", "runner-labels", "Unable to inspect repository runners; confirm [self-hosted, Linux, X64, codex] in GitHub Settings."));
+      results.push(result("UNVERIFIED", "runner-labels", "Unable to inspect repository runners; confirm [self-hosted, Linux, X64] in GitHub Settings."));
     } else {
-      const expected = ["self-hosted", "Linux", "X64", "codex"];
+      const expected = ["self-hosted", "Linux", "X64"];
       const compatible = JSON.parse(runners.stdout).flatMap(({ runners }) => runners ?? []).some(({ labels }) => {
         const names = new Set(labels.map(({ name }) => name));
         return expected.every((label) => names.has(label));
       });
       results.push(compatible
-        ? result("PASS", "runner-labels", "A runner exposes [self-hosted, Linux, X64, codex].")
-        : result("ACTION REQUIRED", "runner-labels", "Register a dedicated runner with [self-hosted, Linux, X64, codex]."));
+        ? result("PASS", "runner-labels", "A runner exposes [self-hosted, Linux, X64].")
+        : result("ACTION REQUIRED", "runner-labels", "Register a runner with [self-hosted, Linux, X64]."));
     }
     results.push(result("UNVERIFIED", "codex-runner-login", "Confirm that the Actions service user is logged in to Codex on the selected runner."));
     if (Object.keys(TASKS).length > 0) {
