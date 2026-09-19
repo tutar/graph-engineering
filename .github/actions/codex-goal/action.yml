@@ -1,0 +1,41 @@
+name: Codex Goal
+description: Run one Codex Work Goal and, when blocked or budget-limited, one bounded Handoff Goal.
+
+inputs:
+  working-directory:
+    description: Absolute path of the caller-prepared workspace.
+    required: true
+  prompt:
+    description: Objective for the Work Goal.
+    required: true
+  token-budget:
+    description: Total finite budget or unlimited; finite totals reserve 20,000 tokens for Handoff.
+    required: false
+    default: "400000"
+  handoff-prompt:
+    description: Objective for the single Handoff Goal.
+    required: true
+  codex-version:
+    description: Exact Codex CLI semantic version.
+    required: true
+  permission-profile:
+    description: Codex permission profile selected for the new Session.
+    required: true
+
+outputs:
+  work-goal-status:
+    description: Terminal Work Goal status, or failed when setup or App Server execution fails.
+  handoff-goal-status:
+    description: Handoff terminal status, failed, or not-started.
+  token-budget-state:
+    description: finite, unlimited, or invalid.
+  work-tokens-used:
+    description: Runtime-reported Work Goal token usage.
+  handoff-tokens-used:
+    description: Runtime-reported Handoff Goal token usage.
+  final-message:
+    description: Last Agent message or a sanitized execution error.
+
+runs:
+  using: node24
+  main: index.mjs

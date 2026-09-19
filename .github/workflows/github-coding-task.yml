@@ -1,0 +1,150 @@
+name: Graph Engineering - GitHub Coding Task
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to start
+        required: true
+        type: number
+      token_budget:
+        description: Total Runtime Token Budget (integer greater than 20000 or unlimited)
+        required: false
+        default: "400000"
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: github-coding-task-${{ github.repository }}-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  coding:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'coding-ticket')
+    runs-on: [self-hosted, Linux, X64, graph-engineering-coding]
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+      BASE_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
+      TOKEN_BUDGET_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.token_budget || '400000' }}
+    steps:
+      - name: Validate Runtime Token Budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! node -e '
+            const value = process.env.TOKEN_BUDGET_REQUESTED;
+            const total = Number(value);
+            const valid = value === "unlimited" ||
+              (/^[1-9][0-9]*$/.test(value) && Number.isSafeInteger(total) && total > 20000);
+            if (!valid) process.exit(1);
+          '; then
+            echo "token_budget must be an integer greater than 20000 or unlimited" >&2
+            exit 1
+          fi
+
+      - name: Check current Coding Ticket admission
+        id: admission
+        shell: bash
+        run: |
+          set -euo pipefail
+          issue="$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json state,labels)"
+          state="$(jq -r '.state' <<<"${issue}")"
+          ready="$(jq -r 'any(.labels[]; .name == "ready-for-agent")' <<<"${issue}")"
+          coding="$(jq -r 'any(.labels[]; .name == "coding-ticket")' <<<"${issue}")"
+          if [[ "${state}" == "OPEN" && "${ready}" == "true" && "${coding}" == "true" ]]; then
+            echo "eligible=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "eligible=false" >> "${GITHUB_OUTPUT}"
+            echo "Skipping stale or ineligible Coding Ticket invocation."
+          fi
+
+      - name: Check out default branch
+        if: steps.admission.outputs.eligible == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        if: steps.admission.outputs.eligible == 'true'
+        shell: bash
+        run: |
+          git config user.name "codex[bot]"
+          git config user.email "codex[bot]@users.noreply.github.com"
+
+      - name: Mark Ticket in progress
+        id: claim
+        if: steps.admission.outputs.eligible == 'true'
+        shell: bash
+        run: gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --add-label in-progress
+
+      - name: Run fresh Codex Work Goal
+        id: codex
+        if: steps.admission.outputs.eligible == 'true'
+        continue-on-error: true
+        uses: ./.github/actions/codex-goal
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        with:
+          working-directory: ${{ github.workspace }}
+          codex-version: 0.153.4
+          permission-profile: :workspace
+          token-budget: ${{ env.TOKEN_BUDGET_REQUESTED }}
+          prompt: >-
+            使用 $implement 完成并交付 Issue
+            https://github.com/${{ github.repository }}/issues/${{ env.ISSUE_NUMBER }}。
+            读取 Issue、评论、远端分支和现有 PR，确定工作起点；
+            优先恢复关联本 Issue 的 Draft PR 或远端工作分支，没有关联工作时创建工作分支。
+            以可验证增量推进，及时 commit、push，并创建或更新 Draft PR。
+            仅勾选有直接证据证明满足的 Acceptance Criteria。
+            完成条件：实现与验证结束，已有证据已同步，代码已 push，Draft PR 已创建或更新。
+          handoff-prompt: >-
+            停止扩大实现范围。目标是把当前现场持久化为后续 Session 可恢复的工作起点。
+            检查 workspace、分支、远端分支和现有 PR，恢复或创建本 Issue 的工作分支。
+            保存所有与本 Issue 有关且可合法提交的修改，包括未完成、验证失败和尚未验证的工作，
+            然后 commit、push；有远端 diff 时复用或创建关联本 Issue、明确标记未完成的 Draft PR。
+            无法可靠确定唯一工作起点时，保留所有候选工作并报告阻塞。
+            仅同步直接证据支持的事实，保持未满足的验收项为未完成。
+            完成条件：所有可保存修改均已 push；对应 Draft PR 已存在，或当前没有可形成 PR 的 diff。
+
+      - name: Mark Coding Ticket complete
+        id: complete_labels
+        if: steps.codex.outcome == 'success' && steps.codex.outputs['work-goal-status'] == 'complete'
+        continue-on-error: true
+        shell: bash
+        run: |
+          gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" \
+            --remove-label coding-ticket \
+            --remove-label in-progress
+
+      - name: Release incomplete Coding Ticket
+        id: release_label
+        if: >-
+          always() &&
+          steps.admission.outputs.eligible == 'true' &&
+          steps.claim.outcome == 'success' &&
+          !(steps.codex.outcome == 'success' && steps.codex.outputs['work-goal-status'] == 'complete')
+        continue-on-error: true
+        shell: bash
+        run: gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --remove-label in-progress
+
+      - name: Conclude Coding Task
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.admission.outputs.eligible }}" != "true" ]]; then
+            exit 0
+          fi
+          test "${{ steps.codex.outcome }}" = success
+          test "${{ steps.codex.outputs['work-goal-status'] }}" = complete
+          test "${{ steps.complete_labels.outcome }}" = success

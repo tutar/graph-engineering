@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 3,
+  "product": "@tutar/graph-engineering",
+  "productVersion": "0.3.1",
+  "sourceCommit": "62aaefd83107141ad77e6d0c583ba3a3bed88766",
+  "delivery": "workflow",
+  "files": [
+    ".github/actions/codex-goal/README.md",
+    ".github/actions/codex-goal/action.yml",
+    ".github/actions/codex-goal/index.mjs",
+    ".github/actions/codex-goal/lib/app-server.mjs",
+    ".github/actions/codex-goal/lib/budget.mjs",
+    ".github/actions/codex-goal/lib/goal-status.mjs",
+    ".github/actions/codex-goal/lib/prepare-cli.mjs",
+    ".github/actions/codex-goal/lib/run.mjs",
+    ".github/graph-engineering/development-worktree.sh",
+    ".github/workflows/github-coding-task.yml",
+    ".github/workflows/github-development-ticket.yml"
+  ],
+  "tasks": [
+    "coding",
+    "development"
+  ]
+}
