@@ -40,16 +40,26 @@ test("Workflow prepares only the caller workspace and invokes the project-owned 
 });
 
 test("Work and Handoff prompts assign delivery and preservation responsibilities", () => {
-  assert.match(workflow, /使用 \$implement 完成 Issue/);
-  assert.match(workflow, /读取 Issue、评论、远端分支和现有 PR/);
-  assert.match(workflow, /仅勾选已有证据证明满足的项目/);
-  assert.match(workflow, /提交并 push 代码/);
-  assert.match(workflow, /创建或更新 Draft PR/);
-  assert.match(workflow, /停止继续实现/);
-  assert.match(workflow, /检查当前 workspace、分支和未提交修改/);
-  assert.match(workflow, /不得创建完成用 Draft PR/);
-  assert.match(workflow, /不得把未完成验收项勾选为完成/);
-  assert.match(workflow, /不得更新 Issue 进展或评论/);
+  assert.match(workflow, /使用 \$implement 完成并交付 Issue/);
+  assert.match(workflow, /读取 Issue、评论、远端分支和现有 PR，确定工作起点/);
+  assert.match(workflow, /优先恢复关联本 Issue 的 Draft PR 或远端工作分支/);
+  assert.match(workflow, /以可验证增量推进/);
+  assert.match(workflow, /及时 commit、push，并创建或更新 Draft PR/);
+  assert.match(workflow, /仅勾选有直接证据证明满足的 Acceptance Criteria/);
+  assert.match(workflow, /完成条件：实现与验证结束，已有证据已同步，代码已 push，Draft PR 已创建或更新/);
+  assert.match(workflow, /目标是把当前现场持久化为后续 Session 可恢复的工作起点/);
+  assert.match(workflow, /检查 workspace、分支、远端分支和现有 PR/);
+  assert.match(workflow, /恢复或创建本 Issue 的工作分支/);
+  assert.match(workflow, /保留所有候选工作并报告阻塞/);
+  assert.match(workflow, /所有与本 Issue 有关且可合法提交的修改/);
+  assert.match(workflow, /未完成、验证失败和尚未验证的工作/);
+  assert.match(workflow, /有远端 diff 时复用或创建关联本 Issue、明确标记未完成的 Draft PR/);
+  assert.match(workflow, /仅同步直接证据支持的事实/);
+  assert.match(workflow, /保持未满足的验收项为未完成/);
+  assert.match(workflow, /完成条件：所有可保存修改均已 push/);
+  assert.match(workflow, /对应 Draft PR 已存在，或当前没有可形成 PR 的 diff/);
+  assert.doesNotMatch(workflow, /不得创建完成用 Draft PR/);
+  assert.doesNotMatch(workflow, /只有实现、测试、code review、commit、push/);
 });
 
 test("Goal terminal state alone maps the Job and label lifecycle", () => {

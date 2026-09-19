@@ -41,24 +41,27 @@ App Server 客户端使用 `thread/goal/set`，objective 不包含 TUI 命令 `/
 ### Work Goal objective
 
 ```text
-使用 $implement 完成 Issue #N。
-读取 Issue、评论、远端分支和现有 PR，定位当前状态。
-实现并验证 Acceptance Criteria；仅勾选已有证据证明满足的项目。
-提交并 push 代码；完成后创建或更新 Draft PR。
+使用 $implement 完成并交付 Issue #N。
+读取 Issue、评论、远端分支和现有 PR，确定工作起点；优先恢复关联本 Issue 的 Draft PR 或远端工作分支，没有关联工作时创建工作分支。
+以可验证增量推进，及时 commit、push，并创建或更新 Draft PR。
+仅勾选有直接证据证明满足的 Acceptance Criteria。
+完成条件：实现与验证结束，已有证据已同步，代码已 push，Draft PR 已创建或更新。
 ```
 
-只有实现、测试、code review、commit、push、适用的验收项更新和 Draft PR 都完成后，Coding Agent 才能把 Work Goal 标记为 `complete`。
+Work Goal 通过增量保存与交付已有工作降低新 Session 重复实现的风险，但不规定分支名、提交粒度、测试顺序或具体 Git 操作。
 
 ### Handoff Goal objective
 
 ```text
-停止继续实现。
-检查当前 workspace、分支和未提交修改。
-提交适合保存的未完成代码并 push。
-不得创建完成用 Draft PR，不得把未完成验收项勾选为完成。
+停止扩大实现范围。目标是把当前现场持久化为后续 Session 可恢复的工作起点。
+检查 workspace、分支、远端分支和现有 PR，恢复或创建本 Issue 的工作分支。
+保存所有与本 Issue 有关且可合法提交的修改，包括未完成、验证失败和尚未验证的工作，然后 commit、push；有远端 diff 时复用或创建关联本 Issue、明确标记未完成的 Draft PR。
+无法可靠确定唯一工作起点时，保留所有候选工作并报告阻塞。
+仅同步直接证据支持的事实，保持未满足的验收项为未完成。
+完成条件：所有可保存修改均已 push；对应 Draft PR 已存在，或当前没有可形成 PR 的 diff。
 ```
 
-Handoff 不更新 Issue 进展，不继续实现，也不触发第二次 Handoff。
+Handoff 不扩大实现范围，也不触发第二次 Handoff。它保存所有与 Issue 有关且可合法提交的修改，使新 Session 可以从 GitHub 持久事实恢复；Draft PR 在这里是未完成工作的接续与审核界面，不表示 Issue 已完成。
 
 ## Budget 与终态
 
