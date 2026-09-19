@@ -7,7 +7,10 @@ let goalCount = 0;
 
 appendFileSync(transcript, `${JSON.stringify({
   method: "fixture/environment",
-  params: { codexHome: process.env.CODEX_HOME ?? null },
+  params: {
+    codexHome: process.env.CODEX_HOME ?? null,
+    hasOpenAIKey: Object.hasOwn(process.env, "OPENAI_API_KEY"),
+  },
 })}\n`);
 
 function record(message) {
@@ -23,6 +26,7 @@ function send(message) {
 }
 
 function terminalGoal(status, tokensUsed, finalMessage) {
+  finalMessage = process.env.FAKE_FINAL_MESSAGE || finalMessage;
   if (finalMessage) {
     send({
       method: "item/completed",
@@ -68,7 +72,7 @@ lines.on("line", (line) => {
     if (goalCount === 1) {
       if (scenario === "app-server-failed") {
         send({ method: "error", params: { message: "fixture App Server failure" } });
-      } else if (scenario === "work-complete") terminalGoal("complete", 1234, "work finished");
+      } else if (scenario.startsWith("work-complete")) terminalGoal("complete", 1234, "work finished");
       else if (scenario.startsWith("budgetLimited-")) terminalGoal("budgetLimited", 2500, "work stopped");
       else terminalGoal("blocked", 2500, "work stopped");
     } else if (scenario.endsWith("handoff-complete")) {
@@ -84,4 +88,8 @@ lines.on("line", (line) => {
 });
 lines.on("close", () => {
   appendFileSync(process.env.FAKE_CLEANUP, "closed\n");
+  if (scenario.endsWith("stubborn-cleanup")) {
+    process.on("SIGTERM", () => {});
+    setInterval(() => {}, 1_000);
+  }
 });

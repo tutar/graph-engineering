@@ -10,8 +10,8 @@ import {
   HANDOFF_TOKEN_BUDGET,
   splitTokenBudget,
 } from "../.github/actions/codex-goal/lib/budget.mjs";
-import { runCodexGoal } from "../.github/actions/codex-goal/lib/run.mjs";
-import { prepareCodexCli } from "../.github/actions/codex-goal/lib/prepare-cli.mjs";
+import { runAgentAction } from "../.github/actions/codex-goal/lib/run.mjs";
+import { installCodexCli, prepareCodexCli } from "../.github/actions/codex-goal/lib/prepare-cli.mjs";
 
 const fakeAppServer = new URL("fixtures/fake-codex-app-server.mjs", import.meta.url).pathname;
 
@@ -20,7 +20,8 @@ async function runScenario(t, scenario, overrides = {}) {
   t.after(() => rm(root, { recursive: true, force: true }));
   const transcript = join(root, "transcript.jsonl");
   const cleanup = join(root, "cleanup.txt");
-  const result = await runCodexGoal({
+  const { env: envOverrides = {}, ...optionOverrides } = overrides;
+  const result = await runAgentAction({
     command: process.execPath,
     args: [fakeAppServer],
     env: {
@@ -28,13 +29,14 @@ async function runScenario(t, scenario, overrides = {}) {
       FAKE_SCENARIO: scenario,
       FAKE_TRANSCRIPT: transcript,
       FAKE_CLEANUP: cleanup,
+      ...envOverrides,
     },
     workingDirectory: root,
     prompt: "finish the requested work",
     handoffPrompt: "save suitable progress once",
     tokenBudget: "400000",
     permissionProfile: ":workspace",
-    ...overrides,
+    ...optionOverrides,
   });
   const messages = (await readFile(transcript, "utf8"))
     .trim()
@@ -65,7 +67,7 @@ function actionOutputs(text) {
   return result;
 }
 
-async function invokeAction(t, scenario) {
+async function invokeAction(t, scenario, overrides = {}) {
   const root = await mkdtemp(join(tmpdir(), "codex-goal-entrypoint-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const bin = join(root, "bin");
@@ -88,12 +90,12 @@ exec "${process.execPath}" "${fakeAppServer}"
       PATH: bin,
       RUNNER_TOOL_CACHE: join(root, "tool-cache"),
       GITHUB_OUTPUT: output,
-      INPUT_WORKING_DIRECTORY: root,
-      INPUT_PROMPT: "work objective",
-      INPUT_TOKEN_BUDGET: "400000",
-      INPUT_HANDOFF_PROMPT: "handoff objective",
-      INPUT_CODEX_VERSION: "0.153.4",
-      INPUT_PERMISSION_PROFILE: ":workspace",
+      INPUT_WORKING_DIRECTORY: overrides.workingDirectory ?? root,
+      INPUT_PROMPT: overrides.prompt ?? "work objective",
+      INPUT_TOKEN_BUDGET: overrides.tokenBudget ?? "400000",
+      INPUT_HANDOFF_PROMPT: overrides.handoffPrompt ?? "handoff objective",
+      INPUT_CODEX_VERSION: overrides.codexVersion ?? "0.153.4",
+      INPUT_PERMISSION_PROFILE: overrides.permissionProfile ?? ":workspace",
       FAKE_SCENARIO: scenario,
       FAKE_TRANSCRIPT: join(root, "transcript.jsonl"),
       FAKE_CLEANUP: join(root, "cleanup.txt"),
@@ -218,14 +220,20 @@ test("ordinary Handoff failure is structured and does not recurse", async (t) =>
 test("API key login is isolated to the App Server protocol and never appears in diagnostics", async (t) => {
   const secret = "sk-test-secret-that-must-not-leak";
   const diagnostics = [];
-  const { messages } = await runScenario(t, "work-complete", {
+  const { result, messages } = await runScenario(t, "work-complete", {
     apiKey: secret,
+    env: {
+      OPENAI_API_KEY: secret,
+      FAKE_FINAL_MESSAGE: `finished without exposing ${secret}`,
+    },
     onDiagnostic: (line) => diagnostics.push(line),
   });
   const login = messages.find(({ method }) => method === "account/login/start");
   assert.deepEqual(login.params, { type: "apiKey", apiKey: "<redacted>" });
   assert.doesNotMatch(diagnostics.join("\n"), new RegExp(secret));
+  assert.equal(result.finalMessage, "finished without exposing ***");
   const isolatedHome = messages.find(({ method }) => method === "fixture/environment").params.codexHome;
+  assert.equal(messages.find(({ method }) => method === "fixture/environment").params.hasOpenAIKey, false);
   assert.notEqual(isolatedHome, process.env.CODEX_HOME);
   await assert.rejects(access(isolatedHome));
 });
@@ -278,6 +286,42 @@ test("missing fixed CLI installs once into the versioned tool cache", async (t) 
   assert.equal(installs, 1);
 });
 
+test("default installer pins the npm package and leaves a reusable cache executable", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "codex-cli-default-install-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const npm = join(root, "fake-npm.mjs");
+  const log = join(root, "npm-args.json");
+  await writeFile(npm, `#!/usr/bin/env node
+import { chmod, mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+const args = process.argv.slice(2);
+await writeFile(${JSON.stringify(log)}, JSON.stringify(args));
+const prefix = args[args.indexOf("--prefix") + 1];
+const version = args.at(-1).split("@").at(-1);
+const bin = join(prefix, "node_modules", ".bin");
+await mkdir(bin, { recursive: true });
+const codex = join(bin, "codex");
+await writeFile(codex, \`#!/bin/sh\\nprintf 'codex-cli \${version}\\\\n'\\n\`);
+await chmod(codex, 0o755);
+`);
+  await chmod(npm, 0o755);
+  const installRoot = join(root, "cache", "codex", "0.153.4", process.arch);
+  const binDirectory = join(installRoot, "bin");
+  await installCodexCli({ installRoot, binDirectory, version: "0.153.4", npmCommand: npm });
+  const cached = join(binDirectory, "codex");
+  assert.equal(spawnSync(cached, ["--version"], { encoding: "utf8" }).stdout.trim(), "codex-cli 0.153.4");
+  const npmArgs = JSON.parse(await readFile(log, "utf8"));
+  assert.equal(npmArgs.at(-1), "@openai/codex@0.153.4");
+  assert.equal(npmArgs[npmArgs.indexOf("--prefix") + 1], installRoot);
+});
+
+test("cleanup escalates from graceful close to SIGKILL for a stubborn App Server", async (t) => {
+  const started = Date.now();
+  const { result } = await runScenario(t, "work-complete-stubborn-cleanup");
+  assert.equal(result.workGoalStatus, "complete");
+  assert.ok(Date.now() - started < 4_000);
+});
+
 test("public Action entrypoint succeeds only for Work complete", async (t) => {
   const { process: completed, outputs } = await invokeAction(t, "work-complete");
   assert.equal(completed.status, 0, completed.stderr);
@@ -298,4 +342,19 @@ test("App Server exceptions produce explicit structured failure outputs", async 
   assert.equal(outputs["handoff-goal-status"], "not-started");
   assert.equal(outputs["token-budget-state"], "finite");
   assert.match(outputs["final-message"], /fixture App Server failure/);
+});
+
+test("invalid public inputs fail closed before App Server startup", async (t) => {
+  for (const overrides of [
+    { prompt: "" },
+    { handoffPrompt: "" },
+    { tokenBudget: "20000" },
+    { codexVersion: "latest" },
+    { permissionProfile: "" },
+  ]) {
+    const { process: failed, outputs } = await invokeAction(t, "work-complete", overrides);
+    assert.equal(failed.status, 1);
+    assert.equal(outputs["work-goal-status"], "failed");
+    assert.equal(outputs["handoff-goal-status"], "not-started");
+  }
 });

@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import { splitTokenBudget } from "./lib/budget.mjs";
 import { prepareCodexCli } from "./lib/prepare-cli.mjs";
-import { runCodexGoal } from "./lib/run.mjs";
+import { runAgentAction } from "./lib/run.mjs";
 
 const OUTPUT_NAMES = {
   workGoalStatus: "work-goal-status",
@@ -64,7 +64,7 @@ export async function executeAction(env = process.env) {
       runnerToolCache: env.RUNNER_TOOL_CACHE,
       path: env.PATH,
     });
-    const result = await runCodexGoal({
+    const result = await runAgentAction({
       command: codex,
       args: [
         "app-server",

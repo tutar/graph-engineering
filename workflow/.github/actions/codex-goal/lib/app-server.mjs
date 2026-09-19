@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import readline from "node:readline";
 
+import { isTerminalGoalStatus } from "./goal-status.mjs";
+
 export class AppServerClient {
   #child;
   #diagnostic;
@@ -57,7 +59,6 @@ export class AppServerClient {
   }
 
   watchTerminalGoal(threadId) {
-    const terminal = new Set(["complete", "blocked", "budgetLimited", "usageLimited"]);
     let waiter;
     const promise = new Promise((resolve, reject) => {
       waiter = {
@@ -65,7 +66,7 @@ export class AppServerClient {
           if (
             message.method === "thread/goal/updated"
             && message.params?.threadId === threadId
-            && terminal.has(message.params.goal?.status)
+            && isTerminalGoalStatus(message.params.goal?.status)
           ) {
             this.#notificationWaiters.delete(waiter);
             resolve({
@@ -107,9 +108,25 @@ export class AppServerClient {
         if (error.code !== "ESRCH") throw error;
       }
     };
-    const timeout = setTimeout(terminate, 2_000);
+    if (await this.#waitForClose(1_000)) return;
+    terminate();
+    if (await this.#waitForClose(1_000)) return;
     try {
-      await this.#closed;
+      if (process.platform !== "win32" && this.#child.pid) process.kill(-this.#child.pid, "SIGKILL");
+      else this.#child.kill("SIGKILL");
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
+    await this.#closed;
+  }
+
+  async #waitForClose(milliseconds) {
+    let timeout;
+    const elapsed = new Promise((resolve) => {
+      timeout = setTimeout(() => resolve(false), milliseconds);
+    });
+    try {
+      return await Promise.race([this.#closed.then(() => true), elapsed]);
     } finally {
       clearTimeout(timeout);
     }

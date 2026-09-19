@@ -21,9 +21,9 @@ function pathCandidates(value) {
     .map((directory) => join(directory, process.platform === "win32" ? "codex.exe" : "codex"));
 }
 
-async function defaultInstall({ installRoot, binDirectory, version }) {
+export async function installCodexCli({ installRoot, binDirectory, version, npmCommand = "npm" }) {
   await mkdir(installRoot, { recursive: true });
-  await execFileAsync("npm", [
+  await execFileAsync(npmCommand, [
     "install",
     "--no-audit",
     "--no-fund",
@@ -45,7 +45,7 @@ export async function prepareCodexCli({
   version,
   runnerToolCache,
   path = process.env.PATH ?? "",
-  install = defaultInstall,
+  install = installCodexCli,
 }) {
   if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
     throw new Error("codex-version must be a fixed semantic version");

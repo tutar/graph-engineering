@@ -1,5 +1,6 @@
 import { AppServerClient } from "./app-server.mjs";
 import { splitTokenBudget } from "./budget.mjs";
+import { isTerminalGoalStatus } from "./goal-status.mjs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,7 +12,7 @@ async function runGoal(client, { threadId, objective, tokenBudget }) {
   if (tokenBudget !== null) params.tokenBudget = tokenBudget;
   try {
     const response = await client.request("thread/goal/set", params);
-    if (new Set(["complete", "blocked", "budgetLimited", "usageLimited"]).has(response.goal?.status)) {
+    if (isTerminalGoalStatus(response.goal?.status)) {
       terminal.cancel();
       return {
         status: response.goal.status,
@@ -26,7 +27,7 @@ async function runGoal(client, { threadId, objective, tokenBudget }) {
   }
 }
 
-export async function runCodexGoal({
+export async function runAgentAction({
   command,
   args = [],
   env = process.env,
@@ -39,7 +40,9 @@ export async function runCodexGoal({
   onDiagnostic = () => {},
 }) {
   const budget = splitTokenBudget(tokenBudget);
-  const redact = (line) => onDiagnostic(apiKey ? line.replaceAll(apiKey, "***") : line);
+  const redact = (value) => apiKey ? value.replaceAll(apiKey, "***") : value;
+  const childEnv = { ...env };
+  delete childEnv.OPENAI_API_KEY;
   const isolatedCodexHome = apiKey
     ? await mkdtemp(join(env.RUNNER_TEMP || tmpdir(), "codex-goal-auth-"))
     : null;
@@ -47,8 +50,8 @@ export async function runCodexGoal({
     command,
     args,
     cwd: workingDirectory,
-    env: isolatedCodexHome ? { ...env, CODEX_HOME: isolatedCodexHome } : env,
-    onDiagnostic: redact,
+    env: isolatedCodexHome ? { ...childEnv, CODEX_HOME: isolatedCodexHome } : childEnv,
+    onDiagnostic: (line) => onDiagnostic(redact(line)),
   });
 
   try {
@@ -78,6 +81,7 @@ export async function runCodexGoal({
       handoffTokensUsed: 0,
       finalMessage: work.finalMessage,
     };
+    result.finalMessage = redact(result.finalMessage);
     if (!new Set(["blocked", "budgetLimited"]).has(work.status)) return result;
 
     try {
@@ -88,10 +92,10 @@ export async function runCodexGoal({
       });
       result.handoffGoalStatus = handoff.status;
       result.handoffTokensUsed = handoff.tokensUsed;
-      result.finalMessage = handoff.finalMessage;
+      result.finalMessage = redact(handoff.finalMessage);
     } catch (error) {
       result.handoffGoalStatus = "failed";
-      result.finalMessage = error.message;
+      result.finalMessage = redact(error.message);
     }
     return result;
   } finally {
