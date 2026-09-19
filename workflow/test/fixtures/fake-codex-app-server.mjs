@@ -4,6 +4,7 @@ import readline from "node:readline";
 const scenario = process.env.FAKE_SCENARIO;
 const transcript = process.env.FAKE_TRANSCRIPT;
 let goalCount = 0;
+let currentGoalBudget = null;
 
 appendFileSync(transcript, `${JSON.stringify({
   method: "fixture/environment",
@@ -46,7 +47,7 @@ function terminalGoal(status, tokensUsed, finalMessage) {
         threadId: "thread-1",
         objective: "fixture",
         status,
-        tokenBudget: goalCount === 1 ? 380_000 : 20_000,
+        tokenBudget: currentGoalBudget,
         tokensUsed,
         timeUsedSeconds: 1,
         createdAt: 1,
@@ -69,19 +70,20 @@ lines.on("line", (line) => {
     send({ id: message.id, result: { thread: { id: "thread-1", sessionId: "thread-1" } } });
   } else if (message.method === "thread/goal/set") {
     goalCount += 1;
+    currentGoalBudget = message.params.tokenBudget ?? null;
     send({ id: message.id, result: { goal: { ...message.params, tokensUsed: 0 } } });
     if (goalCount === 1) {
       if (scenario === "app-server-failed") {
         send({ method: "error", params: { message: "fixture App Server failure" } });
       } else if (scenario.startsWith("work-complete")) terminalGoal("complete", 1234, "work finished");
-      else if (scenario.startsWith("budgetLimited-")) terminalGoal("budgetLimited", 2500, "work stopped");
-      else terminalGoal("blocked", 2500, "work stopped");
+      else if (scenario.startsWith("budgetLimited-")) terminalGoal("budgetLimited", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
+      else terminalGoal("blocked", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
     } else if (scenario.endsWith("handoff-complete")) {
-      terminalGoal("complete", 500, "handoff finished");
+      terminalGoal("complete", Number(process.env.FAKE_HANDOFF_TOKENS_USED || 3000), "handoff finished");
     } else if (scenario.endsWith("handoff-blocked")) {
-      terminalGoal("blocked", 500, "handoff blocked");
+      terminalGoal("blocked", 3000, "handoff blocked");
     } else if (scenario.endsWith("handoff-budgetLimited")) {
-      terminalGoal("budgetLimited", 20_000, "handoff exhausted");
+      terminalGoal("budgetLimited", currentGoalBudget + 1, "handoff exhausted");
     } else if (scenario.endsWith("handoff-failed")) {
       send({ method: "error", params: { message: "fixture failure" } });
     }

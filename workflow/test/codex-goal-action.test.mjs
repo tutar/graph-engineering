@@ -173,7 +173,7 @@ test("Work Goal complete returns structured success without starting Handoff", a
 });
 
 for (const workStatus of ["blocked", "budgetLimited"]) {
-  test(`${workStatus} starts one Handoff in the same Session with a fixed budget`, async (t) => {
+  test(`${workStatus} starts one Handoff in the same Session within the finite total budget`, async (t) => {
     const { result, messages, root } = await runScenario(t, `${workStatus}-handoff-complete`);
     assert.deepEqual(result, {
       workGoalStatus: workStatus,
@@ -192,19 +192,36 @@ for (const workStatus of ["blocked", "budgetLimited"]) {
       threadId: "thread-1",
       objective: "save suitable progress once",
       status: "active",
-      tokenBudget: 20_000,
+      tokenBudget: 22_500,
     });
   });
 }
 
-test("unlimited Work Goal keeps the fixed finite Handoff budget", async (t) => {
+test("finite Handoff allowance is capped by the configured total budget", async (t) => {
+  const { messages } = await runScenario(t, "budgetLimited-handoff-complete", {
+    env: { FAKE_WORK_TOKENS_USED: "390000" },
+  });
+  const goals = messages.filter(({ method }) => method === "thread/goal/set");
+  assert.equal(goals[1].params.tokenBudget, 400_000);
+});
+
+test("Handoff usage fails closed when Runtime cumulative usage moves backwards", async (t) => {
+  const { result } = await runScenario(t, "blocked-handoff-complete", {
+    env: { FAKE_HANDOFF_TOKENS_USED: "2000" },
+  });
+  assert.equal(result.handoffGoalStatus, "failed");
+  assert.equal(result.handoffTokensUsed, 0);
+  assert.match(result.finalMessage, /moved backwards/);
+});
+
+test("unlimited Work Goal adds the fixed Handoff allowance to cumulative usage", async (t) => {
   const { result, messages } = await runScenario(t, "blocked-handoff-complete", {
     tokenBudget: "unlimited",
   });
   assert.equal(result.tokenBudgetState, "unlimited");
   const goals = messages.filter(({ method }) => method === "thread/goal/set");
   assert.equal("tokenBudget" in goals[0].params, false);
-  assert.equal(goals[1].params.tokenBudget, 20_000);
+  assert.equal(goals[1].params.tokenBudget, 22_500);
 });
 
 for (const terminal of ["blocked", "budgetLimited"]) {

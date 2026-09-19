@@ -85,13 +85,24 @@ export async function runAgentAction({
     if (!new Set(["blocked", "budgetLimited"]).has(work.status)) return result;
 
     try {
+      const requestedHandoffCeiling = work.tokensUsed + budget.handoff;
+      const handoffTokenCeiling = budget.total === null
+        ? requestedHandoffCeiling
+        : Math.min(budget.total, requestedHandoffCeiling);
+      if (!Number.isSafeInteger(handoffTokenCeiling) || handoffTokenCeiling <= work.tokensUsed) {
+        throw new Error("Runtime-reported token usage cannot form a safe Handoff budget ceiling");
+      }
       const handoff = await runGoal(client, {
         threadId,
         objective: handoffPrompt,
-        tokenBudget: budget.handoff,
+        tokenBudget: handoffTokenCeiling,
       });
       result.handoffGoalStatus = handoff.status;
-      result.handoffTokensUsed = handoff.tokensUsed;
+      const handoffTokensUsed = handoff.tokensUsed - work.tokensUsed;
+      if (!Number.isSafeInteger(handoffTokensUsed) || handoffTokensUsed < 0) {
+        throw new Error("Runtime-reported cumulative token usage moved backwards during Handoff");
+      }
+      result.handoffTokensUsed = handoffTokensUsed;
       result.finalMessage = redact(handoff.finalMessage);
     } catch (error) {
       result.handoffGoalStatus = "failed";
