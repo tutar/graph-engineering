@@ -32,7 +32,7 @@ outputs:
   work-tokens-used:
     description: Runtime-reported Work Goal token usage.
   handoff-tokens-used:
-    description: Runtime-reported cumulative token usage when the Handoff Goal terminates.
+    description: Handoff-only token usage derived from Runtime cumulative usage.
   final-message:
     description: Last Agent message or a sanitized execution error.
 
