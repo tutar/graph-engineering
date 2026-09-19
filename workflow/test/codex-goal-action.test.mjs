@@ -111,14 +111,14 @@ exec "${process.execPath}" "${fakeAppServer}"
   };
 }
 
-test("finite token budgets reserve exactly 20,000 tokens for Handoff", () => {
+test("finite token budgets reserve exactly 100,000 tokens for Handoff", () => {
   assert.equal(DEFAULT_TOTAL_TOKEN_BUDGET, 400_000);
-  assert.equal(HANDOFF_TOKEN_BUDGET, 20_000);
+  assert.equal(HANDOFF_TOKEN_BUDGET, 100_000);
   assert.deepEqual(splitTokenBudget(undefined), {
     state: "finite",
     total: 400_000,
-    work: 380_000,
-    handoff: 20_000,
+    work: 300_000,
+    handoff: 100_000,
   });
 });
 
@@ -127,17 +127,17 @@ test("unlimited applies only to Work Goal and invalid finite totals fail closed"
     state: "unlimited",
     total: null,
     work: null,
-    handoff: 20_000,
+    handoff: 100_000,
   });
 
-  for (const value of ["", "0", "20000", "-1", "20.5", "not-a-budget"]) {
+  for (const value of ["", "0", "100000", "-1", "20.5", "not-a-budget"]) {
     assert.throws(() => splitTokenBudget(value), /token-budget/);
   }
-  assert.deepEqual(splitTokenBudget("20001"), {
+  assert.deepEqual(splitTokenBudget("100001"), {
     state: "finite",
-    total: 20_001,
+    total: 100_001,
     work: 1,
-    handoff: 20_000,
+    handoff: 100_000,
   });
 });
 
@@ -167,7 +167,7 @@ test("Work Goal complete returns structured success without starting Handoff", a
     threadId: "thread-1",
     objective: "finish the requested work",
     status: "active",
-    tokenBudget: 380_000,
+    tokenBudget: 300_000,
   });
   assert.equal(await readFile(cleanup, "utf8"), "closed\n");
 });
@@ -192,7 +192,7 @@ for (const workStatus of ["blocked", "budgetLimited"]) {
       threadId: "thread-1",
       objective: "save suitable progress once",
       status: "active",
-      tokenBudget: 22_500,
+      tokenBudget: 102_500,
     });
   });
 }
@@ -221,7 +221,7 @@ test("unlimited Work Goal adds the fixed Handoff allowance to cumulative usage",
   assert.equal(result.tokenBudgetState, "unlimited");
   const goals = messages.filter(({ method }) => method === "thread/goal/set");
   assert.equal("tokenBudget" in goals[0].params, false);
-  assert.equal(goals[1].params.tokenBudget, 22_500);
+  assert.equal(goals[1].params.tokenBudget, 102_500);
 });
 
 for (const terminal of ["blocked", "budgetLimited"]) {
@@ -384,7 +384,7 @@ test("invalid public inputs fail closed before App Server startup", async (t) =>
   for (const overrides of [
     { prompt: "" },
     { handoffPrompt: "" },
-    { tokenBudget: "20000" },
+    { tokenBudget: "100000" },
     { codexVersion: "latest" },
     { permissionProfile: "" },
   ]) {
