@@ -15,7 +15,7 @@ const OUTPUT_NAMES = {
 };
 
 function input(env, name) {
-  return env[`INPUT_${name.toUpperCase().replaceAll("-", "_")}`] ?? "";
+  return env[`INPUT_${name.toUpperCase()}`] ?? "";
 }
 
 async function inputs(env) {
