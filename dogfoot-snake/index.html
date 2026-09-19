@@ -200,7 +200,11 @@
           };
           const hitWall =
             head.x < 0 || head.x >= columns || head.y < 0 || head.y >= rows;
-          const hitSnake = snake.some((segment) => samePosition(segment, head));
+          const growsThisTick = samePosition(head, food);
+          const collisionSegments = growsThisTick ? snake : snake.slice(0, -1);
+          const hitSnake = collisionSegments.some((segment) =>
+            samePosition(segment, head),
+          );
 
           if (hitWall || hitSnake) {
             endGame();
@@ -208,7 +212,7 @@
           }
 
           snake.unshift(head);
-          if (samePosition(head, food)) {
+          if (growsThisTick) {
             score += 10;
             scoreElement.textContent = String(score);
             placeFood();

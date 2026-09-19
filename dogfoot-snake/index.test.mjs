@@ -114,3 +114,23 @@ test("restart restores a playable game after a collision", async () => {
   assert.equal(game.elements.score.textContent, "0");
   assert.equal(game.elements.status.textContent, "Use the arrow keys to move");
 });
+
+test("the snake can move into the tail cell that leaves on the same tick", async () => {
+  const game = await loadGame([
+    210.5 / 399, // (11, 10): grow right from the starting cell
+    229.5 / 398, // (11, 11): grow down
+    228.5 / 397, // (10, 11): grow left
+    0.75,
+  ]);
+
+  game.intervals[0]();
+  press(game, "ArrowDown");
+  game.intervals[0]();
+  press(game, "ArrowLeft");
+  game.intervals[0]();
+  press(game, "ArrowUp");
+  game.intervals[0]();
+
+  assert.equal(game.elements.status.textContent, "Use the arrow keys to move");
+  assert.deepEqual(game.draws.at(-4), [200, 200, 20, 20]);
+});
