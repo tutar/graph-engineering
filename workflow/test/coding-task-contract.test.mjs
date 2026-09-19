@@ -17,14 +17,18 @@ test("Coding Task admits labeled and manual Issue invocations with Issue concurr
   assert.match(workflow, /github\.event\.label\.name == 'coding-ticket'/);
   assert.match(workflow, /any\(\.labels\[\]; \.name == "ready-for-agent"\)/);
   assert.match(workflow, /any\(\.labels\[\]; \.name == "coding-ticket"\)/);
+  assert.match(workflow, /manual="\$\{\{ github\.event_name == 'workflow_dispatch' \}\}"/);
+  assert.match(workflow, /"\$\{manual\}" == "true" \|\| "\$\{coding\}" == "true"/);
   assert.match(workflow, /state.*== "OPEN"/);
   assert.match(workflow, /group: github-coding-task-/);
   assert.match(workflow, /cancel-in-progress: false/);
-  assert.match(workflow, /token_budget:[\s\S]*?default:\s*"400000"/);
+  assert.match(workflow, /token_budget:[\s\S]*?default:\s*"30000"/);
   assert.match(workflow, /integer greater than 20000 or unlimited/);
 });
 
 test("Workflow prepares only the caller workspace and invokes the project-owned Action", () => {
+  assert.match(workflow, /runs-on: \[self-hosted, Linux, X64\]/);
+  assert.doesNotMatch(workflow, /graph-engineering-coding/);
   assert.match(workflow, /actions\/checkout@11d5960a326750d5838078e36cf38b85af677262/);
   assert.match(workflow, /ref:\s*\$\{\{ env\.BASE_BRANCH \}\}/);
   assert.match(workflow, /fetch-depth:\s*0/);
@@ -103,7 +107,7 @@ test("finite and unlimited total budgets are validated and forwarded to the Acti
   assert.match(validation, /\^\[1-9\]\[0-9\]\*\$/);
   assert.match(validation, /Number\.isSafeInteger\(total\)/);
   assert.match(validation, /total > 20000/);
-  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:.*inputs\.token_budget.*'400000'/);
+  assert.match(workflow, /TOKEN_BUDGET_REQUESTED:.*inputs\.token_budget.*'30000'/);
   assert.match(workflow, /token-budget:\s*\$\{\{ env\.TOKEN_BUDGET_REQUESTED \}\}/);
 });
 

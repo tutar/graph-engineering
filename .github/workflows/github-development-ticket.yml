@@ -1,0 +1,111 @@
+name: Graph Engineering - GitHub Development Ticket
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to start
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: github-development-ticket-${{ github.repository }}-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'development-ticket')
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+      BASE_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
+      TARGET_BRANCH: agent/issue-${{ github.event.issue.number || inputs.issue_number }}
+      TOKEN_BUDGET_STATE: not-requested
+    steps:
+      - name: Validate Development Ticket
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json state --jq .state)" = "OPEN"
+          test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json labels \
+            --jq 'any(.labels[]; .name == "ready-for-agent")')" = true
+          test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json labels \
+            --jq 'any(.labels[]; .name == "development-ticket")')" = true
+
+      - name: Prepare Task Invocation
+        id: task
+        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
+        with:
+          task-phase: prepare
+          task-id: development
+          task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
+
+      - name: Check out default branch
+        if: steps.task.outputs.workspace-exists != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Prepare development branch
+        if: steps.task.outputs.workspace-exists != 'true'
+        run: bash .github/graph-engineering/development-worktree.sh prepare
+
+      - name: Configure Git identity
+        if: steps.task.outputs.workspace-exists != 'true'
+        shell: bash
+        run: |
+          git config user.name "codex[bot]"
+          git config user.email "codex[bot]@users.noreply.github.com"
+
+      - name: Mark Ticket in progress
+        shell: bash
+        run: gh issue edit "${ISSUE_NUMBER}" --add-label in-progress
+
+      - name: Start or resume Task Invocation
+        id: codex
+        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
+        with:
+          task-id: development
+          task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
+          working-directory: ${{ steps.task.outputs.task-workspace }}
+          codex-version: 0.153.4
+          permission-profile: :workspace
+          prompt: >-
+            使用 Matt Skill $implement 完成
+            https://github.com/${{ github.repository }}/issues/${{ env.ISSUE_NUMBER }}；
+            若 Issue 含 Acceptance Criteria，逐项依据实际验证结果，只将已满足项的复选框更新为已勾选；
+            完成后将提交 push 到当前开发分支；如果不存在关联 PR，创建指向 ${{ env.BASE_BRANCH }} 的 Draft PR。
+            只有实现、自测、review、commit、push、Draft PR，以及适用时的验收条件状态同步都完成后才能结束。
+            不得执行或输出认证状态、token、credential 或其他秘密。
+
+      - name: Verify Codex delivery
+        working-directory: ${{ steps.task.outputs.task-workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-list --count "origin/${BASE_BRANCH}..HEAD")" -gt 0
+          test "$(git rev-parse HEAD)" = "$(git ls-remote origin "refs/heads/${TARGET_BRANCH}" | cut -f1)"
+          test "$(gh pr list --head "${TARGET_BRANCH}" --base "${BASE_BRANCH}" --state open \
+            --json url,isDraft,state \
+            --jq 'length == 1 and .[0].isDraft and .[0].state == "OPEN"')" = true
+
+      - name: Mark Ticket delivery complete
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue edit "${ISSUE_NUMBER}" \
+            --remove-label development-ticket \
+            --remove-label in-progress
