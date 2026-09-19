@@ -13,11 +13,11 @@
 - runner：self-hosted Linux X64，并提供固定 CLI 或允许 Action 写入版本化 tool cache
 - 认证：配置 `OPENAI_API_KEY` 时使用本次 Action 隔离的 API key 材料；未配置时使用 Runner-backed Codex Authentication（Runner 承载的 Codex 认证）
 - permission profile：`graph-engineering-delivery`，继承 `:workspace`，仅额外允许写入 workspace 的 `.git` 并启用命令网络，以完成分支、commit 与 push
-- Runtime Token Budget：默认总预算 `100000`，其中固定预留 `20000` 给一次 Handoff；人工入口可传大于 `20000` 的整数或 `unlimited`
+- Runtime Token Budget：默认总预算 `500000`，其中固定预留 `100000` 给一次 Handoff；人工入口可传大于 `100000` 的整数或 `unlimited`
 
 Workflow checkout 默认分支、配置 Git identity、添加 `in-progress`，再把调用者 workspace、Work Goal 和 Handoff Goal 交给项目 Action。每个 job attempt 创建全新的 App Server、Codex Session 与 Work Goal；Workflow 不准备开发分支，也不实现 Goal 循环或独立核对交付事实。
 
-Work Goal `complete` 令 Workflow 移除 `coding-ticket` 与 `in-progress` 并成功结束。`blocked` 或 `budgetLimited` 由 Action 在同一 Session 和 workspace 中启动唯一一次固定预算 Handoff；Runtime 的 Goal token budget 是 Session 累计上限，因此 Handoff 使用 Work 已用量加 `20000` 作为累计上限，有限总预算时再以原始总预算封顶，从而提供最多 20,000-token 增量额度且不突破总预算。无论 Handoff 结果如何，Workflow 都失败、尽力移除 `in-progress` 并保留 `coding-ticket`。初始化、认证、App Server 或普通执行失败遵循相同失败标签语义。遗留 `in-progress` 不参与准入；排队中的重复 Run 若发现 `coding-ticket` 已被前序成功 Run 移除，则跳过 Codex。
+Work Goal `complete` 令 Workflow 移除 `coding-ticket` 与 `in-progress` 并成功结束。`blocked` 或 `budgetLimited` 由 Action 在同一 Session 和 workspace 中启动唯一一次固定预算 Handoff；Runtime 的 Goal token budget 是 Session 累计上限，因此 Handoff 使用 Work 已用量加 `100000` 作为累计上限，有限总预算时再以原始总预算封顶，从而提供最多 100,000-token 增量额度且不突破总预算。无论 Handoff 结果如何，Workflow 都失败、尽力移除 `in-progress` 并保留 `coding-ticket`。初始化、认证、App Server 或普通执行失败遵循相同失败标签语义。遗留 `in-progress` 不参与准入；排队中的重复 Run 若发现 `coding-ticket` 已被前序成功 Run 移除，则跳过 Codex。
 
 Coding Agent 通过 `$implement` 读取 GitHub 当前事实，优先从关联 Issue 的现有 Draft PR 或远端工作分支恢复，以可验证增量实现与验证，只勾选有直接证据的验收项，并及时 commit、push、创建或更新 Draft PR。Work Goal 以实现与验证结束、证据同步、代码 push 和 Draft PR 交付作为完成条件。预算受限或阻塞时，Handoff 停止扩大实现范围，把所有与 Issue 有关且可合法提交的修改持久化到工作分支；有远端 diff 时复用或创建明确标记未完成的 Draft PR。候选工作无法可靠归属时保留现场并报告阻塞；所有可保存修改均已 push，且 Draft PR 已存在或没有可形成 PR 的 diff 后，Handoff 才完成。Workflow 信任 Action 返回的 Goal 终态，不验证 clean worktree、远端 branch HEAD、PR 数量或 base/head。
 
