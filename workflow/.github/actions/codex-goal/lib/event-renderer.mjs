@@ -37,7 +37,7 @@ export class EventRenderer {
   #redact;
   #write;
   #writeDiagnostic;
-  #streamedAgentItems = new Set();
+  #agentMessageDeltas = new Map();
   #renderedAgentItems = new Set();
 
   constructor({ logMode, redact = (value) => value, write = () => {}, writeDiagnostic = () => {} }) {
@@ -50,7 +50,7 @@ export class EventRenderer {
   setPhase(phase) {
     if (phase !== "work" && phase !== "handoff") throw new Error(`Unknown Goal phase: ${phase}`);
     this.#phase = phase;
-    this.#streamedAgentItems.clear();
+    this.#agentMessageDeltas.clear();
     this.#renderedAgentItems.clear();
   }
 
@@ -66,10 +66,11 @@ export class EventRenderer {
 
     if (method === "item/agentMessage/delta") {
       if (typeof params.delta !== "string") return;
-      this.#streamedAgentItems.add(params.itemId);
-      this.#renderedAgentItems.add(params.itemId);
       if (this.#logMode === "safe") this.#emit("agent-message", "event=delta");
-      else this.#emit("agent-message", params.delta);
+      else this.#agentMessageDeltas.set(
+        params.itemId,
+        `${this.#agentMessageDeltas.get(params.itemId) ?? ""}${params.delta}`,
+      );
       return;
     }
 
@@ -131,10 +132,15 @@ export class EventRenderer {
 
   #renderItem(event, item) {
     if (item.type === "agentMessage") {
-      if (event !== "completed" || this.#streamedAgentItems.has(item.id)) return;
+      if (event !== "completed") return;
+      const streamedText = this.#agentMessageDeltas.get(item.id) ?? "";
+      this.#agentMessageDeltas.delete(item.id);
       this.#renderedAgentItems.add(item.id);
       if (this.#logMode === "safe") this.#emit("agent-message", "event=completed");
-      else if (typeof item.text === "string") this.#emit("agent-message", item.text);
+      else {
+        const text = typeof item.text === "string" ? item.text : streamedText;
+        if (text) this.#emit("agent-message", text);
+      }
       return;
     }
 

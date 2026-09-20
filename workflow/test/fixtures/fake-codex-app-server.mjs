@@ -123,10 +123,12 @@ function runtimeEvents() {
     changes: [{ path: "example.txt", kind: { type: "update", move_path: null }, diff: "+changed" }],
     status: "completed",
   });
-  send({
-    method: "item/agentMessage/delta",
-    params: { threadId: "thread-1", turnId: `turn-${goalCount}`, itemId: `message-${goalCount}`, delta: agentText },
-  });
+  for (const delta of [agentText.slice(0, 4), agentText.slice(4)]) {
+    send({
+      method: "item/agentMessage/delta",
+      params: { threadId: "thread-1", turnId: `turn-${goalCount}`, itemId: `message-${goalCount}`, delta },
+    });
+  }
 }
 
 function terminalGoal(status, tokensUsed, finalMessage) {
