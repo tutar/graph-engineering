@@ -26,6 +26,11 @@ function lines(value) {
   return String(value).split(/\r\n|\r|\n/).map(escapeControls);
 }
 
+function formattedLines({ phase, event, value, redact }) {
+  const redacted = redact(serialized(value));
+  return lines(redacted).map((line) => `[codex][${phase}][${event}] ${line}`);
+}
+
 export class EventRenderer {
   #logMode;
   #phase = "work";
@@ -119,9 +124,8 @@ export class EventRenderer {
   }
 
   diagnostic(value) {
-    const redacted = this.#redact(serialized(value));
-    for (const line of lines(redacted)) {
-      this.#writeDiagnostic(`[codex][${this.#phase}][diagnostic] ${line}`);
+    for (const line of formattedLines({ phase: this.#phase, event: "diagnostic", value, redact: this.#redact })) {
+      this.#writeDiagnostic(line);
     }
   }
 
@@ -174,14 +178,10 @@ export class EventRenderer {
   }
 
   #emit(event, value) {
-    const redacted = this.#redact(serialized(value));
-    for (const line of lines(redacted)) {
-      this.#write(`[codex][${this.#phase}][${event}] ${line}\n`);
-    }
+    for (const line of formattedLines({ phase: this.#phase, event, value, redact: this.#redact })) this.#write(`${line}\n`);
   }
 }
 
 export function writeSafeLog({ phase, event, value, write, redact = (text) => text }) {
-  const redacted = redact(serialized(value));
-  for (const line of lines(redacted)) write(`[codex][${phase}][${event}] ${line}\n`);
+  for (const line of formattedLines({ phase, event, value, redact })) write(`${line}\n`);
 }

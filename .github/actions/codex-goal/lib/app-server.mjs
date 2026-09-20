@@ -72,6 +72,7 @@ export class AppServerClient {
             this.#notificationWaiters.delete(waiter);
             resolve({
               status: message.params.goal.status,
+              turnId: message.params.turnId ?? null,
               tokensUsed: message.params.goal.tokensUsed ?? 0,
               timeUsedSeconds: message.params.goal.timeUsedSeconds ?? 0,
               finalMessage: this.#lastAgentMessage,
@@ -101,12 +102,15 @@ export class AppServerClient {
     return this.#lastAgentMessage;
   }
 
-  async readFinalMessage(threadId) {
+  async readFinalMessage(threadId, turnId = null) {
     const response = await this.request("thread/read", { threadId, includeTurns: true });
     const turns = response.thread?.turns;
     if (!Array.isArray(turns)) return { itemId: "", text: "" };
-    for (let turnIndex = turns.length - 1; turnIndex >= 0; turnIndex -= 1) {
-      const items = turns[turnIndex]?.items;
+    const candidates = turnId === null
+      ? [...turns].reverse()
+      : turns.filter((turn) => turn?.id === turnId);
+    for (const turn of candidates) {
+      const items = turn?.items;
       if (!Array.isArray(items)) continue;
       for (let itemIndex = items.length - 1; itemIndex >= 0; itemIndex -= 1) {
         const item = items[itemIndex];

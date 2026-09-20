@@ -539,6 +539,15 @@ test("terminal thread read supplies a safe, redacted final-message fallback when
   assert.doesNotMatch(`${completed.process.stdout}\n${completed.process.stderr}\n${JSON.stringify(completed.outputs)}`, new RegExp(secret));
 });
 
+test("Handoff fallback reads only its terminal turn instead of reusing the Work message", async (t) => {
+  const handedOff = await invokeAction(t, "blocked-handoff-missing-agent-event", { logMode: "detailed" });
+  assert.equal(handedOff.process.status, 1);
+  assert.equal(handedOff.process.stdout.match(/\[codex\]\[work\]\[agent-message\] work stopped/g)?.length, 1);
+  assert.equal(handedOff.process.stdout.match(/\[codex\]\[handoff\]\[agent-message\] handoff recovered/g)?.length, 1);
+  assert.doesNotMatch(handedOff.process.stdout, /\[codex\]\[handoff\]\[agent-message\] work stopped/);
+  assert.equal(handedOff.outputs["final-message"], "handoff recovered");
+});
+
 test("renderer failure is fail-open while invalid App Server JSON remains fatal", async (t) => {
   const diagnostics = [];
   const { result } = await runScenario(t, "runtime-events-complete", {

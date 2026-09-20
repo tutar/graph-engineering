@@ -14,27 +14,23 @@ async function runGoal(client, renderer, { threadId, objective, tokenBudget, pha
   if (tokenBudget !== null) params.tokenBudget = tokenBudget;
   try {
     const response = await client.request("thread/goal/set", params);
+    let result;
     if (isTerminalGoalStatus(response.goal?.status)) {
       terminal.cancel();
-      const result = {
+      result = {
         status: response.goal.status,
+        turnId: response.turnId ?? null,
         tokensUsed: response.goal.tokensUsed ?? 0,
         timeUsedSeconds: response.goal.timeUsedSeconds ?? 0,
         finalMessage: client.finalMessage(),
         finalMessageItemId: "",
       };
       renderer.renderGoal(response.goal);
-      if (!result.finalMessage) {
-        const fallback = await client.readFinalMessage(threadId);
-        result.finalMessage = fallback.text;
-        result.finalMessageItemId = fallback.itemId;
-      }
-      renderer.ensureFinalMessage({ itemId: result.finalMessageItemId, text: result.finalMessage });
-      return result;
+    } else {
+      result = await terminal.promise;
     }
-    const result = await terminal.promise;
     if (!result.finalMessage) {
-      const fallback = await client.readFinalMessage(threadId);
+      const fallback = await client.readFinalMessage(threadId, result.turnId);
       result.finalMessage = fallback.text;
       result.finalMessageItemId = fallback.itemId;
     }

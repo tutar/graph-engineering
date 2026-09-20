@@ -5,7 +5,7 @@ const scenario = process.env.FAKE_SCENARIO;
 const transcript = process.env.FAKE_TRANSCRIPT;
 let goalCount = 0;
 let currentGoalBudget = null;
-let persistedFinalMessage = "";
+const persistedFinalMessages = [];
 
 appendFileSync(transcript, `${JSON.stringify({
   method: "fixture/environment",
@@ -131,8 +131,10 @@ function runtimeEvents() {
 
 function terminalGoal(status, tokensUsed, finalMessage) {
   finalMessage = process.env.FAKE_FINAL_MESSAGE || finalMessage;
-  persistedFinalMessage = finalMessage;
-  if (finalMessage && scenario !== "missing-agent-event-complete") {
+  persistedFinalMessages[goalCount - 1] = finalMessage;
+  const suppressAgentEvent = scenario === "missing-agent-event-complete"
+    || (scenario === "blocked-handoff-missing-agent-event" && goalCount === 2);
+  if (finalMessage && !suppressAgentEvent) {
     send({
       method: "item/completed",
       params: {
@@ -178,13 +180,13 @@ lines.on("line", (line) => {
       result: {
         thread: {
           id: "thread-1",
-          turns: [{
-            id: `turn-${goalCount}`,
+          turns: persistedFinalMessages.map((text, index) => ({
+            id: `turn-${index + 1}`,
             status: "completed",
-            items: persistedFinalMessage
-              ? [{ id: `message-${goalCount}`, type: "agentMessage", text: persistedFinalMessage }]
+            items: text
+              ? [{ id: `message-${index + 1}`, type: "agentMessage", text }]
               : [],
-          }],
+          })),
         },
       },
     });
@@ -192,7 +194,7 @@ lines.on("line", (line) => {
     goalCount += 1;
     currentGoalBudget = message.params.tokenBudget ?? null;
     if (scenario === "terminal-response-complete") {
-      persistedFinalMessage = "response finished";
+      persistedFinalMessages[goalCount - 1] = "response finished";
       send({ id: message.id, result: { goal: { ...message.params, status: "complete", tokensUsed: 7, timeUsedSeconds: 2 } } });
       return;
     }
@@ -217,6 +219,8 @@ lines.on("line", (line) => {
       else terminalGoal("blocked", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
     } else if (scenario.endsWith("handoff-complete")) {
       terminalGoal("complete", Number(process.env.FAKE_HANDOFF_TOKENS_USED || 3000), "handoff finished");
+    } else if (scenario === "blocked-handoff-missing-agent-event") {
+      terminalGoal("complete", 3000, "handoff recovered");
     } else if (scenario.endsWith("handoff-blocked")) {
       terminalGoal("blocked", 3000, "handoff blocked");
     } else if (scenario.endsWith("handoff-budgetLimited")) {
