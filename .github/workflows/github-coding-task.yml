@@ -99,6 +99,7 @@ jobs:
           working-directory: ${{ github.workspace }}
           codex-version: 0.153.4
           permission-profile: graph-engineering-delivery
+          log-mode: detailed
           token-budget: ${{ env.TOKEN_BUDGET_REQUESTED }}
           prompt: >-
             使用 $implement 完成并交付 Issue

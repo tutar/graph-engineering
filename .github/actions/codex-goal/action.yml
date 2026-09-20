@@ -21,6 +21,10 @@ inputs:
   permission-profile:
     description: Codex permission profile selected for the new Session.
     required: true
+  log-mode:
+    description: Runtime event logging mode: safe, detailed, or silent.
+    required: false
+    default: safe
 
 outputs:
   work-goal-status:
