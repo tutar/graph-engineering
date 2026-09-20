@@ -13,10 +13,12 @@ test("Codex Goal Action exposes only the generic Goal execution contract", async
     "handoff-prompt",
     "codex-version",
     "permission-profile",
+    "log-mode",
   ]) {
     assert.match(manifest, new RegExp(`^  ${input}:$`, "m"));
   }
   assert.match(manifest, /token-budget:[\s\S]*?default: "400000"/);
+  assert.match(manifest, /log-mode:[\s\S]*?default: safe/);
   for (const output of [
     "work-goal-status",
     "handoff-goal-status",

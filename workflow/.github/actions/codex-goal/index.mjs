@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { splitTokenBudget } from "./lib/budget.mjs";
 import { prepareCodexCli } from "./lib/prepare-cli.mjs";
 import { runAgentAction } from "./lib/run.mjs";
+import { validateLogMode } from "./lib/event-renderer.mjs";
 
 const OUTPUT_NAMES = {
   workGoalStatus: "work-goal-status",
@@ -28,6 +29,7 @@ async function inputs(env) {
   const codexVersion = input(env, "codex-version");
   const permissionProfile = input(env, "permission-profile");
   const tokenBudget = input(env, "token-budget") || "400000";
+  const logMode = input(env, "log-mode") || "safe";
 
   if (!workingDirectoryInput) throw new Error("working-directory is required");
   const workingDirectory = await realpath(workingDirectoryInput);
@@ -37,7 +39,8 @@ async function inputs(env) {
   }
   if (!permissionProfile.trim()) throw new Error("permission-profile is required");
   splitTokenBudget(tokenBudget);
-  return { workingDirectory, prompt, handoffPrompt, codexVersion, permissionProfile, tokenBudget };
+  validateLogMode(logMode);
+  return { workingDirectory, prompt, handoffPrompt, codexVersion, permissionProfile, tokenBudget, logMode };
 }
 
 function sanitized(error, env) {
@@ -86,6 +89,8 @@ export async function executeAction(env = process.env) {
       tokenBudget: configuration.tokenBudget,
       permissionProfile: configuration.permissionProfile,
       apiKey: env.OPENAI_API_KEY || undefined,
+      logMode: configuration.logMode,
+      onLog: (line) => process.stdout.write(line),
       onDiagnostic: (line) => process.stderr.write(`${line}\n`),
     });
     await writeOutputs(env.GITHUB_OUTPUT, result);

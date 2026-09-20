@@ -4,8 +4,10 @@ import { isTerminalGoalStatus } from "./goal-status.mjs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { EventRenderer } from "./event-renderer.mjs";
 
-async function runGoal(client, { threadId, objective, tokenBudget }) {
+async function runGoal(client, renderer, { threadId, objective, tokenBudget, phase }) {
+  renderer.setPhase(phase);
   client.resetFinalMessage();
   const terminal = client.watchTerminalGoal(threadId);
   const params = { threadId, objective, status: "active" };
@@ -17,10 +19,14 @@ async function runGoal(client, { threadId, objective, tokenBudget }) {
       return {
         status: response.goal.status,
         tokensUsed: response.goal.tokensUsed ?? 0,
+        timeUsedSeconds: response.goal.timeUsedSeconds ?? 0,
         finalMessage: client.finalMessage(),
+        finalMessageItemId: "",
       };
     }
-    return await terminal.promise;
+    const result = await terminal.promise;
+    renderer.ensureFinalMessage({ itemId: result.finalMessageItemId, text: result.finalMessage });
+    return result;
   } catch (error) {
     terminal.cancel();
     throw error;
@@ -37,6 +43,8 @@ export async function runAgentAction({
   tokenBudget,
   permissionProfile,
   apiKey,
+  logMode = "safe",
+  onLog = () => {},
   onDiagnostic = () => {},
 }) {
   const budget = splitTokenBudget(tokenBudget);
@@ -46,12 +54,14 @@ export async function runAgentAction({
   const isolatedCodexHome = apiKey
     ? await mkdtemp(join(env.RUNNER_TEMP || tmpdir(), "codex-goal-auth-"))
     : null;
+  const renderer = new EventRenderer({ logMode, redact, write: onLog });
   const client = new AppServerClient({
     command,
     args,
     cwd: workingDirectory,
     env: isolatedCodexHome ? { ...childEnv, CODEX_HOME: isolatedCodexHome } : childEnv,
     onDiagnostic: (line) => onDiagnostic(redact(line)),
+    onNotification: (message) => renderer.render(message),
   });
 
   try {
@@ -68,10 +78,11 @@ export async function runAgentAction({
     const threadId = started.thread?.id;
     if (!threadId) throw new Error("Codex App Server did not return a thread id");
 
-    const work = await runGoal(client, {
+    const work = await runGoal(client, renderer, {
       threadId,
       objective: prompt,
       tokenBudget: budget.work,
+      phase: "work",
     });
     const result = {
       workGoalStatus: work.status,
@@ -92,10 +103,11 @@ export async function runAgentAction({
       if (!Number.isSafeInteger(handoffTokenCeiling) || handoffTokenCeiling <= work.tokensUsed) {
         throw new Error("Runtime-reported token usage cannot form a safe Handoff budget ceiling");
       }
-      const handoff = await runGoal(client, {
+      const handoff = await runGoal(client, renderer, {
         threadId,
         objective: handoffPrompt,
         tokenBudget: handoffTokenCeiling,
+        phase: "handoff",
       });
       result.handoffGoalStatus = handoff.status;
       const handoffTokensUsed = handoff.tokensUsed - work.tokensUsed;

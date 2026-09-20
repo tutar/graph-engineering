@@ -11,9 +11,12 @@ export class AppServerClient {
   #notificationWaiters = new Set();
   #closed;
   #lastAgentMessage = "";
+  #lastAgentMessageId = "";
+  #notification;
 
-  constructor({ command, args, cwd, env, onDiagnostic = () => {} }) {
+  constructor({ command, args, cwd, env, onDiagnostic = () => {}, onNotification = () => {} }) {
     this.#diagnostic = onDiagnostic;
+    this.#notification = onNotification;
     this.#child = spawn(command, args, {
       cwd,
       env,
@@ -70,7 +73,9 @@ export class AppServerClient {
             resolve({
               status: message.params.goal.status,
               tokensUsed: message.params.goal.tokensUsed ?? 0,
+              timeUsedSeconds: message.params.goal.timeUsedSeconds ?? 0,
               finalMessage: this.#lastAgentMessage,
+              finalMessageItemId: this.#lastAgentMessageId,
             });
           } else if (message.method === "error") {
             this.#notificationWaiters.delete(waiter);
@@ -89,6 +94,7 @@ export class AppServerClient {
 
   resetFinalMessage() {
     this.#lastAgentMessage = "";
+    this.#lastAgentMessageId = "";
   }
 
   finalMessage() {
@@ -155,6 +161,12 @@ export class AppServerClient {
 
     if (message.method === "item/completed" && message.params?.item?.type === "agentMessage") {
       this.#lastAgentMessage = message.params.item.text;
+      this.#lastAgentMessageId = message.params.item.id;
+    }
+    try {
+      this.#notification(message);
+    } catch (error) {
+      this.#diagnostic(`Codex event renderer failed: ${error.message}`);
     }
     for (const waiter of [...this.#notificationWaiters]) waiter.accept(message);
   }

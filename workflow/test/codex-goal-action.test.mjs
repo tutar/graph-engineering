@@ -29,6 +29,7 @@ async function runScenario(t, scenario, overrides = {}) {
       FAKE_SCENARIO: scenario,
       FAKE_TRANSCRIPT: transcript,
       FAKE_CLEANUP: cleanup,
+      RUNNER_TEMP: root,
       ...envOverrides,
     },
     workingDirectory: root,
@@ -91,6 +92,7 @@ exec "${process.execPath}" "${fakeAppServer}"
       ...process.env,
       PATH: bin,
       RUNNER_TOOL_CACHE: join(root, "tool-cache"),
+      RUNNER_TEMP: root,
       GITHUB_OUTPUT: output,
       "INPUT_WORKING-DIRECTORY": overrides.workingDirectory ?? root,
       INPUT_PROMPT: overrides.prompt ?? "work objective",
@@ -98,6 +100,8 @@ exec "${process.execPath}" "${fakeAppServer}"
       "INPUT_HANDOFF-PROMPT": overrides.handoffPrompt ?? "handoff objective",
       "INPUT_CODEX-VERSION": overrides.codexVersion ?? "0.153.4",
       "INPUT_PERMISSION-PROFILE": overrides.permissionProfile ?? "graph-engineering-delivery",
+      "INPUT_LOG-MODE": overrides.logMode ?? "safe",
+      ...(overrides.openAIKey ? { OPENAI_API_KEY: overrides.openAIKey, FAKE_SECRET_CANARY: overrides.openAIKey } : {}),
       FAKE_CODEX_ARGS: argsFile,
       FAKE_SCENARIO: scenario,
       FAKE_TRANSCRIPT: join(root, "transcript.jsonl"),
@@ -387,10 +391,79 @@ test("invalid public inputs fail closed before App Server startup", async (t) =>
     { tokenBudget: "100000" },
     { codexVersion: "latest" },
     { permissionProfile: "" },
+    { logMode: "verbose" },
   ]) {
     const { process: failed, outputs } = await invokeAction(t, "work-complete", overrides);
     assert.equal(failed.status, 1);
     assert.equal(outputs["work-goal-status"], "failed");
     assert.equal(outputs["handoff-goal-status"], "not-started");
   }
+});
+
+test("detailed mode streams the allowlisted Runtime events with safe line prefixes", async (t) => {
+  const secret = "sk-render-secret";
+  const { process: completed, outputs } = await invokeAction(t, "runtime-events-complete", {
+    logMode: "detailed",
+    openAIKey: secret,
+  });
+  assert.equal(completed.status, 0, completed.stderr);
+  assert.equal(outputs["work-goal-status"], "complete");
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[reasoning-summary\] event=part-added$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[reasoning-summary\] visible reasoning$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[reasoning-summary\] ::warning::not a command \\u001b\[31m \*\*\*$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[command\] printf '\*\*\*\\nsecond line'$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[command-output\] stdout \*\*\*$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[command-output\] stderr ::error::still data$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[command\] status=completed exit=0$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[mcp\] server=fixture tool=lookup arguments=.*\*\*\*/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[mcp\] progress=halfway$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[mcp\] status=completed result=.*\*\*\*/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[file-change\] .*example\.txt/m);
+  assert.equal(completed.stdout.match(/\[codex\]\[work\]\[agent-message\] work finished/g)?.length, 1);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[goal\] status=complete tokens=1234 elapsed=1s$/m);
+  assert.doesNotMatch(completed.stdout, /hidden reasoning|hidden-|unknown-|must not repeat|sk-render-secret/);
+  assert.ok(completed.stdout.indexOf("reasoning-summary") < completed.stdout.indexOf("command-output"));
+  for (const line of completed.stdout.trim().split("\n")) assert.match(line, /^\[codex\]\[work\]\[[a-z-]+\] /);
+});
+
+test("safe mode emits only event metadata while silent preserves the previous minimum output", async (t) => {
+  const safe = await invokeAction(t, "runtime-events-complete", { logMode: "safe" });
+  assert.equal(safe.process.status, 0, safe.process.stderr);
+  assert.match(safe.process.stdout, /\[codex\]\[work\]\[command\] event=completed status=completed exit=0/);
+  assert.match(safe.process.stdout, /\[codex\]\[work\]\[goal\] status=complete tokens=1234 elapsed=1s/);
+  assert.doesNotMatch(safe.process.stdout, /visible reasoning|work finished|printf|stdout|halfway|example\.txt|lookup/);
+
+  const silent = await invokeAction(t, "runtime-events-complete", { logMode: "silent" });
+  assert.equal(silent.process.status, 0, silent.process.stderr);
+  assert.equal(silent.process.stdout, "");
+});
+
+test("Work and Handoff events remain explicitly separated and final-message fallback appears once", async (t) => {
+  const handedOff = await invokeAction(t, "runtime-events-blocked-handoff-complete", { logMode: "detailed" });
+  assert.equal(handedOff.process.status, 1);
+  assert.match(handedOff.process.stdout, /^\[codex\]\[work\]\[goal\] status=blocked tokens=2500 elapsed=1s$/m);
+  assert.match(handedOff.process.stdout, /^\[codex\]\[handoff\]\[goal\] status=complete tokens=3000 elapsed=1s$/m);
+  assert.equal(handedOff.process.stdout.match(/\[codex\]\[work\]\[agent-message\] work stopped/g)?.length, 1);
+  assert.equal(handedOff.process.stdout.match(/\[codex\]\[handoff\]\[agent-message\] handoff finished/g)?.length, 1);
+  assert.equal(handedOff.outputs["work-goal-status"], "blocked");
+  assert.equal(handedOff.outputs["handoff-goal-status"], "complete");
+
+  const fallback = await invokeAction(t, "work-complete", { logMode: "detailed" });
+  assert.equal(fallback.process.status, 0, fallback.process.stderr);
+  assert.equal(fallback.process.stdout.match(/\[codex\]\[work\]\[agent-message\] work finished/g)?.length, 1);
+});
+
+test("renderer failure is fail-open while invalid App Server JSON remains fatal", async (t) => {
+  const diagnostics = [];
+  const { result } = await runScenario(t, "runtime-events-complete", {
+    logMode: "detailed",
+    onLog: () => { throw new Error("fixture renderer sink failed"); },
+    onDiagnostic: (line) => diagnostics.push(line),
+  });
+  assert.equal(result.workGoalStatus, "complete");
+  assert.match(diagnostics.join("\n"), /Codex event renderer failed: fixture renderer sink failed/);
+
+  const invalid = await invokeAction(t, "invalid-json", { logMode: "detailed" });
+  assert.equal(invalid.process.status, 1);
+  assert.match(invalid.outputs["final-message"], /invalid JSON/);
 });
