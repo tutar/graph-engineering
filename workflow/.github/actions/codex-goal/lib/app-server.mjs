@@ -11,9 +11,12 @@ export class AppServerClient {
   #notificationWaiters = new Set();
   #closed;
   #lastAgentMessage = "";
+  #lastAgentMessageId = "";
+  #notification;
 
-  constructor({ command, args, cwd, env, onDiagnostic = () => {} }) {
+  constructor({ command, args, cwd, env, onDiagnostic = () => {}, onNotification = () => {} }) {
     this.#diagnostic = onDiagnostic;
+    this.#notification = onNotification;
     this.#child = spawn(command, args, {
       cwd,
       env,
@@ -69,8 +72,11 @@ export class AppServerClient {
             this.#notificationWaiters.delete(waiter);
             resolve({
               status: message.params.goal.status,
+              turnId: message.params.turnId ?? null,
               tokensUsed: message.params.goal.tokensUsed ?? 0,
+              timeUsedSeconds: message.params.goal.timeUsedSeconds ?? 0,
               finalMessage: this.#lastAgentMessage,
+              finalMessageItemId: this.#lastAgentMessageId,
             });
           } else if (message.method === "error") {
             this.#notificationWaiters.delete(waiter);
@@ -89,10 +95,31 @@ export class AppServerClient {
 
   resetFinalMessage() {
     this.#lastAgentMessage = "";
+    this.#lastAgentMessageId = "";
   }
 
   finalMessage() {
     return this.#lastAgentMessage;
+  }
+
+  async readFinalMessage(threadId, turnId = null) {
+    const response = await this.request("thread/read", { threadId, includeTurns: true });
+    const turns = response.thread?.turns;
+    if (!Array.isArray(turns)) return { itemId: "", text: "" };
+    const candidates = turnId === null
+      ? [...turns].reverse()
+      : turns.filter((turn) => turn?.id === turnId);
+    for (const turn of candidates) {
+      const items = turn?.items;
+      if (!Array.isArray(items)) continue;
+      for (let itemIndex = items.length - 1; itemIndex >= 0; itemIndex -= 1) {
+        const item = items[itemIndex];
+        if (item?.type === "agentMessage" && typeof item.text === "string") {
+          return { itemId: item.id, text: item.text };
+        }
+      }
+    }
+    return { itemId: "", text: "" };
   }
 
   async close() {
@@ -155,6 +182,12 @@ export class AppServerClient {
 
     if (message.method === "item/completed" && message.params?.item?.type === "agentMessage") {
       this.#lastAgentMessage = message.params.item.text;
+      this.#lastAgentMessageId = message.params.item.id;
+    }
+    try {
+      this.#notification(message);
+    } catch (error) {
+      this.#diagnostic(`Codex event renderer failed: ${error.message}`);
     }
     for (const waiter of [...this.#notificationWaiters]) waiter.accept(message);
   }
