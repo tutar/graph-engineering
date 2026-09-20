@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
+import { parseDocument } from "yaml";
 
 const actionRoot = new URL("../.github/actions/codex-goal/", import.meta.url);
+const installedActionRoot = new URL("../../.github/actions/codex-goal/", import.meta.url);
+
+test("Codex Goal Action manifests are valid YAML", async () => {
+  for (const root of [actionRoot, installedActionRoot]) {
+    const manifest = await readFile(new URL("action.yml", root), "utf8");
+    const document = parseDocument(manifest);
+    assert.deepEqual(document.errors, []);
+  }
+});
 
 test("Codex Goal Action exposes only the generic Goal execution contract", async () => {
   const manifest = await readFile(new URL("action.yml", actionRoot), "utf8");

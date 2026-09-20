@@ -1,0 +1,8 @@
+{
+  "name": "@tutar/graph-engineering-workflow-tests",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "yaml": "2.9.1"
+  }
+}
