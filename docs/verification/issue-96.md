@@ -35,10 +35,13 @@ GitHub Actions REST API 在以下观察点均报告 Run、Job 和 `Run fresh Cod
 | `01:24:23.152Z` | `[codex][work][goal] status=active tokens=24371 elapsed=62s` |
 | `01:24:31.401Z` | `[codex][work][goal] status=active tokens=28581 elapsed=70s` |
 | `01:24:45.976Z` | `[codex][work][goal] status=active tokens=29348 elapsed=83s` |
+| `01:27:19.657Z`–`01:27:19.802Z` | `[codex][work][file-change] status=inProgress/completed`，包含本验证记录的实际 diff |
+| `01:29:29.852Z`–`01:29:30.464Z` | `[codex][work][mcp]` 显示 `list_mcp_resources` 参数与完成结果 |
+| `01:30:04.645Z`–`01:30:08.985Z` | 一个延时命令的多次 output delta、空行及 `exit=0` 在命令仍运行时逐行出现 |
 
-这次正常完成路径当前只发生 Work Goal，因此实际事件统一使用 `[codex][work][...]` 阶段前缀；没有启动 Handoff Goal，也不制造 `[codex][handoff][...]` 证据。实际发生的 Goal、reasoning summary、Agent message、command 与 command output 均可辨识。当前没有可回读的 Runtime MCP 事件，因此不以别的事件冒充 MCP 轨迹。
+这次正常完成路径当前只发生 Work Goal，因此实际事件统一使用 `[codex][work][...]` 阶段前缀；没有启动 Handoff Goal，也不制造 `[codex][handoff][...]` 证据。实际发生的 Goal、reasoning summary、Agent message、command、command output、MCP 与 file change 均可辨识。
 
-多行 Runtime 内容的每一行均带 `[codex][work][事件类型]` 前缀。观察期间没有出现由 Runtime 内容产生的 `##[...]`、`::...::` Workflow Command 效果或终端控制效果；Runner 原生步骤标记不属于 Runtime 投影。
+多行 Runtime 内容的每一行均带 `[codex][work][事件类型]` 前缀。安全 canary 命令中的 `::warning::runtime-canary` 只作为带前缀的 command 内容出现，没有形成 Runner annotation；stdout 中的 ANSI ESC 被投影为字面量 `\u001b`，没有形成颜色或终端控制。观察期间没有出现由 Runtime 内容产生的 `##[...]`、`::...::` Workflow Command 效果或终端控制效果；Runner 原生步骤标记不属于 Runtime 投影。
 
 ## 完整 Run 终态核验
 
@@ -56,4 +59,5 @@ GitHub Actions REST API 在以下观察点均报告 Run、Job 和 `Run fresh Cod
 ## 限制
 
 - 运行中的 completed-job logs REST endpoint 返回 `404 BlobNotFound`，因此实时观察采用 Runner 的 Job page log spool，并以 Worker 对 GitHub Results service 的成功 append 记录确认传输；Run 完成后再用 GitHub 可回读的完整 Job 日志复核。
+- 极短命令没有产生 Codex App Server output delta 时，真实日志只显示 command 与 exit；延时产生的 stdout delta 会逐行显示。本记录只声称实际收到的 Runtime 事件，不从工具调用结果合成缺失的 App Server 事件。
 - #95 的 Fake App Server 测试证明确定性协议行为，但不作为本记录中 GitHub Runner/UI 实际呈现的替代证据。
