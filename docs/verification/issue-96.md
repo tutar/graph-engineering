@@ -1,6 +1,6 @@
-# Issue #96：真实 Coding Ticket 增量日志验证
+# [用真实 Coding Ticket 验证 GitHub Job 增量输出](https://github.com/tutar/graph-engineering/issues/96)：验证记录
 
-本记录对应 [Issue #96](https://github.com/tutar/graph-engineering/issues/96)，区分真实 GitHub Runner/UI 运行证据与 #95 已有的 deterministic Action tests。所有时间均为 UTC。
+本记录对应 [用真实 Coding Ticket 验证 GitHub Job 增量输出](https://github.com/tutar/graph-engineering/issues/96)，区分真实 GitHub Runner/UI 运行证据与 [在 Coding Task 中实现 Codex Goal 近实时日志](https://github.com/tutar/graph-engineering/issues/95) 已有的 deterministic Action tests。所有时间均为 UTC。
 
 ## 执行身份
 
@@ -60,4 +60,4 @@ GitHub Actions REST API 在以下观察点均报告 Run、Job 和 `Run fresh Cod
 
 - 运行中的 completed-job logs REST endpoint 返回 `404 BlobNotFound`，因此实时观察采用 Runner 的 Job page log spool，并以 Worker 对 GitHub Results service 的成功 append 记录确认传输；Run 完成后再用 GitHub 可回读的完整 Job 日志复核。
 - 极短命令没有产生 Codex App Server output delta 时，真实日志只显示 command 与 exit；延时产生的 stdout delta 会逐行显示。本记录只声称实际收到的 Runtime 事件，不从工具调用结果合成缺失的 App Server 事件。
-- #95 的 Fake App Server 测试证明确定性协议行为，但不作为本记录中 GitHub Runner/UI 实际呈现的替代证据。
+- [在 Coding Task 中实现 Codex Goal 近实时日志](https://github.com/tutar/graph-engineering/issues/95) 的 Fake App Server 测试证明确定性协议行为，但不作为本记录中 GitHub Runner/UI 实际呈现的替代证据。
