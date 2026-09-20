@@ -65,10 +65,10 @@ Handoff 不扩大实现范围，也不触发第二次 Handoff。它保存所有�
 
 ## Budget 与终态
 
-- 默认总预算为 100,000 tokens。
-- 固定 Handoff 预算为 20,000 tokens，不允许调用者修改。
-- 有限总预算必须大于 20,000；Work Goal 使用 `total - 20,000`，Handoff 使用 `min(total, Work 累计用量 + 20,000)` 作为同一 Session 的累计上限。
-- `unlimited` 只让 Work Goal 不受有限预算约束；Work Goal blocked 后的 Handoff 以 Work 累计用量加 20,000 作为累计上限。
+- 默认总预算为 500,000 tokens。
+- 固定 Handoff 预算为 100,000 tokens，不允许调用者修改。
+- 有限总预算必须大于 100,000；Work Goal 使用 `total - 100,000`，Handoff 使用 `min(total, Work 累计用量 + 100,000)` 作为同一 Session 的累计上限。
+- `unlimited` 只让 Work Goal 不受有限预算约束；Work Goal blocked 后的 Handoff 以 Work 累计用量加 100,000 作为累计上限。
 - 标签触发使用默认预算；人工 dispatch 可以指定正整数或 `unlimited`。
 - Runtime Token Budget 不是精确 provider 硬上限，也不是费用预算。
 
@@ -96,7 +96,7 @@ with:
   permission-profile: graph-engineering-delivery
 ```
 
-`handoff-token-budget` 是 Action 内部固定常量 20,000，不作为公开配置。`OPENAI_API_KEY` 是可选环境变量；未提供时使用 runner 已准备的 Codex 登录状态。`GH_TOKEN` 由 Workflow 注入给 Coding Agent，Action 不读取或解释它。
+`handoff-token-budget` 是 Action 内部固定常量 100,000，不作为公开配置。`OPENAI_API_KEY` 是可选环境变量；未提供时使用 runner 已准备的 Codex 登录状态。`GH_TOKEN` 由 Workflow 注入给 Coding Agent，Action 不读取或解释它。
 
 建议首版输出为 `work-goal-status`、`handoff-goal-status`、`token-budget-state`、`work-tokens-used`、`handoff-tokens-used` 与 `final-message`。
 
