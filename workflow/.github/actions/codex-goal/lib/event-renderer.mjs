@@ -31,13 +31,15 @@ export class EventRenderer {
   #phase = "work";
   #redact;
   #write;
+  #writeDiagnostic;
   #streamedAgentItems = new Set();
   #renderedAgentItems = new Set();
 
-  constructor({ logMode, redact = (value) => value, write = () => {} }) {
+  constructor({ logMode, redact = (value) => value, write = () => {}, writeDiagnostic = () => {} }) {
     this.#logMode = validateLogMode(logMode);
     this.#redact = redact;
     this.#write = write;
+    this.#writeDiagnostic = writeDiagnostic;
   }
 
   setPhase(phase) {
@@ -53,12 +55,7 @@ export class EventRenderer {
     if (!params || typeof params !== "object") return;
 
     if (method === "thread/goal/updated") {
-      const goal = params.goal;
-      if (!goal || typeof goal !== "object") return;
-      const fields = [`status=${serialized(goal.status)}`];
-      if (goal.tokensUsed !== undefined) fields.push(`tokens=${serialized(goal.tokensUsed)}`);
-      if (goal.timeUsedSeconds !== undefined) fields.push(`elapsed=${serialized(goal.timeUsedSeconds)}s`);
-      this.#emit("goal", fields.join(" "));
+      this.renderGoal(params.goal);
       return;
     }
 
@@ -111,6 +108,21 @@ export class EventRenderer {
     this.#renderedAgentItems.add(itemId);
     if (this.#logMode === "safe") this.#emit("agent-message", "event=terminal-fallback");
     else this.#emit("agent-message", text);
+  }
+
+  renderGoal(goal) {
+    if (this.#logMode === "silent" || !goal || typeof goal !== "object") return;
+    const fields = [`status=${serialized(goal.status)}`];
+    if (goal.tokensUsed !== undefined) fields.push(`tokens=${serialized(goal.tokensUsed)}`);
+    if (goal.timeUsedSeconds !== undefined) fields.push(`elapsed=${serialized(goal.timeUsedSeconds)}s`);
+    this.#emit("goal", fields.join(" "));
+  }
+
+  diagnostic(value) {
+    const redacted = this.#redact(serialized(value));
+    for (const line of lines(redacted)) {
+      this.#writeDiagnostic(`[codex][${this.#phase}][diagnostic] ${line}`);
+    }
   }
 
   #renderItem(event, item) {
@@ -167,4 +179,9 @@ export class EventRenderer {
       this.#write(`[codex][${this.#phase}][${event}] ${line}\n`);
     }
   }
+}
+
+export function writeSafeLog({ phase, event, value, write, redact = (text) => text }) {
+  const redacted = redact(serialized(value));
+  for (const line of lines(redacted)) write(`[codex][${phase}][${event}] ${line}\n`);
 }

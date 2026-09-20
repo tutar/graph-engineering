@@ -101,6 +101,23 @@ export class AppServerClient {
     return this.#lastAgentMessage;
   }
 
+  async readFinalMessage(threadId) {
+    const response = await this.request("thread/read", { threadId, includeTurns: true });
+    const turns = response.thread?.turns;
+    if (!Array.isArray(turns)) return { itemId: "", text: "" };
+    for (let turnIndex = turns.length - 1; turnIndex >= 0; turnIndex -= 1) {
+      const items = turns[turnIndex]?.items;
+      if (!Array.isArray(items)) continue;
+      for (let itemIndex = items.length - 1; itemIndex >= 0; itemIndex -= 1) {
+        const item = items[itemIndex];
+        if (item?.type === "agentMessage" && typeof item.text === "string") {
+          return { itemId: item.id, text: item.text };
+        }
+      }
+    }
+    return { itemId: "", text: "" };
+  }
+
   async close() {
     if (this.#child.exitCode !== null || this.#child.signalCode !== null) return;
     this.#child.stdin.end();

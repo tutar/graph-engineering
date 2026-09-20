@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -68,7 +69,7 @@ function actionOutputs(text) {
   return result;
 }
 
-async function invokeAction(t, scenario, overrides = {}) {
+async function actionInvocation(t, scenario, overrides = {}) {
   const root = await mkdtemp(join(tmpdir(), "codex-goal-entrypoint-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const bin = join(root, "bin");
@@ -86,9 +87,7 @@ exec "${process.execPath}" "${fakeAppServer}"
   await chmod(codex, 0o755);
   const output = join(root, "github-output.txt");
   await writeFile(output, "");
-  const result = spawnSync(process.execPath, [new URL("../.github/actions/codex-goal/index.mjs", import.meta.url).pathname], {
-    encoding: "utf8",
-    env: {
+  const env = {
       ...process.env,
       PATH: bin,
       RUNNER_TOOL_CACHE: join(root, "tool-cache"),
@@ -102,16 +101,32 @@ exec "${process.execPath}" "${fakeAppServer}"
       "INPUT_PERMISSION-PROFILE": overrides.permissionProfile ?? "graph-engineering-delivery",
       "INPUT_LOG-MODE": overrides.logMode ?? "safe",
       ...(overrides.openAIKey ? { OPENAI_API_KEY: overrides.openAIKey, FAKE_SECRET_CANARY: overrides.openAIKey } : {}),
+      ...(overrides.fakeFinalMessage ? { FAKE_FINAL_MESSAGE: overrides.fakeFinalMessage } : {}),
+      ...(overrides.fakeProtocolError ? { FAKE_PROTOCOL_ERROR: overrides.fakeProtocolError } : {}),
       FAKE_CODEX_ARGS: argsFile,
       FAKE_SCENARIO: scenario,
       FAKE_TRANSCRIPT: join(root, "transcript.jsonl"),
       FAKE_CLEANUP: join(root, "cleanup.txt"),
-    },
+  };
+  if (overrides.omitLogMode) delete env["INPUT_LOG-MODE"];
+  return {
+    args: [new URL("../.github/actions/codex-goal/index.mjs", import.meta.url).pathname],
+    codexArgsPath: argsFile,
+    env,
+    output,
+  };
+}
+
+async function invokeAction(t, scenario, overrides = {}) {
+  const invocation = await actionInvocation(t, scenario, overrides);
+  const result = spawnSync(process.execPath, invocation.args, {
+    encoding: "utf8",
+    env: invocation.env,
   });
   return {
     process: result,
-    outputs: actionOutputs(await readFile(output, "utf8")),
-    codexArgs: await readFile(argsFile, "utf8").catch(() => ""),
+    outputs: actionOutputs(await readFile(invocation.output, "utf8")),
+    codexArgs: await readFile(invocation.codexArgsPath, "utf8").catch(() => ""),
   };
 }
 
@@ -174,6 +189,14 @@ test("Work Goal complete returns structured success without starting Handoff", a
     tokenBudget: 300_000,
   });
   assert.equal(await readFile(cleanup, "utf8"), "closed\n");
+});
+
+test("a terminal goal/set response still logs terminal metadata and recovers its final message", async (t) => {
+  const completed = await invokeAction(t, "terminal-response-complete", { logMode: "detailed" });
+  assert.equal(completed.process.status, 0, completed.process.stderr);
+  assert.match(completed.process.stdout, /^\[codex\]\[work\]\[goal\] status=complete tokens=7 elapsed=2s$/m);
+  assert.match(completed.process.stdout, /^\[codex\]\[work\]\[agent-message\] response finished$/m);
+  assert.equal(completed.outputs["final-message"], "response finished");
 });
 
 for (const workStatus of ["blocked", "budgetLimited"]) {
@@ -377,6 +400,20 @@ test("App Server exceptions produce explicit structured failure outputs", async 
   assert.match(outputs["final-message"], /fixture App Server failure/);
 });
 
+test("protocol-error fallback redacts secrets and cannot emit workflow or terminal controls", async (t) => {
+  const secret = "sk-protocol-secret";
+  const { process: failed, outputs } = await invokeAction(t, "app-server-failed", {
+    openAIKey: secret,
+    fakeProtocolError: `failure ${secret}\n::error::data \u001b[31m`,
+  });
+  assert.equal(failed.status, 1);
+  assert.equal(outputs["final-message"], "failure ***\n::error::data \u001b[31m");
+  assert.match(failed.stderr, /^\[codex\]\[work\]\[action-error\] Codex Goal Action failed: failure \*\*\*$/m);
+  assert.match(failed.stderr, /^\[codex\]\[work\]\[action-error\] ::error::data \\u001b\[31m$/m);
+  assert.doesNotMatch(failed.stderr, new RegExp(secret));
+  for (const line of failed.stderr.trim().split("\n")) assert.match(line, /^\[codex\]\[work\]\[[a-z-]+\] /);
+});
+
 test("clean App Server exit while a request is pending cannot deadlock", async (t) => {
   const { process: failed, outputs } = await invokeAction(t, "clean-exit");
   assert.equal(failed.status, 1);
@@ -438,6 +475,41 @@ test("safe mode emits only event metadata while silent preserves the previous mi
   assert.equal(silent.process.stdout, "");
 });
 
+test("omitting log-mode uses safe without exposing Runtime content", async (t) => {
+  const omitted = await invokeAction(t, "runtime-events-complete", { omitLogMode: true });
+  assert.equal(omitted.process.status, 0, omitted.process.stderr);
+  assert.match(omitted.process.stdout, /\[codex\]\[work\]\[command\] event=completed status=completed exit=0/);
+  assert.doesNotMatch(omitted.process.stdout, /visible reasoning|work finished|stdout|halfway|example\.txt/);
+});
+
+test("output delta is observable before the Action process reaches Goal terminal state", async (t) => {
+  const invocation = await actionInvocation(t, "runtime-events-delayed-complete", { logMode: "detailed" });
+  const child = spawn(process.execPath, invocation.args, { env: invocation.env, stdio: ["ignore", "pipe", "pipe"] });
+  t.after(() => {
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+  });
+  let stdout = "";
+  let stderr = "";
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  child.stdout.setEncoding("utf8");
+  const observedDelta = new Promise((resolve) => {
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+      if (stdout.includes("[codex][work][command-output] stdout fixture-secret")) resolve();
+    });
+  });
+  let timer;
+  await Promise.race([
+    observedDelta,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("timed out waiting for live output delta")), 2_000); }),
+  ]).finally(() => clearTimeout(timer));
+  assert.equal(child.exitCode, null, "Action must still be running when the delta is observed");
+  const [code] = await once(child, "close");
+  assert.equal(code, 0, stderr);
+  assert.match(stdout, /\[codex\]\[work\]\[goal\] status=complete/);
+});
+
 test("Work and Handoff events remain explicitly separated and final-message fallback appears once", async (t) => {
   const handedOff = await invokeAction(t, "runtime-events-blocked-handoff-complete", { logMode: "detailed" });
   assert.equal(handedOff.process.status, 1);
@@ -451,6 +523,20 @@ test("Work and Handoff events remain explicitly separated and final-message fall
   const fallback = await invokeAction(t, "work-complete", { logMode: "detailed" });
   assert.equal(fallback.process.status, 0, fallback.process.stderr);
   assert.equal(fallback.process.stdout.match(/\[codex\]\[work\]\[agent-message\] work finished/g)?.length, 1);
+});
+
+test("terminal thread read supplies a safe, redacted final-message fallback when its event is missing", async (t) => {
+  const secret = "sk-fallback-secret";
+  const completed = await invokeAction(t, "missing-agent-event-complete", {
+    logMode: "detailed",
+    openAIKey: secret,
+    fakeFinalMessage: `fallback ${secret}\n::warning::data \u001b[31m`,
+  });
+  assert.equal(completed.process.status, 0, completed.process.stderr);
+  assert.equal(completed.process.stdout.match(/\[codex\]\[work\]\[agent-message\] fallback \*\*\*/g)?.length, 1);
+  assert.match(completed.process.stdout, /^\[codex\]\[work\]\[agent-message\] ::warning::data \\u001b\[31m$/m);
+  assert.equal(completed.outputs["final-message"], "fallback ***\n::warning::data \u001b[31m");
+  assert.doesNotMatch(`${completed.process.stdout}\n${completed.process.stderr}\n${JSON.stringify(completed.outputs)}`, new RegExp(secret));
 });
 
 test("renderer failure is fail-open while invalid App Server JSON remains fatal", async (t) => {

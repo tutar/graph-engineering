@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import { splitTokenBudget } from "./lib/budget.mjs";
 import { prepareCodexCli } from "./lib/prepare-cli.mjs";
 import { runAgentAction } from "./lib/run.mjs";
-import { validateLogMode } from "./lib/event-renderer.mjs";
+import { validateLogMode, writeSafeLog } from "./lib/event-renderer.mjs";
 
 const OUTPUT_NAMES = {
   workGoalStatus: "work-goal-status",
@@ -112,7 +112,13 @@ export async function executeAction(env = process.env) {
 export async function main() {
   const { result, success } = await executeAction();
   if (!success) {
-    process.stderr.write(`Codex Goal Action failed: ${result.finalMessage}\n`);
+    const phase = result.handoffGoalStatus === "not-started" ? "work" : "handoff";
+    writeSafeLog({
+      phase,
+      event: "action-error",
+      value: `Codex Goal Action failed: ${result.finalMessage}`,
+      write: (line) => process.stderr.write(line),
+    });
     process.exitCode = 1;
   }
 }

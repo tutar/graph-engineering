@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "product": "@tutar/graph-engineering",
   "productVersion": "0.3.1",
-  "sourceCommit": "88241406b8f9fd88b039f1403b842dae5f082b6e",
+  "sourceCommit": "b88ea7dbdff9d5e7e9e0fba92c4725822583e3c5",
   "delivery": "workflow",
   "files": [
     ".github/actions/codex-goal/README.md",

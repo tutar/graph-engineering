@@ -16,15 +16,28 @@ async function runGoal(client, renderer, { threadId, objective, tokenBudget, pha
     const response = await client.request("thread/goal/set", params);
     if (isTerminalGoalStatus(response.goal?.status)) {
       terminal.cancel();
-      return {
+      const result = {
         status: response.goal.status,
         tokensUsed: response.goal.tokensUsed ?? 0,
         timeUsedSeconds: response.goal.timeUsedSeconds ?? 0,
         finalMessage: client.finalMessage(),
         finalMessageItemId: "",
       };
+      renderer.renderGoal(response.goal);
+      if (!result.finalMessage) {
+        const fallback = await client.readFinalMessage(threadId);
+        result.finalMessage = fallback.text;
+        result.finalMessageItemId = fallback.itemId;
+      }
+      renderer.ensureFinalMessage({ itemId: result.finalMessageItemId, text: result.finalMessage });
+      return result;
     }
     const result = await terminal.promise;
+    if (!result.finalMessage) {
+      const fallback = await client.readFinalMessage(threadId);
+      result.finalMessage = fallback.text;
+      result.finalMessageItemId = fallback.itemId;
+    }
     renderer.ensureFinalMessage({ itemId: result.finalMessageItemId, text: result.finalMessage });
     return result;
   } catch (error) {
@@ -54,13 +67,13 @@ export async function runAgentAction({
   const isolatedCodexHome = apiKey
     ? await mkdtemp(join(env.RUNNER_TEMP || tmpdir(), "codex-goal-auth-"))
     : null;
-  const renderer = new EventRenderer({ logMode, redact, write: onLog });
+  const renderer = new EventRenderer({ logMode, redact, write: onLog, writeDiagnostic: onDiagnostic });
   const client = new AppServerClient({
     command,
     args,
     cwd: workingDirectory,
     env: isolatedCodexHome ? { ...childEnv, CODEX_HOME: isolatedCodexHome } : childEnv,
-    onDiagnostic: (line) => onDiagnostic(redact(line)),
+    onDiagnostic: (line) => renderer.diagnostic(line),
     onNotification: (message) => renderer.render(message),
   });
 

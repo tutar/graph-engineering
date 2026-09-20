@@ -5,6 +5,7 @@ const scenario = process.env.FAKE_SCENARIO;
 const transcript = process.env.FAKE_TRANSCRIPT;
 let goalCount = 0;
 let currentGoalBudget = null;
+let persistedFinalMessage = "";
 
 appendFileSync(transcript, `${JSON.stringify({
   method: "fixture/environment",
@@ -41,7 +42,7 @@ function item(method, value) {
 function runtimeEvents() {
   const canary = process.env.FAKE_SECRET_CANARY || "fixture-secret";
   const agentText = goalCount === 1
-    ? (scenario === "runtime-events-complete" ? "work finished" : "work stopped")
+    ? (new Set(["runtime-events-complete", "runtime-events-delayed-complete"]).has(scenario) ? "work finished" : "work stopped")
     : "handoff finished";
   send({ method: "account/updated", params: { account: { email: `hidden-${canary}` } } });
   send({ method: "fixture/unknown", params: { hidden: `unknown-${canary}` } });
@@ -130,7 +131,8 @@ function runtimeEvents() {
 
 function terminalGoal(status, tokensUsed, finalMessage) {
   finalMessage = process.env.FAKE_FINAL_MESSAGE || finalMessage;
-  if (finalMessage) {
+  persistedFinalMessage = finalMessage;
+  if (finalMessage && scenario !== "missing-agent-event-complete") {
     send({
       method: "item/completed",
       params: {
@@ -170,19 +172,47 @@ lines.on("line", (line) => {
   } else if (message.method === "thread/start") {
     if (scenario === "clean-exit") process.exit(0);
     send({ id: message.id, result: { thread: { id: "thread-1", sessionId: "thread-1" } } });
+  } else if (message.method === "thread/read") {
+    send({
+      id: message.id,
+      result: {
+        thread: {
+          id: "thread-1",
+          turns: [{
+            id: `turn-${goalCount}`,
+            status: "completed",
+            items: persistedFinalMessage
+              ? [{ id: `message-${goalCount}`, type: "agentMessage", text: persistedFinalMessage }]
+              : [],
+          }],
+        },
+      },
+    });
   } else if (message.method === "thread/goal/set") {
     goalCount += 1;
     currentGoalBudget = message.params.tokenBudget ?? null;
+    if (scenario === "terminal-response-complete") {
+      persistedFinalMessage = "response finished";
+      send({ id: message.id, result: { goal: { ...message.params, status: "complete", tokensUsed: 7, timeUsedSeconds: 2 } } });
+      return;
+    }
     send({ id: message.id, result: { goal: { ...message.params, tokensUsed: 0 } } });
     if (scenario.startsWith("runtime-events")) runtimeEvents();
     if (scenario === "invalid-json") {
       process.stdout.write("not-json\n");
       return;
     }
+    if (scenario === "runtime-events-delayed-complete") {
+      setTimeout(() => terminalGoal("complete", 1234, "work finished"), 250);
+      return;
+    }
+    if (scenario === "missing-agent-event-complete" && process.env.FAKE_SECRET_CANARY) {
+      process.stderr.write(`diagnostic ${process.env.FAKE_SECRET_CANARY}\n`);
+    }
     if (goalCount === 1) {
       if (scenario === "app-server-failed") {
-        send({ method: "error", params: { message: "fixture App Server failure" } });
-      } else if (scenario.startsWith("work-complete") || scenario === "runtime-events-complete") terminalGoal("complete", 1234, "work finished");
+        send({ method: "error", params: { message: process.env.FAKE_PROTOCOL_ERROR || "fixture App Server failure" } });
+      } else if (scenario.startsWith("work-complete") || scenario === "runtime-events-complete" || scenario === "missing-agent-event-complete") terminalGoal("complete", 1234, "work finished");
       else if (scenario.startsWith("budgetLimited-")) terminalGoal("budgetLimited", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
       else terminalGoal("blocked", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
     } else if (scenario.endsWith("handoff-complete")) {
