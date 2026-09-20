@@ -1,11 +1,11 @@
 # @tutar/graph-engineering
 
-一次安装项目自有的 Graph Engineering（图工程）GitHub 工作流集合。当前 CLI `0.3.1` 是未发布的本分支实现；使用源码 `npm pack` 生成的本地包，具体步骤见 [仓库接入说明](https://github.com/tutar/graph-engineering#接入)。已发布 `0.3.0` 不提供新接口。
+一次安装项目自有的 Graph Engineering（图工程）GitHub 工作流集合。完整 Quick Start、运行前提与支持边界见 [Graph Engineering](https://github.com/tutar/graph-engineering#quick-start)。
 
 ```bash
-graph-engineering init [--dry-run] [--project /path/to/consumer]
-graph-engineering check [--json] [--project /path/to/consumer]
-graph-engineering migrate [--apply] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.1 init [--dry-run] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.1 check [--json] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.1 migrate [--apply] [--project /path/to/consumer]
 ```
 
 `init` 将 `workflow/.github/` 开发源的打包资产整体复制到目标 Git 仓库的 `.github/`。当前集合包含独立的 Coding 与 Development Workflow；没有 PR Review 或未实现的 Repository Review workflow。目标文件或安装记录已存在时停止，不覆盖；`--dry-run` 不写入。

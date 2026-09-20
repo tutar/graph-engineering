@@ -1,25 +1,24 @@
 # Graph Engineering
 
-Graph Engineering（图工程）以 GitHub 持久事实连接 Workflow Task（工作流任务）、Goal Run（目标运行）、Verifier（验证器）与人工 Gate（门禁）。当前方向是在本仓库直接安装并 dogfood 工作流，不再以 Candidate、Stable、Consumer Validation 或 Evidence Bundle 管理当前工作流成熟度。
+Graph Engineering（图工程）以 GitHub 持久事实连接 Workflow Task（工作流任务）、Goal Run（目标运行）与人工 Gate（门禁）。CLI 将项目自有的 Workflow、Action 和配置一次安装到 Git 仓库，由项目直接拥有和演进。
 
-> 实现状态：目标设计已经确认，代码迁移尚未开始。当前 `workflow/.github/`、CLI 和根 `.github/` 仍可能体现旧的 `codex-action`、Session recovery 与交付 manifest 实现；不要把设计文档误读为已运行行为。
+## Quick Start
 
-## 接入
-
-当前开发源是 [`workflow/.github/`](workflow/.github/)，CLI 将整套文件安装到项目根 `.github/`。开发源与本仓库已安装的 dogfooding 副本可以在开发期间暂时不同；开发和测试完成后显式运行 `init`，需要时用 `check` 检查一致性，CI 不强制两者实时相同。
-
-本分支 CLI `0.3.1` 尚未发布；不要用已发布的 `0.3.0` 命令验证新接口。在源码仓库打包后安装本地产物：
+需要 Node.js 20+、Git 仓库和可运行 Codex 的 self-hosted GitHub Actions runner。在目标仓库根目录先预览，再安装并检查固定版本：
 
 ```bash
-cd packages/cli
-npm pack --pack-destination /tmp
-# 在目标 Git 仓库根目录执行；本项目 dogfooding 时目标就是本仓库：
-npm exec --yes --package=/tmp/tutar-graph-engineering-0.3.1.tgz -- graph-engineering init --dry-run
-npm exec --yes --package=/tmp/tutar-graph-engineering-0.3.1.tgz -- graph-engineering init
-npm exec --yes --package=/tmp/tutar-graph-engineering-0.3.1.tgz -- graph-engineering check
+npx --yes @tutar/graph-engineering@0.3.1 init --dry-run
+npx --yes @tutar/graph-engineering@0.3.1 init
+npx --yes @tutar/graph-engineering@0.3.1 check
 ```
 
-安装写入 `.github/` 与安装来源记录，然后执行只读检查。任何目标文件冲突都会停止，不覆盖已有文件；`check` 可以重复执行，不修改项目。`ACTION REQUIRED` 或 `UNVERIFIED` 表示需要人工配置或当前环境无法确认的条件，文件匹配不代表 runner、认证或真实运行已验证。CLI 不注册 runner、不登录 Codex、不安装 Skill、不提交文件，也不修改 GitHub Settings。
+`init` 写入 `.github/` 与安装来源记录；任何目标冲突都会停止，不覆盖已有文件。`check` 是可重复执行的只读检查；`ACTION REQUIRED` 或 `UNVERIFIED` 表示仍需人工配置或当前环境无法确认。CLI 不注册 runner、不登录 Codex、不安装 Skill、不提交文件，也不修改 GitHub Settings。
+
+## 当前设计方向
+
+Coding Task（编码任务）使用项目自有的 Codex Goal Action：每个 attempt 创建新 Session，以 App Server 原生 Goal 执行 `$implement`；正常完成交付 Draft PR，`blocked` 或 `budgetLimited` 时在同一 workspace 最多启动一次固定预算的 Handoff Goal。Workflow 负责事件、权限、并发、checkout、标签和 Job 结论，不独立核验 Agent 的分支或 PR 交付事实。
+
+当前交付不再以 Candidate、Stable、Consumer Validation 或 Evidence Bundle 管理 Workflow 成熟度。完整边界、Prompt、预算、Action 接口和测试门槛见 [Coding Task 设计](docs/design/coding-task-dogfooding.md)。历史 Release 不回写，历史 evidence 保存在 [`docs/archive/evidence/`](docs/archive/evidence/)。
 
 ## 退役与迁移
 
@@ -29,14 +28,8 @@ PR Review Task（PR 审查任务）已退出当前源码、测试、打包与安
 
 Repository Review Task（仓库审查任务）是后续独立范围，尚未实现或交付可运行 workflow；Architecture Improvement（架构改进分析）延期。统一交付不合并任务目标、触发入口或副作用权限。
 
-## 当前设计方向
-
-Coding Task 将改用项目自有 Codex Goal Action：每个 attempt 创建新 Session，以 App Server 原生 Goal 执行 `$implement`；正常完成交付 Draft PR，`blocked` 或 `budgetLimited` 时在同一 workspace 只启动一次固定预算的 Handoff Goal。Workflow 只负责事件、权限、并发、checkout、标签和 Job 结论，不独立核验 Agent 的分支或 PR 交付事实。
-
-完整边界、Prompt、预算、Action 接口、测试门槛与后续 Issue 图见 [Coding Task 直接 dogfooding 设计](docs/design/coding-task-dogfooding.md)。历史 Release 不回写，历史 evidence 已移入 [`docs/archive/evidence/`](docs/archive/evidence/)。
-
 - [领域语言](CONTEXT.md)
-- [Coding Task 直接 dogfooding 设计](docs/design/coding-task-dogfooding.md)
+- [Coding Task 设计](docs/design/coding-task-dogfooding.md)
 - [历史文档归档](docs/archive/README.md)
 - [CLI 接口及安装记录](packages/cli/README.md)
 - [退役与统一交付决策](docs/adr/0006-retire-pr-review-and-unify-workflow-delivery.md)
