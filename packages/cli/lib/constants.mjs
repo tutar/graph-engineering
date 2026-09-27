@@ -1,4 +1,4 @@
-export const PRODUCT_VERSION = "0.3.1";
+export const PRODUCT_VERSION = "0.3.2";
 export const TASKS = Object.freeze({
   coding: {
     workflow: "github-coding-task.yml",

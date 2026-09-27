@@ -28,7 +28,7 @@ test("init installs the whole project-owned delivery and records its source", as
   const installed = await initWorkflow( { projectRoot: directory });
   assert.equal(await exists(join(directory, ".github", "graph-engineering", "development-worktree.sh")), true);
   const manifest = JSON.parse(await readFile(join(directory, ".github", "graph-engineering", "installation.json"), "utf8"));
-  assert.equal(manifest.productVersion, "0.3.1");
+  assert.equal(manifest.productVersion, "0.3.2");
   assert.equal(manifest.schemaVersion, 3);
   assert.equal(typeof manifest.sourceCommit, "string");
   assert.deepEqual(manifest.tasks, ["coding", "development"]);
