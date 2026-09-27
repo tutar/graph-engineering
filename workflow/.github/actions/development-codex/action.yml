@@ -15,7 +15,7 @@ inputs:
     required: false
     default: ""
   task-phase:
-    description: "prepare exposes workspace-exists before checkout; run invokes Codex. Use the same task/matrix identity in both calls."
+    description: "prepare exposes workspace-exists; run invokes Codex. Use the same task/matrix identity in both calls."
     required: false
     default: "run"
   prompt:

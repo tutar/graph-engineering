@@ -33,8 +33,8 @@ _Avoid_: Acceptance Criteria、固定系统 Prompt、Agent Action 配置
 _Avoid_: GitHub Event、Task Invocation、Workflow Definition
 
 **Task Invocation（任务调用）**:
-某个 Workflow Task 被一次已接纳事件启动的执行身份；每个 GitHub Actions job attempt 都是独立调用，并创建新的 Codex Session 与 Goal Run。
-_Avoid_: Workflow Task、Issue、Session Resume
+某个 Workflow Task 被一次已接纳事件启动的执行身份；Development Task 的同一 Workflow Run 在 job rerun 时保留该身份、workspace 与可恢复的 Codex Session，Coding Task 的每次 job attempt 则创建独立调用、Session 与 Goal Run。
+_Avoid_: Workflow Task、Issue、job attempt
 
 **Development Task（研发实现任务）**:
 以 Development Ticket 的目标和 Acceptance Criteria 为依据，实现、验证代码并交付 Draft PR 的 Workflow Task；不包含自动批准、合并或发布。
