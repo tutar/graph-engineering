@@ -43,20 +43,19 @@ jobs:
           test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json labels \
             --jq 'any(.labels[]; .name == "development-ticket")')" = true
 
-      - name: Prepare Task Invocation
-        id: task
-        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
-        with:
-          task-phase: prepare
-          task-id: development
-          task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
-
       - name: Check out default branch
-        if: steps.task.outputs.workspace-exists != 'true'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.BASE_BRANCH }}
           fetch-depth: 0
+
+      - name: Prepare Task Invocation
+        id: task
+        uses: ./.github/actions/development-codex
+        with:
+          task-phase: prepare
+          task-id: development
+          task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
 
       - name: Prepare development branch
         if: steps.task.outputs.workspace-exists != 'true'
@@ -75,7 +74,7 @@ jobs:
 
       - name: Start or resume Task Invocation
         id: codex
-        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
+        uses: ./.github/actions/development-codex
         with:
           task-id: development
           task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state

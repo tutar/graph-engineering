@@ -9,8 +9,8 @@
 当前实现使用 open Issue 上的 `ready-for-agent` 与 `coding-ticket` 准入，也保留人工 Issue number 与总 Runtime Token Budget 入口。它固定以下执行组合：
 
 - Agent Action：随 Workflow Definition 交付的 `.github/actions/codex-goal`
-- Codex CLI：`0.153.4`
-- runner：self-hosted Linux X64，并提供固定 CLI 或允许 Action 写入版本化 tool cache
+- Codex CLI：最低兼容稳定版本 `0.153.4`；优先复用 runner 已安装的更高稳定版本
+- runner：self-hosted Linux X64，并提供兼容 CLI 或允许 Action 写入版本化 tool cache
 - 认证：配置 `OPENAI_API_KEY` 时使用本次 Action 隔离的 API key 材料；未配置时使用 Runner-backed Codex Authentication（Runner 承载的 Codex 认证）
 - permission profile：`graph-engineering-delivery`，继承 `:workspace`，仅额外允许写入 workspace 的 `.git` 并启用命令网络，以完成分支、commit 与 push
 - Runtime Token Budget：默认总预算 `500000`，其中固定预留 `100000` 给一次 Handoff；人工入口可传大于 `100000` 的整数或 `unlimited`
@@ -28,18 +28,18 @@ Coding Agent 通过 `$implement` 读取 GitHub 当前事实，优先从关联 Is
 
 将同时带 `ready-for-agent` 与 `development-ticket` 标签的 Development Ticket（研发票据）交给 Codex，由 Matt `$implement` Skill 完成实现、自测、review、commit、push 与 Draft PR。
 
-这是主分支持续维护、可整体安装的当前 Development 实现。本次 Coding Task 收缩不修改它；已发布的历史 `github-development-ticket/v0.1.2` 继续从 Git tag `0.1.2` 取得，主分支不回写历史内容。
+这是主分支持续维护、可整体安装的当前 Development 实现；已发布的历史 `github-development-ticket/v0.1.2` 继续从 Git tag `0.1.2` 取得，主分支不回写历史内容。
 
 ### 精确兼容组合
 
-- Agent Action（智能体 Action）：`tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af`
-- Codex CLI：`0.153.4`
+- Agent Action（智能体 Action）：随 Workflow 交付的 `.github/actions/development-codex`，以 `tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af` 为基线，保留其 Task Invocation 与 Session 恢复代码
+- Codex CLI：最低兼容稳定版本 `0.153.4`；Action 复用 runner 上的兼容稳定版本，缺失时安装最低版本
 - runner：持久化 self-hosted Linux X64，具备 `flock`、Git、GitHub CLI 与 Action 所需的 passwordless sudo / util-linux 隔离能力
 - 认证：Runner-backed Codex Authentication（Runner 承载的 Codex 认证），受信配置来源为 runner 的 Codex home
 - Action permission profile：`:workspace`
 - Task state root：`${{ runner.tool_cache }}/graph-engineering/codex-task-state`，位于 checkout 外，不得作为 artifact 上传
 
-Action revision 或 CLI 版本变化必须更新相应行为测试和运行说明，不能从旧组合推断兼容。
+本地 Action 来源、安装逻辑或 CLI 最低版本变化必须更新相应行为测试和运行说明，不能从旧组合推断兼容。Action 基线与本地补丁见其 `UPSTREAM.md`。
 
 ## 接入
 
@@ -56,9 +56,9 @@ graph-engineering check
 
 Workflow 用同一个公开 Action step 契约完成准备和执行：
 
-1. `task-phase: prepare` 以 caller `task-id: development` 和持久目录定位 Task Invocation（任务调用）。
-2. 首次执行才 checkout 和准备 `agent/issue-<number>` 分支；Action 将仓库复制到隔离持久 workspace。
-3. 执行调用把 Goal Prompt（目标提示）、固定 CLI、permission profile 与 workspace 映射给 Action。
+1. 每次执行先 checkout 当前默认分支，以加载本地 Action；已恢复的 task workspace 与 Session 位于 checkout 外，不被这次 checkout 覆盖。
+2. `task-phase: prepare` 以 caller `task-id: development` 和持久目录定位 Task Invocation（任务调用）。首次执行才准备 `agent/issue-<number>` 分支；Action 将仓库复制到隔离持久 workspace。
+3. 执行调用把 Goal Prompt（目标提示）、CLI 最低版本、permission profile 与 workspace 映射给 Action。
 4. 同一 GitHub run 的显式 rerun 延续同一 Task Invocation；`run_attempt` 只是尝试元数据。新 run、新 job、不同 caller task 或 matrix 是新身份。身份不依赖 Issue，所以相同 Action 契约也适用于没有 Issue 的 PR、command 或 scheduled Workflow。
 5. 本地 session 缺失、损坏或无法加载时，Action 可见地执行 Session Replacement（会话替换）；网络、配额、认证和普通失败不会触发替换。
 6. Action 成功只表示调用完成。Harness（驾驭系统）随后独立核对干净工作树、远端目标分支和唯一 open Draft PR，再移除 `development-ticket` 与 `in-progress`。

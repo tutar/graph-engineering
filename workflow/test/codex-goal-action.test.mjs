@@ -12,7 +12,8 @@ import {
   splitTokenBudget,
 } from "../.github/actions/codex-goal/lib/budget.mjs";
 import { runAgentAction } from "../.github/actions/codex-goal/lib/run.mjs";
-import { installCodexCli, prepareCodexCli } from "../.github/actions/codex-goal/lib/prepare-cli.mjs";
+import { installCodexCli, installedCompatibleVersion, prepareCodexCli } from "../.github/actions/codex-goal/lib/prepare-cli.mjs";
+import { explicitSkillNames } from "../.github/actions/codex-goal/lib/explicit-skills.mjs";
 
 const fakeAppServer = new URL("fixtures/fake-codex-app-server.mjs", import.meta.url).pathname;
 
@@ -103,6 +104,7 @@ exec "${process.execPath}" "${fakeAppServer}"
       ...(overrides.openAIKey ? { OPENAI_API_KEY: overrides.openAIKey, FAKE_SECRET_CANARY: overrides.openAIKey } : {}),
       ...(overrides.fakeFinalMessage ? { FAKE_FINAL_MESSAGE: overrides.fakeFinalMessage } : {}),
       ...(overrides.fakeProtocolError ? { FAKE_PROTOCOL_ERROR: overrides.fakeProtocolError } : {}),
+      ...(overrides.fakeSkillVariant ? { FAKE_SKILL_VARIANT: overrides.fakeSkillVariant } : {}),
       FAKE_CODEX_ARGS: argsFile,
       FAKE_SCENARIO: scenario,
       FAKE_TRANSCRIPT: join(root, "transcript.jsonl"),
@@ -112,6 +114,7 @@ exec "${process.execPath}" "${fakeAppServer}"
   return {
     args: [new URL("../.github/actions/codex-goal/index.mjs", import.meta.url).pathname],
     codexArgsPath: argsFile,
+    transcript: join(root, "transcript.jsonl"),
     env,
     output,
   };
@@ -127,6 +130,8 @@ async function invokeAction(t, scenario, overrides = {}) {
     process: result,
     outputs: actionOutputs(await readFile(invocation.output, "utf8")),
     codexArgs: await readFile(invocation.codexArgsPath, "utf8").catch(() => ""),
+    messages: (await readFile(invocation.transcript, "utf8").catch(() => ""))
+      .trim().split("\n").filter(Boolean).map(JSON.parse),
   };
 }
 
@@ -191,12 +196,54 @@ test("Work Goal complete returns structured success without starting Handoff", a
   assert.equal(await readFile(cleanup, "utf8"), "closed\n");
 });
 
+test("explicit Work Skill resolves from the refreshed catalog before Goal creation", async (t) => {
+  const prompt = "Use $implement to finish the issue";
+  const { result, messages, root } = await runScenario(t, "work-complete", { prompt });
+  assert.equal(result.workGoalStatus, "complete");
+  const catalogIndex = messages.findIndex(({ method }) => method === "skills/list");
+  const goalIndex = messages.findIndex(({ method }) => method === "thread/goal/set");
+  assert.ok(catalogIndex > 0 && catalogIndex < goalIndex);
+  assert.deepEqual(messages[catalogIndex].params, { cwds: [root], forceReload: true });
+  const objective = messages[goalIndex].params.objective;
+  assert.match(objective, /Before any task operation, read the complete catalog-resolved Skill file/);
+  assert.ok(objective.includes(JSON.stringify(`${root}/.agents/skills/implement/SKILL.md`)));
+  assert.ok(objective.endsWith(prompt));
+  assert.equal(messages.some(({ method }) => method === "skill/read"), false);
+  assert.doesNotMatch(objective, /<skill>/);
+});
+
+test("plain Work prompt keeps the original objective and does not query the Skill catalog", async (t) => {
+  const prompt = "Finish the issue without a named Skill";
+  const { messages } = await runScenario(t, "work-complete", { prompt });
+  assert.equal(messages.some(({ method }) => method === "skills/list"), false);
+  assert.equal(messages.find(({ method }) => method === "thread/goal/set").params.objective, prompt);
+  assert.deepEqual(explicitSkillNames("$implement $implement \\$escaped ${{ expression }} $UPPER"), ["implement"]);
+});
+
+for (const variant of ["missing", "disabled", "duplicate", "bad-path", "wrong-cwd", "catalog-error"]) {
+  test(`explicit Skill ${variant} fails before any Work Goal`, async (t) => {
+    const { process: failed, outputs, messages } = await invokeAction(t, "work-complete", {
+      prompt: "Use $implement to finish the issue",
+      fakeSkillVariant: variant,
+    });
+    assert.equal(failed.status, 1);
+    assert.match(outputs["final-message"], /Explicit Skill|Skill catalog/);
+    assert.equal(messages.filter(({ method }) => method === "thread/goal/set").length, 0);
+  });
+}
+
 test("a terminal goal/set response still logs terminal metadata and recovers its final message", async (t) => {
   const completed = await invokeAction(t, "terminal-response-complete", { logMode: "detailed" });
   assert.equal(completed.process.status, 0, completed.process.stderr);
   assert.match(completed.process.stdout, /^\[codex\]\[work\]\[goal\] status=complete tokens=7 elapsed=2s$/m);
   assert.match(completed.process.stdout, /^\[codex\]\[work\]\[agent-message\] response finished$/m);
   assert.equal(completed.outputs["final-message"], "response finished");
+});
+
+test("Goal completion before turn persistence still returns the final Agent message", async (t) => {
+  const { result } = await runScenario(t, "goal-before-final");
+  assert.equal(result.workGoalStatus, "complete");
+  assert.equal(result.finalMessage, "work finished");
 });
 
 for (const workStatus of ["blocked", "budgetLimited"]) {
@@ -311,6 +358,43 @@ test("matching PATH and versioned tool-cache CLIs are reused without installatio
     install: async () => { installs += 1; },
   }), cachedCodex);
   assert.equal(installs, 0);
+});
+
+test("minimum version accepts upgraded PATH CLI without falling back or installing", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "codex-cli-upgrade-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const oldBin = join(root, "old");
+  const newBin = join(root, "new");
+  await fakeCodex(oldBin, "0.153.3");
+  const upgraded = await fakeCodex(newBin, "0.156.1");
+  const path = `${oldBin}:${newBin}`;
+  let installs = 0;
+  assert.equal(await installedCompatibleVersion({ version: "0.153.4", path }), "0.156.1");
+  assert.equal(await prepareCodexCli({
+    version: "0.153.4", runnerToolCache: join(root, "cache"), path,
+    install: async () => { installs += 1; },
+  }), upgraded);
+  assert.equal(installs, 0);
+});
+
+test("lower, invalid and missing installed CLI versions select the minimum installation", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "codex-cli-boundary-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const [label, actual] of [["lower", "0.153.3"], ["invalid", "garbage"], ["prerelease", "0.153.4-beta.1"], ["newer-prerelease", "0.154.0-beta.1"], ["missing", null]]) {
+    const bin = join(root, label);
+    if (actual) await fakeCodex(bin, actual);
+    assert.equal(await installedCompatibleVersion({ version: "0.153.4", path: bin }), null);
+    let installs = 0;
+    const selected = await prepareCodexCli({
+      version: "0.153.4", runnerToolCache: join(root, `cache-${label}`), path: bin,
+      install: async ({ binDirectory, version }) => { installs += 1; await fakeCodex(binDirectory, version); },
+    });
+    assert.equal(installs, 1);
+    assert.equal(spawnSync(selected, ["--version"], { encoding: "utf8" }).stdout.trim(), "codex-cli 0.153.4");
+  }
+  for (const version of ["latest", "0.153.4-beta.1", "999999999999999999999.1.1"]) {
+    await assert.rejects(prepareCodexCli({ version, runnerToolCache: root, path: "" }), /stable minimum semantic version/);
+  }
 });
 
 test("missing fixed CLI installs once into the versioned tool cache", async (t) => {

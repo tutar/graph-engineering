@@ -14,6 +14,35 @@ async function cliVersion(path) {
   }
 }
 
+function semanticVersion(value) {
+  const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(value ?? "");
+  if (!match) return null;
+  const parts = match.slice(1, 4).map(Number);
+  if (parts.some((part) => !Number.isSafeInteger(part))) return null;
+  return { parts, prerelease: match[4] ?? null };
+}
+
+function atLeast(actual, minimum) {
+  const candidate = semanticVersion(actual);
+  if (!candidate || candidate.prerelease !== null) return false;
+  for (let index = 0; index < 3; index += 1) {
+    if (candidate.parts[index] !== minimum.parts[index]) {
+      return candidate.parts[index] > minimum.parts[index];
+    }
+  }
+  return true;
+}
+
+export async function installedCompatibleVersion({ version, path = process.env.PATH ?? "" }) {
+  const minimum = semanticVersion(version);
+  if (!minimum || minimum.prerelease !== null) throw new Error("codex-version must be a stable minimum semantic version");
+  for (const candidate of pathCandidates(path)) {
+    const actual = await cliVersion(candidate);
+    if (atLeast(actual, minimum)) return actual;
+  }
+  return null;
+}
+
 function pathCandidates(value) {
   return value
     .split(delimiter)
@@ -47,25 +76,24 @@ export async function prepareCodexCli({
   path = process.env.PATH ?? "",
   install = installCodexCli,
 }) {
-  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
-    throw new Error("codex-version must be a fixed semantic version");
-  }
+  const minimum = semanticVersion(version);
+  if (!minimum || minimum.prerelease !== null) throw new Error("codex-version must be a stable minimum semantic version");
   if (!runnerToolCache) throw new Error("RUNNER_TOOL_CACHE is required");
 
   for (const candidate of pathCandidates(path)) {
-    if (await cliVersion(candidate) === version) return candidate;
+    if (atLeast(await cliVersion(candidate), minimum)) return candidate;
   }
 
   const installRoot = join(runnerToolCache, "codex", version, process.arch);
   const binDirectory = join(installRoot, "bin");
   const cached = join(binDirectory, process.platform === "win32" ? "codex.cmd" : "codex");
-  if (await cliVersion(cached) === version) return cached;
+  if (atLeast(await cliVersion(cached), minimum)) return cached;
 
   await rm(binDirectory, { recursive: true, force: true });
   await install({ installRoot, binDirectory, version });
   await access(cached);
-  if (await cliVersion(cached) !== version) {
-    throw new Error(`installed Codex CLI does not match requested version ${version}`);
+  if (!atLeast(await cliVersion(cached), minimum)) {
+    throw new Error(`installed Codex CLI is not at least required version ${version}`);
   }
   return cached;
 }

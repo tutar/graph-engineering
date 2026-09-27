@@ -13,7 +13,7 @@
 | Owner | 负责 | 不负责 |
 |---|---|---|
 | Workflow | 事件、准入、权限、同 Issue concurrency、checkout、Git identity、标签、Job 结论 | 分支选择、实现、交付核验、Goal 循环 |
-| Codex Goal Action | 固定 CLI、认证、App Server、Work/Handoff Goal、预算、Runtime 日志投影、结构化终态 | Issue 语义、标签、checkout、Git 分支、PR、workspace 清理 |
+| Codex Goal Action | 最低兼容 CLI、认证、App Server、Work/Handoff Goal、预算、Runtime 日志投影、结构化终态 | Issue 语义、标签、checkout、Git 分支、PR、workspace 清理 |
 | Coding Agent + `$implement` | 读取 Issue 与 GitHub 当前事实、定位分支、实现、测试、review、commit、push、验收项与 Draft PR | Workflow 准入、并发和标签生命周期 |
 | Agent Runtime | Goal 自动续轮、累计用量与 Goal 终态 | GitHub Workflow 结论、业务事实核验 |
 
@@ -92,7 +92,7 @@ with:
   prompt: <work goal objective>
   token-budget: 30000 # 或 unlimited
   handoff-prompt: <handoff goal objective>
-  codex-version: <固定版本>
+  codex-version: <最低兼容稳定版本>
   permission-profile: graph-engineering-delivery
   log-mode: detailed
 ```
@@ -101,7 +101,9 @@ with:
 
 建议首版输出为 `work-goal-status`、`handoff-goal-status`、`token-budget-state`、`work-tokens-used`、`handoff-tokens-used` 与 `final-message`。
 
-Action 先使用匹配固定版本的 runner CLI 或 runner tool cache；缺失时安装到版本化 cache，不执行每次全局安装。每个 job 启动独立 App Server 进程，结束后停止，不运行跨 job daemon。
+Action 先使用 `PATH` 中不低于最低版本的 runner CLI，再检查最低版本的 runner tool cache；均不满足时安装最低版本到版本化 cache，不执行每次全局安装。Development Ticket 的本地 Action 同样复用兼容的 runner CLI，缺失时安装最低版本，并保留原 Task Invocation 与 Session 恢复能力。每个 Coding job 启动独立 App Server 进程，结束后停止，不运行跨 job daemon。
+
+Work prompt 含显式 `$skill-name` 时，Action 在创建 Goal 前通过目标 cwd 的 `skills/list` 校验唯一、enabled 的目录项，把 catalog 返回的 `SKILL.md` 路径写入先读后遵循的 objective 指令。此为当前 Goal 字符串接口的兼容桥接，不等同于 Codex 原生 structured Skill invocation；不声称拥有原生依赖初始化、warning 或 invocation telemetry。
 
 Action 的 `log-mode` 固定为 `safe`、`detailed` 或 `silent`，默认 `safe`；Coding Workflow 显式选择 `detailed`。三种模式的 App Server 事件知识都由 Action 私有拥有，Workflow 只选择模式。投影日志逐行使用 `[codex][work|handoff][event]` 前缀，详细模式仅允许 UI 可见 reasoning summary、Agent message、命令、MCP 与相关文件变更等固定事件；认证/账户、raw JSON-RPC、隐藏 reasoning 和未知事件不输出。renderer 故障 fail-open，协议故障仍失败，不生成合成心跳或 Action 自定义字节上限。
 

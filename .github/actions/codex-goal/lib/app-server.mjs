@@ -105,21 +105,31 @@ export class AppServerClient {
   async readFinalMessage(threadId, turnId = null) {
     const response = await this.request("thread/read", { threadId, includeTurns: true });
     const turns = response.thread?.turns;
-    if (!Array.isArray(turns)) return { itemId: "", text: "" };
+    if (!Array.isArray(turns)) return { itemId: "", text: "", settled: false };
     const candidates = turnId === null
       ? [...turns].reverse()
       : turns.filter((turn) => turn?.id === turnId);
     for (const turn of candidates) {
+      if (turn?.status !== "completed") continue;
       const items = turn?.items;
       if (!Array.isArray(items)) continue;
       for (let itemIndex = items.length - 1; itemIndex >= 0; itemIndex -= 1) {
         const item = items[itemIndex];
         if (item?.type === "agentMessage" && typeof item.text === "string") {
-          return { itemId: item.id, text: item.text };
+          return { itemId: item.id, text: item.text, settled: true };
         }
       }
     }
-    return { itemId: "", text: "" };
+    return { itemId: "", text: "", settled: candidates.some((turn) => turn?.status === "completed") };
+  }
+
+  async waitForFinalMessage(threadId, turnId = null) {
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const message = await this.readFinalMessage(threadId, turnId);
+      if (message.settled) return message;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error("Codex Goal ended before its final turn was persisted");
   }
 
   async close() {
