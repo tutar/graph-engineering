@@ -18,7 +18,7 @@ test("the recovery Action preserves checkout and one Task Invocation across reru
   assert.doesNotMatch(workflow.match(/jobs:[\s\S]*?steps:/)?.[0] ?? "", /runner\.tool_cache/);
   assert.match(workflow, /if:\s*steps\.task\.outputs\.workspace-exists != 'true'/);
   assert.match(workflow, /working-directory:\s*\$\{\{ steps\.task\.outputs\.task-workspace \}\}/);
-  assert.match(workflow, /id:\s*cli[\s\S]*?select-codex-version\.mjs/);
+  assert.match(workflow, /id:\s*cli[\s\S]*?node --input-type=module <<'NODE'/);
   assert.match(workflow, /codex-version:\s*\$\{\{ steps\.cli\.outputs\.codex-version \}\}/);
   assert.doesNotMatch(workflow, /task-id:.*issue/i);
   assert.doesNotMatch(workflow, /github-development-ticket\.mjs/);

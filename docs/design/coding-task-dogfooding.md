@@ -13,7 +13,7 @@
 | Owner | 负责 | 不负责 |
 |---|---|---|
 | Workflow | 事件、准入、权限、同 Issue concurrency、checkout、Git identity、标签、Job 结论 | 分支选择、实现、交付核验、Goal 循环 |
-| Codex Goal Action | 固定 CLI、认证、App Server、Work/Handoff Goal、预算、Runtime 日志投影、结构化终态 | Issue 语义、标签、checkout、Git 分支、PR、workspace 清理 |
+| Codex Goal Action | 最低兼容 CLI、认证、App Server、Work/Handoff Goal、预算、Runtime 日志投影、结构化终态 | Issue 语义、标签、checkout、Git 分支、PR、workspace 清理 |
 | Coding Agent + `$implement` | 读取 Issue 与 GitHub 当前事实、定位分支、实现、测试、review、commit、push、验收项与 Draft PR | Workflow 准入、并发和标签生命周期 |
 | Agent Runtime | Goal 自动续轮、累计用量与 Goal 终态 | GitHub Workflow 结论、业务事实核验 |
 

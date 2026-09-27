@@ -10,7 +10,7 @@ test("the current Development Task is a complete copy-owned file set", async () 
   assert.match(workflow, /^name: Graph Engineering - GitHub Development Ticket$/m);
 
   const supportFiles = (await readdir(new URL("graph-engineering/", installRoot))).sort();
-  assert.deepEqual(supportFiles, ["development-worktree.sh", "select-codex-version.mjs"]);
+  assert.deepEqual(supportFiles, ["development-worktree.sh"]);
 });
 
 test("the current Coding Task is a separate copy-owned workflow", async () => {

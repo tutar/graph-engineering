@@ -5,6 +5,7 @@ import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { parse } from "yaml";
 
 import {
   DEFAULT_TOTAL_TOKEN_BUDGET,
@@ -400,13 +401,15 @@ test("lower, invalid and missing installed CLI versions select the minimum insta
 test("Development selector forwards an upgraded installed version to its exact-version Action", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "development-cli-select-"));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const selector = new URL("../.github/graph-engineering/select-codex-version.mjs", import.meta.url).pathname;
-  for (const [actual, expected] of [["0.156.1", "0.156.1"], ["0.153.4", "0.153.4"], ["0.153.3", "0.153.4"], ["garbage", "0.153.4"]]) {
+  const workflow = parse(await readFile(new URL("../.github/workflows/github-development-ticket.yml", import.meta.url), "utf8"));
+  const selector = workflow.jobs.implement.steps.find((step) => step.id === "cli").run;
+  for (const [actual, expected] of [["0.156.1", "0.156.1"], ["0.153.4", "0.153.4"], ["0.153.3", "0.153.4"], ["0.154.0-beta.1", "0.153.4"], ["garbage", "0.153.4"]]) {
     const bin = join(root, actual);
     await fakeCodex(bin, actual);
     const output = join(root, `output-${actual}.txt`);
-    const executed = spawnSync(process.execPath, [selector], {
-      encoding: "utf8", env: { ...process.env, PATH: bin, GITHUB_OUTPUT: output },
+    const executed = spawnSync("/bin/bash", ["-e"], {
+      input: selector, encoding: "utf8", cwd: root,
+      env: { ...process.env, PATH: `${bin}:${process.execPath.slice(0, process.execPath.lastIndexOf("/"))}`, GITHUB_OUTPUT: output },
     });
     assert.equal(executed.status, 0, executed.stderr);
     assert.equal(await readFile(output, "utf8"), `codex-version=${expected}\n`);

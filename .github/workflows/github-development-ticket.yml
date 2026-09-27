@@ -76,7 +76,32 @@ jobs:
       - name: Select compatible Codex CLI
         id: cli
         shell: bash
-        run: node .github/graph-engineering/select-codex-version.mjs
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { appendFileSync } from "node:fs";
+          import { delimiter, join } from "node:path";
+
+          let selected = "0.153.4";
+          for (const directory of (process.env.PATH ?? "").split(delimiter).filter(Boolean)) {
+            try {
+              const output = execFileSync(join(directory, "codex"), ["--version"], { encoding: "utf8" }).trim();
+              const match = /^codex-cli ((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\+[0-9A-Za-z.-]+)?)$/.exec(output);
+              if (!match) continue;
+              const [major, minor, patch] = match[1].split("+")[0].split(".").map(Number);
+              if (![major, minor, patch].every(Number.isSafeInteger)) continue;
+              if (major > 0 || minor > 153 || (minor === 153 && patch >= 4)) {
+                selected = match[1];
+                break;
+              }
+            } catch {
+              // An unavailable CLI is not a compatible installed CLI.
+            }
+          }
+          if (!process.env.GITHUB_OUTPUT) throw new Error("GITHUB_OUTPUT is required");
+          appendFileSync(process.env.GITHUB_OUTPUT, `codex-version=${selected}\n`);
+          process.stdout.write(`Selected Codex CLI ${selected} (minimum 0.153.4)\n`);
+          NODE
 
       - name: Start or resume Task Invocation
         id: codex
