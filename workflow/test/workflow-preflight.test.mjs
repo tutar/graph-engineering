@@ -6,20 +6,17 @@ const workflow = readFileSync(
   new URL("../.github/workflows/github-development-ticket.yml", import.meta.url),
   "utf8",
 );
-const actionRevision = "393ad456e354dc9da7be630c09be243cc1d212af";
-
 test("the recovery Action preserves checkout and one Task Invocation across reruns", () => {
-  const calls = [...workflow.matchAll(/uses:\s+tutar\/codex-action@([^\s#]+)/g)];
+  const calls = [...workflow.matchAll(/uses:\s+\.\/\.github\/actions\/development-codex/g)];
   assert.equal(calls.length, 2);
-  assert.deepEqual(calls.map((match) => match[1]), [actionRevision, actionRevision]);
+  assert.ok(workflow.indexOf("- name: Check out default branch") < workflow.indexOf("- name: Prepare Task Invocation"));
   assert.match(workflow, /task-phase:\s*prepare/);
   assert.match(workflow, /task-id:\s*development/);
   assert.equal([...workflow.matchAll(/task-state-root:\s*\$\{\{ runner\.tool_cache \}\}\/graph-engineering\/codex-task-state/g)].length, 2);
   assert.doesNotMatch(workflow.match(/jobs:[\s\S]*?steps:/)?.[0] ?? "", /runner\.tool_cache/);
   assert.match(workflow, /if:\s*steps\.task\.outputs\.workspace-exists != 'true'/);
   assert.match(workflow, /working-directory:\s*\$\{\{ steps\.task\.outputs\.task-workspace \}\}/);
-  assert.match(workflow, /id:\s*cli[\s\S]*?node --input-type=module <<'NODE'/);
-  assert.match(workflow, /codex-version:\s*\$\{\{ steps\.cli\.outputs\.codex-version \}\}/);
+  assert.match(workflow, /codex-version:\s*0\.153\.4/);
   assert.doesNotMatch(workflow, /task-id:.*issue/i);
   assert.doesNotMatch(workflow, /github-development-ticket\.mjs/);
 });
@@ -52,6 +49,7 @@ test("pre-checkout GitHub CLI calls name the repository explicitly", () => {
 
 test("external Actions are pinned to immutable commits", () => {
   for (const reference of workflow.matchAll(/uses:\s+([^\s#]+)/g)) {
+    if (reference[1].startsWith("./")) continue;
     assert.match(reference[1], /@[0-9a-f]{40}$/);
   }
 });

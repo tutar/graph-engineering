@@ -93,7 +93,7 @@ Agent Runtime 对 Goal Run 执行的模型消费边界；有限 Coding Task 总�
 _Avoid_: 精确 provider 硬上限、Action 日志统计、费用预算
 
 **Agent Action（智能体 Action）**:
-本项目维护的通用 GitHub Action，负责准备满足最低兼容版本的 Codex CLI、认证、启动 App Server、设置 Work/Handoff Goal 并返回结构化终态；它不拥有 GitHub 标签、分支、Issue、PR 或 workspace 生命周期。
+本项目随 Workflow 交付的 GitHub Action 执行边界：Coding Action 负责兼容 CLI、认证、App Server 与 Work/Handoff Goal，Development Action 负责兼容 CLI、Task Invocation、持久 workspace 与 Session 恢复。两者均不拥有 GitHub 标签、分支、Issue 或 PR 的业务生命周期。
 _Avoid_: Agent Runtime、Workflow Task、GitHub 业务控制器
 
 **Runner-backed Codex Authentication（Runner 承载的 Codex 认证）**:

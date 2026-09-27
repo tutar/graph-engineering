@@ -101,7 +101,7 @@ with:
 
 建议首版输出为 `work-goal-status`、`handoff-goal-status`、`token-budget-state`、`work-tokens-used`、`handoff-tokens-used` 与 `final-message`。
 
-Action 先使用 `PATH` 中不低于最低版本的 runner CLI，再检查最低版本的 runner tool cache；均不满足时安装最低版本到版本化 cache，不执行每次全局安装。Development Ticket 在调用其外部 Action 前把 runner 上的兼容版本解析成精确版本并传入；无兼容版本时传入最低版本，由该 Action 处理安装。每个 job 启动独立 App Server 进程，结束后停止，不运行跨 job daemon。
+Action 先使用 `PATH` 中不低于最低版本的 runner CLI，再检查最低版本的 runner tool cache；均不满足时安装最低版本到版本化 cache，不执行每次全局安装。Development Ticket 的本地 Action 同样复用兼容的 runner CLI，缺失时安装最低版本，并保留原 Task Invocation 与 Session 恢复能力。每个 Coding job 启动独立 App Server 进程，结束后停止，不运行跨 job daemon。
 
 Work prompt 含显式 `$skill-name` 时，Action 在创建 Goal 前通过目标 cwd 的 `skills/list` 校验唯一、enabled 的目录项，把 catalog 返回的 `SKILL.md` 路径写入先读后遵循的 objective 指令。此为当前 Goal 字符串接口的兼容桥接，不等同于 Codex 原生 structured Skill invocation；不声称拥有原生依赖初始化、warning 或 invocation telemetry。
 

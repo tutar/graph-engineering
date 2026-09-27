@@ -32,14 +32,14 @@ Coding Agent 通过 `$implement` 读取 GitHub 当前事实，优先从关联 Is
 
 ### 精确兼容组合
 
-- Agent Action（智能体 Action）：`tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af`
-- Codex CLI：最低兼容稳定版本 `0.153.4`；Workflow 在每次执行调用前检测 runner 的兼容版本，并向外部 Action 传入选定的精确版本
+- Agent Action（智能体 Action）：随 Workflow 交付的 `.github/actions/development-codex`，以 `tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af` 为基线，保留其 Task Invocation 与 Session 恢复代码
+- Codex CLI：最低兼容稳定版本 `0.153.4`；Action 复用 runner 上的兼容稳定版本，缺失时安装最低版本
 - runner：持久化 self-hosted Linux X64，具备 `flock`、Git、GitHub CLI 与 Action 所需的 passwordless sudo / util-linux 隔离能力
 - 认证：Runner-backed Codex Authentication（Runner 承载的 Codex 认证），受信配置来源为 runner 的 Codex home
 - Action permission profile：`:workspace`
 - Task state root：`${{ runner.tool_cache }}/graph-engineering/codex-task-state`，位于 checkout 外，不得作为 artifact 上传
 
-Action revision 或 CLI 最低版本变化必须更新相应行为测试和运行说明，不能从旧组合推断兼容。版本检测步骤不依赖 checkout 文件，因此恢复既有 Task Invocation 时也能执行。
+本地 Action 来源、安装逻辑或 CLI 最低版本变化必须更新相应行为测试和运行说明，不能从旧组合推断兼容。Action 基线与本地补丁见其 `UPSTREAM.md`。
 
 ## 接入
 
@@ -56,9 +56,9 @@ graph-engineering check
 
 Workflow 用同一个公开 Action step 契约完成准备和执行：
 
-1. `task-phase: prepare` 以 caller `task-id: development` 和持久目录定位 Task Invocation（任务调用）。
-2. 首次执行才 checkout 和准备 `agent/issue-<number>` 分支；Action 将仓库复制到隔离持久 workspace。
-3. 执行调用把 Goal Prompt（目标提示）、选定 CLI 版本、permission profile 与 workspace 映射给 Action。
+1. 每次执行先 checkout 当前默认分支，以加载本地 Action；已恢复的 task workspace 与 Session 位于 checkout 外，不被这次 checkout 覆盖。
+2. `task-phase: prepare` 以 caller `task-id: development` 和持久目录定位 Task Invocation（任务调用）。首次执行才准备 `agent/issue-<number>` 分支；Action 将仓库复制到隔离持久 workspace。
+3. 执行调用把 Goal Prompt（目标提示）、CLI 最低版本、permission profile 与 workspace 映射给 Action。
 4. 同一 GitHub run 的显式 rerun 延续同一 Task Invocation；`run_attempt` 只是尝试元数据。新 run、新 job、不同 caller task 或 matrix 是新身份。身份不依赖 Issue，所以相同 Action 契约也适用于没有 Issue 的 PR、command 或 scheduled Workflow。
 5. 本地 session 缺失、损坏或无法加载时，Action 可见地执行 Session Replacement（会话替换）；网络、配额、认证和普通失败不会触发替换。
 6. Action 成功只表示调用完成。Harness（驾驭系统）随后独立核对干净工作树、远端目标分支和唯一 open Draft PR，再移除 `development-ticket` 与 `in-progress`。

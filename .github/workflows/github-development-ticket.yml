@@ -43,20 +43,19 @@ jobs:
           test "$(gh issue view "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json labels \
             --jq 'any(.labels[]; .name == "development-ticket")')" = true
 
-      - name: Prepare Task Invocation
-        id: task
-        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
-        with:
-          task-phase: prepare
-          task-id: development
-          task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
-
       - name: Check out default branch
-        if: steps.task.outputs.workspace-exists != 'true'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.BASE_BRANCH }}
           fetch-depth: 0
+
+      - name: Prepare Task Invocation
+        id: task
+        uses: ./.github/actions/development-codex
+        with:
+          task-phase: prepare
+          task-id: development
+          task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
 
       - name: Prepare development branch
         if: steps.task.outputs.workspace-exists != 'true'
@@ -73,44 +72,14 @@ jobs:
         shell: bash
         run: gh issue edit "${ISSUE_NUMBER}" --add-label in-progress
 
-      - name: Select compatible Codex CLI
-        id: cli
-        shell: bash
-        run: |
-          node --input-type=module <<'NODE'
-          import { execFileSync } from "node:child_process";
-          import { appendFileSync } from "node:fs";
-          import { delimiter, join } from "node:path";
-
-          let selected = "0.153.4";
-          for (const directory of (process.env.PATH ?? "").split(delimiter).filter(Boolean)) {
-            try {
-              const output = execFileSync(join(directory, "codex"), ["--version"], { encoding: "utf8" }).trim();
-              const match = /^codex-cli ((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\+[0-9A-Za-z.-]+)?)$/.exec(output);
-              if (!match) continue;
-              const [major, minor, patch] = match[1].split("+")[0].split(".").map(Number);
-              if (![major, minor, patch].every(Number.isSafeInteger)) continue;
-              if (major > 0 || minor > 153 || (minor === 153 && patch >= 4)) {
-                selected = match[1];
-                break;
-              }
-            } catch {
-              // An unavailable CLI is not a compatible installed CLI.
-            }
-          }
-          if (!process.env.GITHUB_OUTPUT) throw new Error("GITHUB_OUTPUT is required");
-          appendFileSync(process.env.GITHUB_OUTPUT, `codex-version=${selected}\n`);
-          process.stdout.write(`Selected Codex CLI ${selected} (minimum 0.153.4)\n`);
-          NODE
-
       - name: Start or resume Task Invocation
         id: codex
-        uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
+        uses: ./.github/actions/development-codex
         with:
           task-id: development
           task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
           working-directory: ${{ steps.task.outputs.task-workspace }}
-          codex-version: ${{ steps.cli.outputs.codex-version }}
+          codex-version: 0.153.4
           permission-profile: :workspace
           prompt: >-
             使用 Matt Skill $implement 完成
