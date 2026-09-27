@@ -93,11 +93,11 @@ Agent Runtime 对 Goal Run 执行的模型消费边界；有限 Coding Task 总�
 _Avoid_: 精确 provider 硬上限、Action 日志统计、费用预算
 
 **Agent Action（智能体 Action）**:
-本项目维护的通用 GitHub Action，负责准备固定 Codex CLI、认证、启动 App Server、设置 Work/Handoff Goal 并返回结构化终态；它不拥有 GitHub 标签、分支、Issue、PR 或 workspace 生命周期。
+本项目维护的通用 GitHub Action，负责准备满足最低兼容版本的 Codex CLI、认证、启动 App Server、设置 Work/Handoff Goal 并返回结构化终态；它不拥有 GitHub 标签、分支、Issue、PR 或 workspace 生命周期。
 _Avoid_: Agent Runtime、Workflow Task、GitHub 业务控制器
 
 **Runner-backed Codex Authentication（Runner 承载的 Codex 认证）**:
-未提供 API key 时，由 self-hosted runner 向 Agent Action 提供既有 Codex 登录状态的认证方式；Action 仍检查固定 CLI 版本，但不输出认证材料。
+未提供 API key 时，由 self-hosted runner 向 Agent Action 提供既有 Codex 登录状态的认证方式；Action 仍检查 CLI 最低兼容版本，但不输出认证材料。
 _Avoid_: 偶然可用的未检查 CLI、仓库 API Key、动态 Provider
 
 **Human Command（人工命令）**:

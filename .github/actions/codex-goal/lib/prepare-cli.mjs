@@ -24,15 +24,13 @@ function semanticVersion(value) {
 
 function atLeast(actual, minimum) {
   const candidate = semanticVersion(actual);
-  if (!candidate) return false;
+  if (!candidate || candidate.prerelease !== null) return false;
   for (let index = 0; index < 3; index += 1) {
     if (candidate.parts[index] !== minimum.parts[index]) {
       return candidate.parts[index] > minimum.parts[index];
     }
   }
-  if (minimum.prerelease === null) return candidate.prerelease === null;
-  if (candidate.prerelease === null) return true;
-  return candidate.prerelease >= minimum.prerelease;
+  return true;
 }
 
 export async function installedCompatibleVersion({ version, path = process.env.PATH ?? "" }) {

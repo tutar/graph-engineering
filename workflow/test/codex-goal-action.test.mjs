@@ -380,7 +380,7 @@ test("minimum version accepts upgraded PATH CLI without falling back or installi
 test("lower, invalid and missing installed CLI versions select the minimum installation", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "codex-cli-boundary-"));
   t.after(() => rm(root, { recursive: true, force: true }));
-  for (const [label, actual] of [["lower", "0.153.3"], ["invalid", "garbage"], ["prerelease", "0.153.4-beta.1"], ["missing", null]]) {
+  for (const [label, actual] of [["lower", "0.153.3"], ["invalid", "garbage"], ["prerelease", "0.153.4-beta.1"], ["newer-prerelease", "0.154.0-beta.1"], ["missing", null]]) {
     const bin = join(root, label);
     if (actual) await fakeCodex(bin, actual);
     assert.equal(await installedCompatibleVersion({ version: "0.153.4", path: bin }), null);
