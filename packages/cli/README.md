@@ -2,12 +2,12 @@
 
 一次安装项目自有的 Graph Engineering（图工程）GitHub 工作流集合。完整 Quick Start、运行前提与支持边界见 [Graph Engineering](https://github.com/tutar/graph-engineering#quick-start)。
 
-v0.3.2 仅作为 GitHub Release 附件发布；npm registry 仍为 `0.3.1`。下载 `tutar-graph-engineering-0.3.2.tgz` 后：
+v0.3.2 已发布到 npm registry，也可从 [GitHub Release](https://github.com/tutar/graph-engineering/releases/tag/v0.3.2) 下载相同的 CLI 包：
 
 ```bash
-npm exec --yes --package ./tutar-graph-engineering-0.3.2.tgz -- graph-engineering init [--dry-run] [--project /path/to/consumer]
-npm exec --yes --package ./tutar-graph-engineering-0.3.2.tgz -- graph-engineering check [--json] [--project /path/to/consumer]
-npm exec --yes --package ./tutar-graph-engineering-0.3.2.tgz -- graph-engineering migrate [--apply] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.2 init [--dry-run] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.2 check [--json] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.2 migrate [--apply] [--project /path/to/consumer]
 ```
 
 `init` 将 `workflow/.github/` 开发源的打包资产整体复制到目标 Git 仓库的 `.github/`。当前集合包含独立的 Coding 与 Development Workflow；没有 PR Review 或未实现的 Repository Review workflow。目标文件或安装记录已存在时停止，不覆盖；`--dry-run` 不写入。

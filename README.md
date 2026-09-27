@@ -4,12 +4,12 @@ Graph Engineering（图工程）以 GitHub 持久事实连接 Workflow Task（�
 
 ## Quick Start
 
-需要 Node.js 20+、Git 仓库和可运行 Codex 的 self-hosted GitHub Actions runner。v0.3.2 从 [GitHub Release](https://github.com/tutar/graph-engineering/releases/tag/v0.3.2) 获取 CLI 包；npm registry 的最新发布仍为 `0.3.1`。下载 Release 附件后，在目标仓库根目录执行：
+需要 Node.js 20+、Git 仓库和可运行 Codex 的 self-hosted GitHub Actions runner。在目标仓库根目录先预览，再安装并检查固定版本：
 
 ```bash
-npm exec --yes --package ./tutar-graph-engineering-0.3.2.tgz -- graph-engineering init --dry-run
-npm exec --yes --package ./tutar-graph-engineering-0.3.2.tgz -- graph-engineering init
-npm exec --yes --package ./tutar-graph-engineering-0.3.2.tgz -- graph-engineering check
+npx --yes @tutar/graph-engineering@0.3.2 init --dry-run
+npx --yes @tutar/graph-engineering@0.3.2 init
+npx --yes @tutar/graph-engineering@0.3.2 check
 ```
 
 `init` 写入 `.github/` 与安装来源记录；任何目标冲突都会停止，不覆盖已有文件。`check` 是可重复执行的只读检查；`ACTION REQUIRED` 或 `UNVERIFIED` 表示仍需人工配置或当前环境无法确认。CLI 不注册 runner、不登录 Codex、不安装 Skill、不提交文件，也不修改 GitHub Settings。
