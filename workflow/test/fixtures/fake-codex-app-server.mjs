@@ -6,6 +6,7 @@ const transcript = process.env.FAKE_TRANSCRIPT;
 let goalCount = 0;
 let currentGoalBudget = null;
 const persistedFinalMessages = [];
+let turnSettled = true;
 
 appendFileSync(transcript, `${JSON.stringify({
   method: "fixture/environment",
@@ -133,6 +134,19 @@ function runtimeEvents() {
 
 function terminalGoal(status, tokensUsed, finalMessage) {
   finalMessage = process.env.FAKE_FINAL_MESSAGE || finalMessage;
+  if (scenario === "goal-before-final") {
+    turnSettled = false;
+    send({ method: "thread/goal/updated", params: {
+      threadId: "thread-1",
+      goal: { status, tokensUsed, timeUsedSeconds: 1 },
+    } });
+    setTimeout(() => {
+      persistedFinalMessages[goalCount - 1] = finalMessage;
+      turnSettled = true;
+      item("item/completed", { id: `message-${goalCount}`, type: "agentMessage", text: finalMessage });
+    }, 150);
+    return;
+  }
   persistedFinalMessages[goalCount - 1] = finalMessage;
   const suppressAgentEvent = scenario === "missing-agent-event-complete"
     || (scenario === "blocked-handoff-missing-agent-event" && goalCount === 2);
@@ -176,6 +190,17 @@ lines.on("line", (line) => {
   } else if (message.method === "thread/start") {
     if (scenario === "clean-exit") process.exit(0);
     send({ id: message.id, result: { thread: { id: "thread-1", sessionId: "thread-1" } } });
+  } else if (message.method === "skills/list") {
+    const cwd = message.params.cwds[0];
+    const skill = { name: "implement", enabled: true, path: `${cwd}/.agents/skills/implement/SKILL.md` };
+    const variant = process.env.FAKE_SKILL_VARIANT;
+    if (variant === "missing") skill.name = "other";
+    if (variant === "disabled") skill.enabled = false;
+    if (variant === "bad-path") skill.path = "relative/SKILL.md";
+    send({ id: message.id, result: {
+      data: [{ cwd: variant === "wrong-cwd" ? "/wrong" : cwd, skills: variant === "duplicate" ? [skill, skill] : [skill] }],
+      errors: variant === "catalog-error" ? [{ message: "catalog failed" }] : [],
+    } });
   } else if (message.method === "thread/read") {
     send({
       id: message.id,
@@ -184,7 +209,7 @@ lines.on("line", (line) => {
           id: "thread-1",
           turns: persistedFinalMessages.map((text, index) => ({
             id: `turn-${index + 1}`,
-            status: "completed",
+            status: turnSettled ? "completed" : "inProgress",
             items: text
               ? [{ id: `message-${index + 1}`, type: "agentMessage", text }]
               : [],
@@ -216,7 +241,7 @@ lines.on("line", (line) => {
     if (goalCount === 1) {
       if (scenario === "app-server-failed") {
         send({ method: "error", params: { message: process.env.FAKE_PROTOCOL_ERROR || "fixture App Server failure" } });
-      } else if (scenario.startsWith("work-complete") || scenario === "runtime-events-complete" || scenario === "missing-agent-event-complete") terminalGoal("complete", 1234, "work finished");
+      } else if (scenario.startsWith("work-complete") || scenario === "runtime-events-complete" || scenario === "missing-agent-event-complete" || scenario === "goal-before-final") terminalGoal("complete", 1234, "work finished");
       else if (scenario.startsWith("budgetLimited-")) terminalGoal("budgetLimited", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
       else terminalGoal("blocked", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
     } else if (scenario.endsWith("handoff-complete")) {

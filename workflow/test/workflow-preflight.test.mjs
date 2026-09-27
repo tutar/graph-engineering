@@ -7,7 +7,6 @@ const workflow = readFileSync(
   "utf8",
 );
 const actionRevision = "393ad456e354dc9da7be630c09be243cc1d212af";
-const codexCli = "0.153.4";
 
 test("the recovery Action preserves checkout and one Task Invocation across reruns", () => {
   const calls = [...workflow.matchAll(/uses:\s+tutar\/codex-action@([^\s#]+)/g)];
@@ -19,7 +18,8 @@ test("the recovery Action preserves checkout and one Task Invocation across reru
   assert.doesNotMatch(workflow.match(/jobs:[\s\S]*?steps:/)?.[0] ?? "", /runner\.tool_cache/);
   assert.match(workflow, /if:\s*steps\.task\.outputs\.workspace-exists != 'true'/);
   assert.match(workflow, /working-directory:\s*\$\{\{ steps\.task\.outputs\.task-workspace \}\}/);
-  assert.match(workflow, new RegExp(`codex-version:\\s*${codexCli.replaceAll(".", "\\.")}`));
+  assert.match(workflow, /id:\s*cli[\s\S]*?select-codex-version\.mjs/);
+  assert.match(workflow, /codex-version:\s*\$\{\{ steps\.cli\.outputs\.codex-version \}\}/);
   assert.doesNotMatch(workflow, /task-id:.*issue/i);
   assert.doesNotMatch(workflow, /github-development-ticket\.mjs/);
 });

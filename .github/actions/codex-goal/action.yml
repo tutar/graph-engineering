@@ -16,7 +16,7 @@ inputs:
     description: Objective for the single Handoff Goal.
     required: true
   codex-version:
-    description: Exact Codex CLI semantic version.
+    description: Minimum stable Codex CLI semantic version; a newer installed CLI is reused.
     required: true
   permission-profile:
     description: Codex permission profile selected for the new Session.

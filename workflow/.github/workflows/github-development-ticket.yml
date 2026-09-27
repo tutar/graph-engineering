@@ -73,6 +73,11 @@ jobs:
         shell: bash
         run: gh issue edit "${ISSUE_NUMBER}" --add-label in-progress
 
+      - name: Select compatible Codex CLI
+        id: cli
+        shell: bash
+        run: node .github/graph-engineering/select-codex-version.mjs
+
       - name: Start or resume Task Invocation
         id: codex
         uses: tutar/codex-action@393ad456e354dc9da7be630c09be243cc1d212af
@@ -80,7 +85,7 @@ jobs:
           task-id: development
           task-state-root: ${{ runner.tool_cache }}/graph-engineering/codex-task-state
           working-directory: ${{ steps.task.outputs.task-workspace }}
-          codex-version: 0.153.4
+          codex-version: ${{ steps.cli.outputs.codex-version }}
           permission-profile: :workspace
           prompt: >-
             使用 Matt Skill $implement 完成

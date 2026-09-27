@@ -5,6 +5,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventRenderer } from "./event-renderer.mjs";
+import { resolveExplicitSkills } from "./explicit-skills.mjs";
 
 async function runGoal(client, renderer, { threadId, objective, tokenBudget, phase }) {
   renderer.setPhase(phase);
@@ -29,10 +30,10 @@ async function runGoal(client, renderer, { threadId, objective, tokenBudget, pha
     } else {
       result = await terminal.promise;
     }
-    if (!result.finalMessage) {
-      const fallback = await client.readFinalMessage(threadId, result.turnId);
-      result.finalMessage = fallback.text;
-      result.finalMessageItemId = fallback.itemId;
+    const persisted = await client.waitForFinalMessage(threadId, result.turnId);
+    if (persisted.text) {
+      result.finalMessage = persisted.text;
+      result.finalMessageItemId = persisted.itemId;
     }
     renderer.ensureFinalMessage({ itemId: result.finalMessageItemId, text: result.finalMessage });
     return result;
@@ -87,9 +88,11 @@ export async function runAgentAction({
     const threadId = started.thread?.id;
     if (!threadId) throw new Error("Codex App Server did not return a thread id");
 
+    const workObjective = await resolveExplicitSkills(client, prompt, workingDirectory);
+
     const work = await runGoal(client, renderer, {
       threadId,
-      objective: prompt,
+      objective: workObjective,
       tokenBudget: budget.work,
       phase: "work",
     });
