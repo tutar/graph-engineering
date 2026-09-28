@@ -40,6 +40,8 @@ async function runGoal(client, renderer, { threadId, objective, tokenBudget, pha
   } catch (error) {
     terminal.cancel();
     throw error;
+  } finally {
+    renderer.flush();
   }
 }
 
@@ -137,6 +139,7 @@ export async function runAgentAction({
     try {
       await client.close();
     } finally {
+      renderer.flush();
       if (isolatedCodexHome) await rm(isolatedCodexHome, { recursive: true, force: true });
     }
   }

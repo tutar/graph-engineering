@@ -107,6 +107,8 @@ Work prompt 含显式 `$skill-name` 时，Action 在创建 Goal 前通过目标 
 
 Action 的 `log-mode` 固定为 `safe`、`detailed` 或 `silent`，默认 `safe`；Coding Workflow 显式选择 `detailed`。三种模式的 App Server 事件知识都由 Action 私有拥有，Workflow 只选择模式。投影日志逐行使用 `[codex][work|handoff][event]` 前缀，详细模式仅允许 UI 可见 reasoning summary、Agent message、命令、MCP 与相关文件变更等固定事件；认证/账户、raw JSON-RPC、隐藏 reasoning 和未知事件不输出。renderer 故障 fail-open，协议故障仍失败，不生成合成心跳或 Action 自定义字节上限。
 
+`detailed` 的命令输出与 reasoning summary 按 Thread、Turn、Item（summary 另按 part）合并 delta，收到换行后立即输出完整行；未结束的行在 Item 完成、Goal 收尾或 Action 关闭时输出，空白行不生成前缀。因而无换行的进度字符会等待行结束或收尾。`safe` 对同一对象的同类 delta 只报告一次活动；`silent` 不输出投影事件。完整行在合并后统一脱敏并转义控制字符。
+
 ## 开发、安装与测试
 
 `workflow/.github/` 是开发源，根 `.github/` 是本仓库实际 dogfooding 的已安装副本。开发期间二者允许不一致；不设置强制 CI 同步检查。开发和测试完成后显式运行 `graph-engineering init` 安装，`graph-engineering check` 由操作者按需检查当前安装是否匹配开发源。
