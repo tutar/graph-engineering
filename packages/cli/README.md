@@ -2,12 +2,12 @@
 
 一次安装项目自有的 Graph Engineering（图工程）GitHub 工作流集合。完整 Quick Start、运行前提与支持边界见 [Graph Engineering](https://github.com/tutar/graph-engineering#quick-start)。
 
-v0.3.2 已发布到 npm registry，也可从 [GitHub Release](https://github.com/tutar/graph-engineering/releases/tag/v0.3.2) 下载相同的 CLI 包：
+v0.3.3 提供整套 Workflow 安装与版本升级 CLI，发布资产见 [npm](https://www.npmjs.com/package/@tutar/graph-engineering/v/0.3.3) 与 [GitHub Release](https://github.com/tutar/graph-engineering/releases/tag/v0.3.3)：
 
 ```bash
-npx --yes @tutar/graph-engineering@0.3.2 init [--dry-run] [--project /path/to/consumer]
-npx --yes @tutar/graph-engineering@0.3.2 check [--json] [--project /path/to/consumer]
-npx --yes @tutar/graph-engineering@0.3.2 migrate [--apply] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.3 init [--dry-run] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.3 check [--json] [--project /path/to/consumer]
+npx --yes @tutar/graph-engineering@0.3.3 migrate [--apply] [--project /path/to/consumer]
 ```
 
 `init` 将 `workflow/.github/` 开发源的打包资产整体复制到目标 Git 仓库的 `.github/`。当前集合包含独立的 Coding 与 Development Workflow；没有 PR Review 或未实现的 Repository Review workflow。目标文件或安装记录已存在时停止，不覆盖；`--dry-run` 不写入。
@@ -22,9 +22,9 @@ npx --yes @tutar/graph-engineering@0.3.2 migrate [--apply] [--project /path/to/c
 
 `init/check pr-review` 明确报告退役；`init/check development` 明确报告任务选择接口已取消，不静默执行其他任务。
 
-## Workflow 版本升级（源码已实现，尚未发布）
+## Workflow 版本升级（0.3.3 起）
 
-已发布 0.3.1/0.3.2 CLI 不含 `upgrade`。本源码新增独立入口，首次支持 0.3.1 起的 schema 3 安装；下一发布版本号在发布时确定，不修改历史 npm 包。执行升级的 CLI 版本与项目安装版本独立，默认目标是执行命令的 CLI 版本；`--to` 只接受准确稳定版本，如 `0.3.2`，不接受 `latest` 或范围。目标需使用该版本的已发布包；无法取得或核对来源则停止。
+旧版 0.3.1/0.3.2 CLI 不含 `upgrade`。0.3.3 CLI 提供独立入口，首次支持 0.3.1 起的 schema 3 安装；不修改历史 npm 包。执行升级的 CLI 版本与项目安装版本独立，默认目标是执行命令的 CLI 版本；`--to` 只接受准确稳定版本，如 `0.3.2`，不接受 `latest` 或范围。目标需使用该版本的已发布包；无法取得或核对来源则停止。
 
 ```text
 graph-engineering upgrade [--to <version>] [--from-package <baseline.tgz>] [--to-package <target.tgz>] [--apply] [--project <path>]
@@ -32,25 +32,22 @@ graph-engineering upgrade [--to <version>] [--from-package <baseline.tgz>] [--to
 
 默认仅展示路径计划、包来源提交与 SHA-512、内容 diff（包括安装记录），不写入目标项目，也不交互询问。`--apply` 应用整套无冲突计划。同版本核对来源后报告无需升级；降级、旧 schema、缺失安装记录、版本/来源提交/文件清单不匹配均停止。未提供本地包时通过 `npm pack @tutar/graph-engineering@<准确版本> --ignore-scripts` 取得资产，核对 npm 报告的 integrity、包身份、版本与 release metadata；基线的来源提交和模板文件清单还须与安装记录一致。不运行包内代码或安装脚本。需要本地 `npm`、Git、tar；离线时只需要 Node.js 20+、Git、tar 与可信的包文件。
 
-在本改动发布前，可在源码仓库用 `npm pack` 生成候选 CLI，解包到独立目录，实际把旧项目升级到已发布 0.3.2：
+用新版 CLI 将旧项目升级到准确的 0.3.2（CLI 版本与目标安装版本可以不同）：
 
 ```bash
-mkdir -p /tmp/graph-cli-candidate
-(cd packages/cli && npm pack --pack-destination /tmp/graph-cli-candidate)
-tar -xzf /tmp/graph-cli-candidate/tutar-graph-engineering-0.3.2.tgz -C /tmp/graph-cli-candidate
-node /tmp/graph-cli-candidate/package/bin/graph-engineering.mjs upgrade --to 0.3.2 --project /path/to/project
-node /tmp/graph-cli-candidate/package/bin/graph-engineering.mjs upgrade --to 0.3.2 --project /path/to/project --apply
+npx --yes @tutar/graph-engineering@0.3.3 upgrade --to 0.3.2 --project /path/to/project
+npx --yes @tutar/graph-engineering@0.3.3 upgrade --to 0.3.2 --project /path/to/project --apply
 npx --yes @tutar/graph-engineering@0.3.2 check --project /path/to/project
 ```
 
-这里候选包沿用源码的当前版本号，不代表新内容已发布到 npm。正式发布后用新发布的准确 CLI 版本运行 `upgrade --to 0.3.2`，不使用已发布 0.3.2 CLI 执行升级命令。
+省略 `--to` 时目标为 0.3.3，使用 0.3.3 CLI 执行 `check` 核对该目标版本。不要使用旧版 0.3.2 CLI 执行升级命令。
 
-离线前在联网环境取得旧版与目标版原始包；可从对应 GitHub Release 下载同一资产。将包复制到离线机器，核对可信发布来源的 SHA-512 后执行：
+离线前在联网环境取得旧版与目标版原始包；可从对应 GitHub Release 下载同一资产。另将 0.3.3 CLI 包解包到 `/path/to/offline-cli/`。把这些包复制到离线机器，核对可信发布来源的 SHA-512 后执行：
 
 ```bash
 npm pack @tutar/graph-engineering@0.3.1 --ignore-scripts --pack-destination /path/to/assets
 npm pack @tutar/graph-engineering@0.3.2 --ignore-scripts --pack-destination /path/to/assets
-node /path/to/new-cli/package/bin/graph-engineering.mjs upgrade --to 0.3.2 --project /path/to/project \
+node /path/to/offline-cli/package/bin/graph-engineering.mjs upgrade --to 0.3.2 --project /path/to/project \
   --from-package /path/to/assets/tutar-graph-engineering-0.3.1.tgz \
   --to-package /path/to/assets/tutar-graph-engineering-0.3.2.tgz
 # 检查预览后，在同一命令末尾添加 --apply。

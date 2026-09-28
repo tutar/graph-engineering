@@ -1,6 +1,6 @@
 {
   "name": "@tutar/graph-engineering",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Install and inspect project-owned Graph Engineering workflows for GitHub software development.",
   "type": "module",
   "bin": {

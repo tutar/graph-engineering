@@ -1,6 +1,6 @@
 # Workflow 版本升级设计
 
-状态：源码已实现，尚未发布到 npm；已发布 0.3.1/0.3.2 CLI 不提供升级命令。需求与工作请求按项目协议发布到 GitHub Issues；本文件保存维护所需的设计约束，不替代实施票据。
+状态：0.3.3 CLI 提供独立升级入口；旧版 0.3.1/0.3.2 CLI 不提供升级命令。需求与工作请求按项目协议发布到 GitHub Issues；本文件保存维护所需的设计约束，不替代实施票据。
 
 ## 问题与边界
 
@@ -18,7 +18,7 @@ graph-engineering upgrade [--to <version>] [--apply] [--project <path>]
 
 默认只展示升级计划与 diff，不写入项目。显式 `--apply` 才应用；发现冲突时即使传入 `--apply` 也停止。
 
-执行命令的 CLI 版本与项目安装版本彼此独立。目标版本默认是执行命令的 CLI 版本；`--to` 指定准确的已发布版本，不接受不确定的滚动目标。以未来 0.3.3 首次交付命令为例，下列命令可将已安装 0.3.1 的项目升级到 0.3.2：
+执行命令的 CLI 版本与项目安装版本彼此独立。目标版本默认是执行命令的 CLI 版本；`--to` 指定准确的已发布版本，不接受不确定的滚动目标。0.3.3 首次交付命令，下列命令可将已安装 0.3.1 的项目升级到 0.3.2：
 
 ```bash
 npx --yes @tutar/graph-engineering@0.3.3 upgrade --to 0.3.2
@@ -26,7 +26,7 @@ npx --yes @tutar/graph-engineering@0.3.3 upgrade --to 0.3.2 --apply
 npx --yes @tutar/graph-engineering@0.3.2 check
 ```
 
-此处 0.3.3 是示例发布版本，并非发布承诺；已发布 CLI 中该命令目前不可用；源码与候选包操作见 [CLI 说明](../../packages/cli/README.md#workflow-版本升级源码已实现尚未发布)。已发布的 0.3.2 包不会被修改，也不要求 0.3.1 CLI 自身支持 `upgrade`。
+0.3.3 CLI 与项目目标版本彼此独立；升级与离线操作见 [CLI 说明](../../packages/cli/README.md#workflow-版本升级033-起)。已发布的 0.3.2 包不会被修改，也不要求 0.3.1 CLI 自身支持 `upgrade`。
 
 首次支持 0.3.1 起的当前 schema 安装；同版本报告无需升级，降级、旧 schema 和无法核对来源的安装停止并解释原因。静态 `check` 不证明真实 Workflow 执行成功。
 

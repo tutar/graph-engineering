@@ -7,14 +7,14 @@ Graph Engineering（图工程）以 GitHub 持久事实连接 Workflow Task（�
 需要 Node.js 20+、Git 仓库和可运行 Codex 的 self-hosted GitHub Actions runner。在目标仓库根目录先预览，再安装并检查固定版本：
 
 ```bash
-npx --yes @tutar/graph-engineering@0.3.2 init --dry-run
-npx --yes @tutar/graph-engineering@0.3.2 init
-npx --yes @tutar/graph-engineering@0.3.2 check
+npx --yes @tutar/graph-engineering@0.3.3 init --dry-run
+npx --yes @tutar/graph-engineering@0.3.3 init
+npx --yes @tutar/graph-engineering@0.3.3 check
 ```
 
 `init` 写入 `.github/` 与安装来源记录；任何目标冲突都会停止，不覆盖已有文件。`check` 是可重复执行的只读检查；`ACTION REQUIRED` 或 `UNVERIFIED` 表示仍需人工配置或当前环境无法确认。CLI 不注册 runner、不登录 Codex、不安装 Skill、不提交文件，也不修改 GitHub Settings。
 
-已安装 0.3.1 的项目升级时使用独立 `upgrade`，保留项目自有修改，默认只读预览。该命令已在源码实现，尚未发布；已发布 0.3.2 CLI 不含该命令。候选 CLI 升级到指定 0.3.2、离线包与失败恢复的步骤见 [CLI 升级说明](packages/cli/README.md#workflow-版本升级源码已实现尚未发布)。
+已安装 0.3.1 的项目升级时使用独立 `upgrade`，保留项目自有修改，默认只读预览。0.3.3 CLI 提供该命令；旧版 0.3.2 CLI 不含升级命令。使用新版 CLI 升级到指定 0.3.2、离线包与失败恢复的步骤见 [CLI 升级说明](packages/cli/README.md#workflow-版本升级033-起)。
 
 ## 当前设计方向
 

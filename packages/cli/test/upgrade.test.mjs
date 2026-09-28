@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
+import { PRODUCT_VERSION } from '../lib/constants.mjs';
 import { packageRoot } from '../lib/files.mjs';
 
 const cli = join(packageRoot, 'bin/graph-engineering.mjs');
@@ -36,20 +37,25 @@ async function fixture(t, oldFiles = { [workflow]: 'runner: old\n\nprompt: origi
   for (const [path, content] of Object.entries(oldFiles)) await put(projectRoot, path, content);
   await put(projectRoot, manifestPath, JSON.stringify({ schemaVersion: 3, product: '@tutar/graph-engineering', productVersion: '0.3.1', sourceCommit: oldCommit, delivery: 'workflow', files: Object.keys(oldFiles).sort(), tasks: ['coding', 'development'] }));
   const options = { projectRoot, to: '0.3.2', fromPackage: packs[0], toPackage: packs[1] };
-  const run = (...args) => spawnSync(process.execPath, [cli, 'upgrade', '--project', projectRoot, '--from-package', packs[0], '--to-package', packs[1], ...args], { encoding: 'utf8' });
-  return { root, projectRoot, packs, options, run };
+  const invoke = (...args) => spawnSync(process.execPath, [cli, 'upgrade', '--project', projectRoot, '--from-package', packs[0], '--to-package', packs[1], ...args], { encoding: 'utf8' });
+  const run = (...args) => invoke('--to', '0.3.2', ...args);
+  return { root, projectRoot, packs, options, run, invoke };
 }
 
 test('CLI previews content diff without writing, defaults to CLI version, and applies only explicitly', async (t) => {
-  const { projectRoot, run } = await fixture(t);
+  const { root, projectRoot, packs, invoke } = await fixture(t);
+  const targetRoot = join(root, 'stage-1/package');
+  await put(targetRoot, 'package.json', JSON.stringify({ name: '@tutar/graph-engineering', version: PRODUCT_VERSION }));
+  await put(targetRoot, 'release-metadata.json', JSON.stringify({ productVersion: PRODUCT_VERSION, sourceCommit: newCommit }));
+  execFileSync('tar', ['-czf', packs[1], '-C', join(root, 'stage-1'), 'package']);
   const before = await readFile(join(projectRoot, manifestPath));
-  const preview = run();
+  const preview = invoke();
   assert.equal(preview.status, 0, preview.stderr);
-  assert.match(preview.stdout, /0\.3\.1 -> 0\.3\.2/);
+  assert.ok(preview.stdout.includes(`0.3.1 -> ${PRODUCT_VERSION}`));
   assert.match(preview.stdout, /@@/);
   assert.equal(await readFile(join(projectRoot, workflow), 'utf8'), 'runner: old\n\nprompt: original\n');
   assert.deepEqual(await readFile(join(projectRoot, manifestPath)), before);
-  const applied = run('--to', '0.3.2', '--apply');
+  const applied = invoke('--apply');
   assert.equal(applied.status, 0, applied.stderr);
   assert.equal(await readFile(join(projectRoot, workflow), 'utf8'), 'runner: old\n\nprompt: upstream\n');
   assert.equal(JSON.parse(await readFile(join(projectRoot, manifestPath))).sourceCommit, newCommit);
