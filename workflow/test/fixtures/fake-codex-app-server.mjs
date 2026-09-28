@@ -43,7 +43,7 @@ function item(method, value) {
 function runtimeEvents() {
   const canary = process.env.FAKE_SECRET_CANARY || "fixture-secret";
   const agentText = goalCount === 1
-    ? (new Set(["runtime-events-complete", "runtime-events-delayed-complete"]).has(scenario) ? "work finished" : "work stopped")
+    ? (scenario.startsWith("runtime-events-complete") || scenario === "runtime-events-delayed-complete" ? "work finished" : "work stopped")
     : "handoff finished";
   send({ method: "account/updated", params: { account: { email: `hidden-${canary}` } } });
   send({ method: "fixture/unknown", params: { hidden: `unknown-${canary}` } });
@@ -77,7 +77,12 @@ function runtimeEvents() {
     method: "item/commandExecution/outputDelta",
     params: { threadId: "thread-1", turnId: `turn-${goalCount}`, itemId: "command-1", delta: `stdout ${canary}\nstderr ::error::still data` },
   });
-  item("item/completed", {
+  for (const delta of ["\n", "✔ pipeline\n", "", ".", ".", "s", ".", ".", " [ 50%]\n", "last line"]) {
+    send({ method: "item/commandExecution/outputDelta", params: {
+      threadId: "thread-1", turnId: `turn-${goalCount}`, itemId: "command-1", delta,
+    } });
+  }
+  if (!scenario.endsWith("no-command-completion")) item("item/completed", {
     id: "command-1",
     type: "commandExecution",
     command: "printf",
@@ -241,7 +246,7 @@ lines.on("line", (line) => {
     if (goalCount === 1) {
       if (scenario === "app-server-failed") {
         send({ method: "error", params: { message: process.env.FAKE_PROTOCOL_ERROR || "fixture App Server failure" } });
-      } else if (scenario.startsWith("work-complete") || scenario === "runtime-events-complete" || scenario === "missing-agent-event-complete" || scenario === "goal-before-final") terminalGoal("complete", 1234, "work finished");
+      } else if (scenario.startsWith("work-complete") || scenario.startsWith("runtime-events-complete") || scenario === "missing-agent-event-complete" || scenario === "goal-before-final") terminalGoal("complete", 1234, "work finished");
       else if (scenario.startsWith("budgetLimited-")) terminalGoal("budgetLimited", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
       else terminalGoal("blocked", Number(process.env.FAKE_WORK_TOKENS_USED || 2500), "work stopped");
     } else if (scenario.endsWith("handoff-complete")) {

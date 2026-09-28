@@ -23,7 +23,7 @@ function escapeControls(value) {
 }
 
 function lines(value) {
-  return String(value).split(/\r\n|\r|\n/).map(escapeControls);
+  return String(value).split(/\r\n|\r|\n/).filter((line) => line.trim()).map(escapeControls);
 }
 
 function formattedLines({ phase, event, value, redact }) {
@@ -39,6 +39,8 @@ export class EventRenderer {
   #writeDiagnostic;
   #agentMessageDeltas = new Map();
   #renderedAgentItems = new Set();
+  #textDeltas = new Map();
+  #safeDeltas = new Set();
 
   constructor({ logMode, redact = (value) => value, write = () => {}, writeDiagnostic = () => {} }) {
     this.#logMode = validateLogMode(logMode);
@@ -49,9 +51,22 @@ export class EventRenderer {
 
   setPhase(phase) {
     if (phase !== "work" && phase !== "handoff") throw new Error(`Unknown Goal phase: ${phase}`);
+    this.flush();
     this.#phase = phase;
     this.#agentMessageDeltas.clear();
     this.#renderedAgentItems.clear();
+    this.#safeDeltas.clear();
+  }
+
+  flush() {
+    for (const [key, stream] of this.#textDeltas) {
+      this.#textDeltas.delete(key);
+      try {
+        this.#emit(stream.event, stream.text);
+      } catch (error) {
+        this.diagnostic(`Codex event renderer failed: ${error.message}`);
+      }
+    }
   }
 
   render(message) {
@@ -66,7 +81,7 @@ export class EventRenderer {
 
     if (method === "item/agentMessage/delta") {
       if (typeof params.delta !== "string") return;
-      if (this.#logMode === "safe") this.#emit("agent-message", "event=delta");
+      if (this.#logMode === "safe") this.#delta("agent-message", params);
       else this.#agentMessageDeltas.set(
         params.itemId,
         `${this.#agentMessageDeltas.get(params.itemId) ?? ""}${params.delta}`,
@@ -80,14 +95,12 @@ export class EventRenderer {
     }
 
     if (method === "item/reasoning/summaryTextDelta") {
-      if (this.#logMode === "safe") this.#emit("reasoning-summary", "event=delta");
-      else if (typeof params.delta === "string") this.#emit("reasoning-summary", params.delta);
+      this.#delta("reasoning-summary", params);
       return;
     }
 
     if (method === "item/commandExecution/outputDelta") {
-      if (this.#logMode === "safe") this.#emit("command-output", "event=delta");
-      else if (typeof params.delta === "string") this.#emit("command-output", params.delta);
+      this.#delta("command-output", params);
       return;
     }
 
@@ -106,7 +119,43 @@ export class EventRenderer {
     if (method !== "item/started" && method !== "item/completed") return;
     const item = params.item;
     if (!item || !ITEM_TYPES.has(item.type)) return;
+    if (method === "item/completed") this.#flushItem({ ...params, itemId: item.id });
     this.#renderItem(method === "item/started" ? "started" : "completed", item);
+  }
+
+  #delta(event, params) {
+    if (typeof params.delta !== "string" || !params.delta) return;
+    const identity = JSON.stringify([params.threadId, params.turnId, params.itemId]);
+    const key = JSON.stringify([event, identity, params.summaryIndex]);
+    if (this.#logMode === "safe") {
+      if (!this.#safeDeltas.has(key)) {
+        this.#safeDeltas.add(key);
+        this.#emit(event, "event=delta");
+      }
+      return;
+    }
+    const stream = this.#textDeltas.get(key) ?? { event, identity, text: "" };
+    stream.text += params.delta;
+    this.#textDeltas.set(key, stream);
+    // App Server deltas are transport fragments; retain incomplete lines and a
+    // trailing CR so a CRLF split across notifications stays one delimiter.
+    while (true) {
+      const index = stream.text.search(/[\r\n]/);
+      if (index < 0 || (stream.text[index] === "\r" && index === stream.text.length - 1)) return;
+      const line = stream.text.slice(0, index);
+      const delimiterLength = stream.text.slice(index, index + 2) === "\r\n" ? 2 : 1;
+      stream.text = stream.text.slice(index + delimiterLength);
+      this.#emit(event, line);
+    }
+  }
+
+  #flushItem(params) {
+    const identity = JSON.stringify([params.threadId, params.turnId, params.itemId]);
+    for (const [key, stream] of this.#textDeltas) {
+      if (stream.identity !== identity) continue;
+      this.#textDeltas.delete(key);
+      this.#emit(stream.event, stream.text);
+    }
   }
 
   ensureFinalMessage({ itemId, text }) {

@@ -535,6 +535,10 @@ test("detailed mode streams the allowlisted Runtime events with safe line prefix
   assert.match(completed.stdout, /^\[codex\]\[work\]\[command\] printf '\*\*\*\\nsecond line'$/m);
   assert.match(completed.stdout, /^\[codex\]\[work\]\[command-output\] stdout \*\*\*$/m);
   assert.match(completed.stdout, /^\[codex\]\[work\]\[command-output\] stderr ::error::still data$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[command-output\] ✔ pipeline$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[command-output\] \.\.s\.\. \[ 50%\]$/m);
+  assert.match(completed.stdout, /^\[codex\]\[work\]\[command-output\] last line$/m);
+  assert.doesNotMatch(completed.stdout, /^\[codex\]\[work\]\[command-output\]\s*$/m);
   assert.match(completed.stdout, /^\[codex\]\[work\]\[command\] status=completed exit=0$/m);
   assert.match(completed.stdout, /^\[codex\]\[work\]\[mcp\] server=fixture tool=lookup arguments=.*\*\*\*/m);
   assert.match(completed.stdout, /^\[codex\]\[work\]\[mcp\] progress=halfway$/m);
@@ -552,6 +556,7 @@ test("safe mode emits only event metadata while silent preserves the previous mi
   assert.equal(safe.process.status, 0, safe.process.stderr);
   assert.match(safe.process.stdout, /\[codex\]\[work\]\[command\] event=completed status=completed exit=0/);
   assert.match(safe.process.stdout, /\[codex\]\[work\]\[goal\] status=complete tokens=1234 elapsed=1s/);
+  assert.equal(safe.process.stdout.match(/\[command-output\] event=delta/g)?.length, 1);
   assert.doesNotMatch(safe.process.stdout, /visible reasoning|work finished|printf|stdout|halfway|example\.txt|lookup/);
 
   const silent = await invokeAction(t, "runtime-events-complete", { logMode: "silent" });
@@ -645,4 +650,19 @@ test("renderer failure is fail-open while invalid App Server JSON remains fatal"
   const invalid = await invokeAction(t, "invalid-json", { logMode: "detailed" });
   assert.equal(invalid.process.status, 1);
   assert.match(invalid.outputs["final-message"], /invalid JSON/);
+});
+
+test("Goal teardown flushes incomplete command output even without item completion", async (t) => {
+  const { process: completed } = await invokeAction(t, "runtime-events-complete-no-command-completion", { logMode: "detailed" });
+  assert.equal(completed.status, 0, completed.stderr);
+  assert.equal(completed.stdout.match(/\[command-output\] last line/g)?.length, 1);
+
+  const diagnostics = [];
+  const { result } = await runScenario(t, "runtime-events-complete-no-command-completion", {
+    logMode: "detailed",
+    onLog: (line) => { if (line.includes("last line")) throw new Error("fixture flush sink failed"); },
+    onDiagnostic: (line) => diagnostics.push(line),
+  });
+  assert.equal(result.workGoalStatus, "complete");
+  assert.match(diagnostics.join("\n"), /Codex event renderer failed: fixture flush sink failed/);
 });
