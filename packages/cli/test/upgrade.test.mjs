@@ -4,8 +4,9 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
+import { packageRoot } from '../lib/files.mjs';
 
-const cli = resolve('packages/cli/bin/graph-engineering.mjs');
+const cli = join(packageRoot, 'bin/graph-engineering.mjs');
 const manifestPath = '.github/graph-engineering/installation.json';
 const workflow = '.github/workflows/task.yml';
 const oldCommit = '1'.repeat(40);
@@ -296,4 +297,16 @@ test('a newly created path or permission change after planning stops the complet
   await chmod(join(projectRoot, workflow), 0o755);
   await assert.rejects(applyUpgrade(plan), /project changed since plan/);
   assert.equal(await readFile(join(projectRoot, workflow), 'utf8'), 'old');
+});
+
+
+test('hard-linked installation files cannot cause an upgrade to overwrite unrelated files', async (t) => {
+  const { link } = await import('node:fs/promises');
+  const { root, projectRoot, run } = await fixture(t);
+  const outside = join(root, 'hard-linked-unrelated-file');
+  await link(join(projectRoot, workflow), outside);
+  const result = run('--apply');
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /unsafe project file/);
+  assert.equal(await readFile(outside, 'utf8'), 'runner: old\n\nprompt: original\n');
 });

@@ -10,6 +10,7 @@ export async function snapshotFile(projectRoot, path) {
   const full = within(projectRoot, path);
   // Existing parents must be real directories, so a project symlink cannot make
   // preview or apply read/write outside the project-owned installation.
+  // Hard-linked files are rejected as well: in-place writes would change aliases.
   let parent = projectRoot;
   for (const segment of relative(projectRoot, dirname(full)).split(sep).filter(Boolean)) {
     parent = resolve(parent, segment);
@@ -18,7 +19,7 @@ export async function snapshotFile(projectRoot, path) {
   }
   const stat = await statOptional(full);
   if (!stat) return { content: null, mode: null };
-  if (!stat.isFile()) throw new Error(`unsafe project file: ${path}`);
+  if (!stat.isFile() || stat.nlink > 1) throw new Error(`unsafe project file: ${path}`);
   return { content: await readFile(full), mode: stat.mode & 0o777 };
 }
 
