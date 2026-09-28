@@ -3,13 +3,15 @@
 import { resolve } from "node:path";
 import { checkWorkflow, printCheck } from "../lib/check.mjs";
 import { initWorkflow } from "../lib/init.mjs";
+import { upgrade } from "../lib/upgrade.mjs";
 import { migrate } from "../lib/migrate.mjs";
 
 function usage() {
   return `Usage:
   graph-engineering init [--dry-run] [--project <path>]
   graph-engineering check [--json] [--project <path>]
-  graph-engineering migrate [--apply] [--project <path>]`;
+  graph-engineering migrate [--apply] [--project <path>]
+  graph-engineering upgrade [--to <version>] [--from-package <tgz>] [--to-package <tgz>] [--apply] [--project <path>]`;
 }
 
 function parse(argv) {
@@ -23,6 +25,10 @@ function parse(argv) {
     if (arg === "--project") {
       if (!args[index + 1]) throw new Error("--project requires a path");
       options.projectRoot = resolve(args[++index]);
+    } else if (["--to", "--from-package", "--to-package"].includes(arg) && command === "upgrade") {
+      if (!args[index + 1] || args[index + 1].startsWith("--")) throw new Error(`${arg} requires a value`);
+      const key = { "--to": "to", "--from-package": "fromPackage", "--to-package": "toPackage" }[arg];
+      options[key] = args[++index];
     } else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--json") options.json = true;
     else if (arg === "--apply") options.apply = true;
@@ -47,6 +53,11 @@ try {
     const report = await checkWorkflow(options);
     printCheck(report, options);
     if (report.blocking) process.exitCode = 1;
+  } else if (options.command === "upgrade") {
+    if (options.dryRun || options.json) throw new Error("upgrade previews by default; --dry-run and --json are not supported");
+    const result = await upgrade(options);
+    for (const line of result.summary) process.stdout.write(`${line}\n`);
+    if (result.conflicts.length) process.exitCode = 1;
   } else if (options.command === "migrate") {
     const result = await migrate(options);
     for (const line of result.summary) process.stdout.write(`${line}\n`);
